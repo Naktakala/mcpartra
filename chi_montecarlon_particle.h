@@ -19,6 +19,8 @@ struct chi_montecarlon::Particle
   bool alive = true;
   bool banked = false;
 
+  Particle() {}
+
   //=================================== Copy operator
   Particle& operator=(const Particle& that)
   {
@@ -31,9 +33,22 @@ struct chi_montecarlon::Particle
     this->cur_cell_ind = that.cur_cell_ind;
 
     this->alive = that.alive;
+    this->banked = that.banked;
 
     return *this;
   }
+
+  Particle(const Particle& that):
+    pos(that.pos),
+    dir(that.dir),
+    w(that.w),
+    egrp(that.egrp),
+    cur_cell_ind(that.cur_cell_ind),
+    alive(that.alive),
+    banked(that.banked)
+  {}
+
+
 };
 
 

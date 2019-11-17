@@ -16,10 +16,10 @@ extern ChiLog chi_log;
 
 //###################################################################
 /**The default raytracing algorithm.*/
-void chi_montecarlon::Solver::Raytrace(chi_montecarlon::Particle* prtcl)
+void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 {
   //======================================== Get total and scat xs
-  auto cell = grid->cells[prtcl->cur_cell_ind];
+  auto cell = grid->cells[prtcl.cur_cell_ind];
   int mat_id = cell->material_id;
   int xs_id = matid_xs_map[mat_id];
 
@@ -27,26 +27,26 @@ void chi_montecarlon::Solver::Raytrace(chi_montecarlon::Particle* prtcl)
 
   auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
 
-  double sigt = xs->sigma_tg[prtcl->egrp];
-  double sigs = sigt - xs->sigma_ag[prtcl->egrp];
+  double sigt = xs->sigma_tg[prtcl.egrp];
+  double sigs = sigt - xs->sigma_ag[prtcl.egrp];
 
   //======================================== Distance to event
   double d_to_intract = -1.0*log(1.0-rng0.Rand())/sigt;
   double d_to_surface = 1.0e15;
 
-  chi_mesh::Vector posf = prtcl->pos;
-  chi_mesh::Vector dirf = prtcl->dir;
-  int                ef = prtcl->egrp;
+  chi_mesh::Vector posf = prtcl.pos;
+  chi_mesh::Vector dirf = prtcl.dir;
+  int                ef = prtcl.egrp;
   chi_mesh::RayDestinationInfo ray_dest_info =
     chi_mesh::RayTrace(grid, cell,
-                       prtcl->pos, prtcl->dir,
+                       prtcl.pos, prtcl.dir,
                        d_to_surface, posf);
 
 
   //======================================== Process interaction
   if (d_to_intract < d_to_surface)
   {
-    posf = prtcl->pos + prtcl->dir*d_to_intract;
+    posf = prtcl.pos + prtcl.dir*d_to_intract;
 
     if (rng0.Rand() < (sigs/sigt))
     {
@@ -54,13 +54,13 @@ void chi_montecarlon::Solver::Raytrace(chi_montecarlon::Particle* prtcl)
       auto energy_dir = ProcessScattering(prtcl,xs);
       ef   = energy_dir.first;
       dirf = energy_dir.second;
-//      prtcl->alive = false;  // TODO: Remove before flight
+//      prtcl.alive = false;  // TODO: Remove before flight
 
-      if (mono_energy && (ef != prtcl->egrp))
-        prtcl->alive = false;
+      if (mono_energy && (ef != prtcl.egrp))
+        prtcl.alive = false;
     }
     else
-      prtcl->alive = false;
+      prtcl.alive = false;
 
     ContributeTally(prtcl,posf);
   }
@@ -73,18 +73,30 @@ void chi_montecarlon::Solver::Raytrace(chi_montecarlon::Particle* prtcl)
     {
       bool reflecting = false;
       if (!reflecting)
-        prtcl->alive = false;
+        prtcl.alive = false;
       else
       {
 
       }
     }//if bndry
     else
-      prtcl->cur_cell_ind = ray_dest_info.destination_face_neighbor;
+    {
+      prtcl.cur_cell_ind = ray_dest_info.destination_face_neighbor;
+      if (( not mesh_is_global ) and
+          ( not grid->IsCellLocal(prtcl.cur_cell_ind) ))
+      {
+        prtcl.pos = posf;
+        prtcl.dir = dirf;
+        prtcl.egrp = ef;
+        outbound_particle_bank.push_back(prtcl);
+        prtcl.banked = true;
+      }
+    }
+
   }
 
-  prtcl->pos = posf;
-  prtcl->dir = dirf;
-  prtcl->egrp = ef;
+  prtcl.pos = posf;
+  prtcl.dir = dirf;
+  prtcl.egrp = ef;
 
 }

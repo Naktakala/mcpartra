@@ -3,6 +3,9 @@
 #include <ChiPhysics/PhysicsMaterial/chi_physicsmaterial.h>
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 
+#include <ChiMesh/MeshHandler/chi_meshhandler.h>
+#include <ChiMesh/VolumeMesher/chi_volumemesher.h>
+
 #include <ChiMath/Statistics/cdfsampler.h>
 
 extern ChiPhysics chi_physics_handler;
@@ -85,6 +88,9 @@ bool chi_montecarlon::Solver::Initialize()
   //=================================== Initialize tallies
   chi_mesh::Region*  aregion = this->regions.back();
   this->grid                 = aregion->volume_mesh_continua.back();
+
+  auto handler = chi_mesh::GetCurrentHandler();
+  mesh_is_global = handler->volume_mesher->options.mesh_global;
 
   size_t num_local_cells = grid->local_cell_glob_indices.size();
   size_t tally_size = num_grps*num_local_cells;
@@ -201,7 +207,8 @@ bool chi_montecarlon::Solver::Initialize()
     }//for g
   }//if make_pwld
 
-
+  //======================================== Initialize data types
+  BuildMPITypes();
 
 
   MPI_Barrier(MPI_COMM_WORLD);

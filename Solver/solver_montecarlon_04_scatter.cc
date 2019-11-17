@@ -18,11 +18,11 @@ extern ChiLog chi_log;
 /**Processes a scattering event from cross-sections.*/
 std::pair<int,chi_mesh::Vector>
 chi_montecarlon::Solver::
-ProcessScattering(chi_montecarlon::Particle *prtcl,
+ProcessScattering(chi_montecarlon::Particle &prtcl,
                   chi_physics::TransportCrossSections *xs)
 {
   //=================================== Sample energy
-  int g      = prtcl->egrp;
+  int g      = prtcl.egrp;
   int gprime = xs->Sample_gprime(g,rng0.Rand());
 
   //=================================== Sample scattering cosine
@@ -40,15 +40,15 @@ ProcessScattering(chi_montecarlon::Particle *prtcl,
 
   chi_mesh::Matrix3x3 R;
 
-  if ((prtcl->dir.z < ( 1.0-1.0e-12)) and
-      (prtcl->dir.z > (-1.0+1.0e-12)))
+  if ((prtcl.dir.z < ( 1.0-1.0e-12)) and
+      (prtcl.dir.z > (-1.0+1.0e-12)))
   {
-    chi_mesh::Vector tangent = prtcl->dir.Cross(chi_mesh::Vector(0.0,0.0,1.0));
-    chi_mesh::Vector binorm = prtcl->dir.Cross(tangent);
+    chi_mesh::Vector tangent = prtcl.dir.Cross(chi_mesh::Vector(0.0,0.0,1.0));
+    chi_mesh::Vector binorm = prtcl.dir.Cross(tangent);
 
     R.SetColJVec(0,tangent/tangent.Norm());
     R.SetColJVec(1,binorm/binorm.Norm());
-    R.SetColJVec(2,prtcl->dir);
+    R.SetColJVec(2,prtcl.dir);
   } else
   {
     R.SetDiagonalVec(1.0,1.0,1.0);

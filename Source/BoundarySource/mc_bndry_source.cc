@@ -261,7 +261,13 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
 {
   chi_montecarlon::Particle new_particle;
 
-  chi_mesh::Cell* first_cell = grid->cells[0];
+  chi_mesh::Cell* first_cell = grid->cells[grid->local_cell_glob_indices[0]];
+
+  if (ref_cell_faces.empty())
+  {
+    new_particle.alive = false;
+    return new_particle;
+  }
 
   //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
   // Categorally slab surface sampling does not require
