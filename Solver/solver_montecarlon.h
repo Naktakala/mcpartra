@@ -3,6 +3,7 @@
 #include<iostream>
 
 #include"../chi_montecarlon.h"
+#include "../chi_montecarlon_particle.h"
 #include"ChiPhysics/SolverBase/chi_solver.h"
 #include "../RandomNumberGenerator/montecarlon_rng.h"
 #include "../Source/mc_base_source.h"
@@ -68,7 +69,7 @@ private:
 
   std::vector<double> segment_lengths;
   //runtime quantities
-  int                                   current_batch;
+  size_t                                current_batch;
   unsigned long long                    nps;
   unsigned long long                    nps_global;
   double                                max_relative_error;
@@ -76,6 +77,11 @@ private:
   double                                max_relative_error3;
   chi_math::CDFSampler*                 surface_source_sampler;
 
+  MPI_Datatype                          mpi_prtcl_data_type;
+  std::vector<Particle>                 outbound_particle_bank;
+  std::vector<Particle>                 inbound_particle_bank;
+  unsigned int                          total_outbound_bank_size=0;
+  unsigned int                          total_inbound_bank_size=0;
 
 public:
   RandomNumberGenerator                 rng0;
@@ -96,6 +102,7 @@ public:
 
 
   //derived from options-set during init
+  bool                                  mesh_is_global = false;
 
 
 private:
@@ -112,14 +119,14 @@ public:
 
 private:
   //03
-  void Raytrace(chi_montecarlon::Particle* prtcl);
+  void Raytrace(Particle& prtcl);
 
   //04
   std::pair<int,chi_mesh::Vector>
-  ProcessScattering(chi_montecarlon::Particle* prtcl,
+  ProcessScattering(Particle& prtcl,
                     chi_physics::TransportCrossSections* xs);
   //05
-  void ContributeTally(chi_montecarlon::Particle* prtcl,
+  void ContributeTally(Particle& prtcl,
                        chi_mesh::Vector pf);
   void RendesvouzTallies();
   void RendesvouzPWLTallies();
@@ -129,6 +136,11 @@ private:
   void NormalizeTallies();
   void NormalizePWLTallies();
 
+  void ComputePWLDTransformations();
+
+  void BuildMPITypes();
+  void GetOutboundBankSize();
+  void ReceiveIncomingParticles(std::vector<Particle>& inbound_particles);
 
 
 
