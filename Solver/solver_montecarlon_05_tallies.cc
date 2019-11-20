@@ -53,6 +53,8 @@ void chi_montecarlon::Solver::ContributeTally(
                                         segment_lengths,
                                         prtcl.pos, pf,prtcl.dir);
 
+
+
     auto cell_pwl_view = pwl_discretization->MapFeView(prtcl.cur_cell_ind);
     int map            = local_cell_pwl_dof_array_address[cell_local_ind];
 
@@ -64,12 +66,12 @@ void chi_montecarlon::Solver::ContributeTally(
       last_segment_length += segment_length;
       auto p = prtcl.pos + prtcl.dir*d;
 
+      cell_pwl_view->ShapeValues(p,N);
+
       for (int dof=0; dof<cell_pwl_view->dofs; dof++)
       {
-        double N = cell_pwl_view->ShapeValue(dof,p);
-
         ir = map + dof*num_grps*num_moms + num_grps*0 + prtcl.egrp;
-        double pwl_tally_contrib = segment_length*prtcl.w*N;
+        double pwl_tally_contrib = segment_length*prtcl.w*N[dof];
 
         phi_pwl_tally[ir]     += pwl_tally_contrib;
         phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;

@@ -24,7 +24,8 @@ namespace chi_montecarlon
     GROUP_BOUNDS      = 6,
     TALLY_MERGE_INTVL = 7,
     TALLY_MULTIPLICATION_FACTOR = 8,
-    MAKE_PWLD_SOLUTION = 9
+    MAKE_PWLD_SOLUTION = 9,
+    UNCOLLIDED_ONLY = 10
   };
 }
 
@@ -68,6 +69,7 @@ private:
   std::vector<int>                      local_cell_pwl_dof_array_address;
 
   std::vector<double> segment_lengths;
+  std::vector<double> N;
   //runtime quantities
   size_t                                current_batch;
   unsigned long long                    nps;
@@ -88,17 +90,18 @@ public:
   std::vector<chi_montecarlon::Source*> sources;
 
   //options
-  double                                tolerance;
-  unsigned long long                    num_particles;
-  int                                   tfc_update_interval;
-  bool                                  mono_energy;
-  int                                   scattering_order;
-  bool                                  force_isotropic;
-  int                                   group_hi_bound;
-  int                                   group_lo_bound;
-  unsigned long long                    tally_rendezvous_intvl;
-  double                                tally_multipl_factor;
-  bool                                  make_pwld;
+  double                                tolerance = 0.000001;
+  unsigned long long                    num_particles = 1000;
+  int                                   tfc_update_interval = 2000;
+  bool                                  mono_energy = false;
+  int                                   scattering_order = 10;
+  bool                                  force_isotropic = false;
+  int                                   group_hi_bound = -1;
+  int                                   group_lo_bound = -1;
+  unsigned long long                    tally_rendezvous_intvl = 100000;
+  double                                tally_multipl_factor = 1.0;
+  bool                                  make_pwld = false;
+  bool                                  uncollided_only = false;
 
 
   //derived from options-set during init
