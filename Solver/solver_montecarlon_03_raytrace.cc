@@ -48,19 +48,28 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
   {
     posf = prtcl.pos + prtcl.dir*d_to_intract;
 
-    if (rng0.Rand() < (sigs/sigt))
+    if (!uncollided_only)
     {
+      if (rng0.Rand() < (sigs/sigt))
+      {
 
-      auto energy_dir = ProcessScattering(prtcl,xs);
-      ef   = energy_dir.first;
-      dirf = energy_dir.second;
-//      prtcl.alive = false;  // TODO: Remove before flight
+        auto energy_dir = ProcessScattering(prtcl,xs);
+        ef   = energy_dir.first;
+        dirf = energy_dir.second;
 
-      if (mono_energy && (ef != prtcl.egrp))
+        if (mono_energy && (ef != prtcl.egrp))
+          prtcl.alive = false;
+      }
+      else
         prtcl.alive = false;
     }
     else
-      prtcl.alive = false;
+    {
+      ef = prtcl.egrp;
+      dirf = prtcl.dir;
+      prtcl.w *= (1.0-(sigs/sigt));
+      prtcl.alive = true;
+    }
 
     ContributeTally(prtcl,posf);
   }

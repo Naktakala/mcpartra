@@ -21,3 +21,4 @@ RegisterFunction(chiMonteCarlonSetProperty)
   RegisterConstant(MC_TALLY_MERGE_INTVL,           7);
   RegisterConstant(MC_TALLY_MULTIPLICATION_FACTOR, 8);
   RegisterConstant(MC_MAKE_PWLD_SOLUTION,          9);
+  RegisterConstant(MC_UNCOLLIDED_ONLY,             10);

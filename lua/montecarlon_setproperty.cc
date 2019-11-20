@@ -53,6 +53,10 @@ MC_MAKE_PWLD_SOLUTION\n
  Classical global tally multiplication factor to be applied after normalization
  per source particle. Expects to be followed by a float. Default 1.0.\n\n
 
+MC_UNCOLLIDED_ONLY\n
+ Trace source particles as uncollided particles, adjusting the weight
+ instead of scattering or absorbing.\n\n
+
 \ingroup LuaMonteCarlon
 \author Jan*/
 int chiMonteCarlonSetProperty(lua_State *L)
@@ -141,6 +145,12 @@ int chiMonteCarlonSetProperty(lua_State *L)
     bool make_pwld = lua_toboolean(L,3);
 
     mcsolver->make_pwld = make_pwld;
+  }
+  else if (property_index == chi_montecarlon::Property::UNCOLLIDED_ONLY)
+  {
+    bool unc_only = lua_toboolean(L,3);
+
+    mcsolver->uncollided_only = unc_only;
   }
   else
   {

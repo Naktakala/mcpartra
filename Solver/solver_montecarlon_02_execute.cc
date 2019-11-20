@@ -53,8 +53,6 @@ void chi_montecarlon::Solver::Execute()
         prtcl.banked = false;
         while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
       }
-
-
       GetOutboundBankSize();
     }
 
