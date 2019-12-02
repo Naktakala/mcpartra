@@ -35,9 +35,10 @@ class chi_montecarlon::Solver : public chi_physics::Solver
 {
 private:
   chi_mesh::MeshContinuum*              grid;
+public:
   SpatialDiscretization_FV*             fv_discretization;
   SpatialDiscretization_PWL*            pwl_discretization;
-
+private:
   std::vector<int>                      matid_xs_map;
 
   std::vector<unsigned long long>       batch_sizes;
@@ -50,6 +51,9 @@ private:
   std::vector<double>                   phi_tally;
   std::vector<double>                   phi_tally_sqr;
 
+public:
+  std::vector<double>                   phi_global_initial_value;
+private:
   std::vector<double>                   phi_global;
   std::vector<double>                   phi_global_tally_sqr;
 

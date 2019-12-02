@@ -1,5 +1,5 @@
-#ifndef _mc_moc_source_h
-#define _mc_moc_source_h
+#ifndef _mc_rmc2_source_h
+#define _mc_rmc2_source_h
 
 #include "../mc_base_source.h"
 
@@ -11,36 +11,29 @@
 
 //###################################################################
 /**Residual source class.*/
-class chi_montecarlon::ResidualMOCSource : public chi_montecarlon::Source
+class chi_montecarlon::ResidualSource2 : public chi_montecarlon::Source
 {
+public:
+  int ref_bndry=-1;
 private:
   chi_physics::FieldFunction* resid_ff;
-
-  std::vector<std::vector<double>> cell_dof_phi;
   chi_math::QuadratureGaussLegendre quadrature;
 
-  std::vector<std::vector<double>> cell_z_i_star;
-  std::vector<std::vector<double>> cell_phi_star;
+  //cell_g_index, face_num, RotationMatrix, Area
+  typedef std::tuple<int,int,chi_mesh::Matrix3x3,double> SourcePatch;
+  std::vector<SourcePatch> source_patches;
 
-  double                           total_abs_source;
-  std::vector<double>              cell_abs_total_source;
-  std::vector<double>              cell_total_source;
-  std::vector<std::vector<double>> cell_subintvl_source;
-  std::vector<double>              cell_cdf;
-  std::vector<double>              cell_sigma_s;
-  std::vector<double>              cell_sigma_t;
+  std::vector<double>      source_patch_cdf;
 
   const bool sample_uniformly;
-  size_t num_subdivs;
-
-  chi_math::CDFSampler* cell_sampler;
 public:
-  ResidualMOCSource(
-    chi_physics::FieldFunction* in_resid_ff,
-    bool use_uniform_sampling=false);
+  ResidualSource2(chi_physics::FieldFunction* in_resid_ff,
+                 bool use_uniform_sampling=false);
+
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,
                   chi_montecarlon::Solver* ref_solver);
+
   chi_montecarlon::Particle
   CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 

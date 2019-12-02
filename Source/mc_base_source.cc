@@ -7,7 +7,7 @@
 /**Default constructor*/
 chi_montecarlon::Source::Source()
 {
-  type_index = MC_BASE_SRC;
+  type_index = SourceTypes::BASE_SRC;
   particles_C = 0;
   particles_L = 0;
   particles_R = 0;
@@ -17,7 +17,8 @@ chi_montecarlon::Source::Source()
 }
 
 void chi_montecarlon::Source::Initialize(chi_mesh::MeshContinuum* ref_grid,
-                                         SpatialDiscretization_FV*   ref_fv_sdm)
+                                         SpatialDiscretization_FV*   ref_fv_sdm,
+                                         chi_montecarlon::Solver* ref_solver)
 {
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
