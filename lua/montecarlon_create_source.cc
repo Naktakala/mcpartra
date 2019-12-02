@@ -83,9 +83,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
 
-    auto new_source = new chi_montecarlon::BoundarySource;
-
-    new_source->ref_bndry = ref_boundary;
+    auto new_source = new chi_montecarlon::BoundarySource(ref_boundary);
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);

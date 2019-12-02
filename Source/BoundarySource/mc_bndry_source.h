@@ -12,27 +12,15 @@
 class chi_montecarlon::BoundarySource : public chi_montecarlon::Source
 {
 public:
-  int ref_bndry;
+  const int ref_bndry;
 private:
-  struct FACE_REF
-  {
-    int cell_glob_index;
-    int face_num;
-    chi_mesh::Matrix3x3 RotMatrix;
-    double area;
+  //cell_g_index, face_num, RotationMatrix, Area
+  typedef std::tuple<int,int,chi_mesh::Matrix3x3,double> SourcePatch;
+  std::vector<SourcePatch> source_patches;
 
-    FACE_REF(int cell_gi, int f_id)
-    {
-      cell_glob_index = cell_gi;
-      face_num = f_id;
-      area = 1.0;
-    }
-  };
-  std::vector<FACE_REF*> ref_cell_faces;
-  std::vector<double>    face_cdf;
-  chi_math::CDFSampler*  surface_sampler;
+  std::vector<double>      source_patch_cdf;
 public:
-  BoundarySource();
+  BoundarySource(const int in_ref_bndry);
 
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,

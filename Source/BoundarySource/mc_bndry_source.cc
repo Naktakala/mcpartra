@@ -21,10 +21,10 @@ extern ChiLog chi_log;
 
 //###################################################################
 /**Default constructor.*/
-chi_montecarlon::BoundarySource::BoundarySource()
+chi_montecarlon::BoundarySource::BoundarySource(const int in_ref_bndry) :
+  ref_bndry(in_ref_bndry)
 {
   type_index = SourceTypes::BNDRY_SRC;
-  ref_bndry = -1;
 }
 
 //###################################################################
@@ -40,147 +40,49 @@ void chi_montecarlon::BoundarySource::
              SpatialDiscretization_FV*   ref_fv_sdm,
              chi_montecarlon::Solver*    ref_solver)
 {
+  chi_log.Log(LOG_0) << "Initializing Boundary Source";
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
 
-  int num_local_cells = grid->local_cell_glob_indices.size();
-  for (int lc=0; lc<num_local_cells; lc++)
+  const int ALL_BOUNDRIES = -1;
+
+  //============================================= Build surface src patchess
+  // The surface points
+  double total_patch_area = 0.0;
+  for (auto& cell_glob_index : grid->local_cell_glob_indices)
   {
-    int cell_glob_index = grid->local_cell_glob_indices[lc];
     auto cell = grid->cells[cell_glob_index];
+    auto fv_view = fv_sdm->MapFeView(cell_glob_index);
 
-    //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
-    if (cell->Type() == chi_mesh::CellType::SLAB)
+
+    int f=0;
+    for (auto& face : cell->faces)
     {
-      auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+      if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
 
-      int num_faces = 2;
-      for (int f=0; f<num_faces; f++)
+      //Determine if face will be sampled
+      bool sample_face = false;
+      if (ref_bndry == ALL_BOUNDRIES)
+        sample_face = true;
+      else if ((ref_bndry != ALL_BOUNDRIES) and
+               (ref_bndry == abs(face.neighbor)))
+        sample_face = true;
+
+      if (sample_face)
       {
-        int neighbor = slab_cell->faces[f].neighbor;
+        double face_area = fv_view->face_area[f];
+        chi_mesh::Matrix3x3 R;
 
-        //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry <= -1))
+        chi_mesh::Vector n = cell->faces[f].normal*-1.0;
+        chi_mesh::Vector khat(0.0,0.0,1.0);
+
+        if      (n.Dot(khat) >  0.9999999)
+          R.SetDiagonalVec(1.0,1.0,1.0);
+        else if (n.Dot(khat) < -0.9999999)
+          R.SetDiagonalVec(1.0,1.0,-1.0);
+        else
         {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
-
-          R.SetRowIVec(0,chi_mesh::Vector(1.0,0.0,0.0));
-          R.SetRowIVec(1,chi_mesh::Vector(0.0,1.0,0.0));
-          R.SetRowIVec(2,slab_cell->faces[f].normal*-1.0);
-
-          ref_cell_faces.push_back(new_face_ref);
-        }
-          //================================== If specific bndries
-        else if ((neighbor < 0) and (ref_bndry == abs(neighbor)))
-        {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
-
-          R.SetRowIVec(0,chi_mesh::Vector(1.0,0.0,0.0));
-          R.SetRowIVec(1,chi_mesh::Vector(0.0,1.0,0.0));
-          R.SetRowIVec(2,slab_cell->faces[f].normal*-1.0);
-
-          ref_cell_faces.push_back(new_face_ref);
-        }
-
-      }//for faces
-    }//if slab
-      // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ POLYGON
-    else if (cell->Type() == chi_mesh::CellType::POLYGON)
-    {
-      auto poly_cell = (chi_mesh::CellPolygonV2*)cell;
-      auto cell_fv_view = (PolygonFVView*)fv_sdm->MapFeView(cell_glob_index);
-
-      int num_faces = poly_cell->faces.size();
-      for (int f=0; f<num_faces; f++)
-      {
-        int neighbor = poly_cell->faces[f].neighbor;
-
-        //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry <= -1))
-        {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
-
-          chi_mesh::Vector n = poly_cell->faces[f].normal*-1.0;
-          chi_mesh::Vector khat(0.0,0.0,1.0);
-
-          if (n.Dot(khat) > 0.9999)
-            R.SetDiagonalVec(1.0,1.0,1.0);
-          else
-          {
-            chi_mesh::Vector binorm = khat.Cross(n);
-            binorm = binorm/binorm.Norm();
-
-            chi_mesh::Vector tangent = binorm.Cross(n);
-            tangent = tangent/tangent.Norm();
-
-            R.SetColJVec(0,tangent);
-            R.SetColJVec(1,binorm);
-            R.SetColJVec(2,n);
-          }
-
-          new_face_ref->area = cell_fv_view->face_area[f];
-
-          ref_cell_faces.push_back(new_face_ref);
-        }
-          //================================== If specific bndries
-        else if ((neighbor < 0) and (ref_bndry == abs(neighbor)))
-        {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
-
-          chi_mesh::Vector n = poly_cell->faces[f].normal*-1.0;
-          chi_mesh::Vector khat(0.0,0.0,1.0);
-
-          int v0i = poly_cell->faces[f].vertex_ids[0];
-          int v1i = poly_cell->faces[f].vertex_ids[1];
-
-          chi_mesh::Node v0 = *grid->nodes[v0i];
-          chi_mesh::Node v1 = *grid->nodes[v1i];
-
-          if (n.Dot(khat) > 0.9999)
-            R.SetDiagonalVec(1.0,1.0,1.0);
-          else
-          {
-            chi_mesh::Vector binorm = khat.Cross(n);
-            binorm = binorm/binorm.Norm();
-
-            chi_mesh::Vector tangent = binorm.Cross(n);
-            tangent = tangent/tangent.Norm();
-
-            R.SetColJVec(0,tangent);
-            R.SetColJVec(1,binorm);
-            R.SetColJVec(2,n);
-          }
-
-          new_face_ref->area = cell_fv_view->face_area[f];
-
-          ref_cell_faces.push_back(new_face_ref);
-        }
-      }
-    }//for polygon
-    // $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ POLYHEDRON
-    else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
-    {
-      auto polyh_cell = (chi_mesh::CellPolyhedronV2*)cell;
-      auto cell_fv_view = (PolyhedronFVView*)fv_sdm->MapFeView(cell_glob_index);
-
-      int num_faces = polyh_cell->faces.size();
-      for (int f=0; f<num_faces; f++)
-      {
-        int neighbor = polyh_cell->faces[f].neighbor;
-
-        //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry <= -1))
-        {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
-
-          chi_mesh::Vector n = polyh_cell->faces[f].normal*-1.0;
-
-          chi_mesh::Vector binorm = cell_fv_view->face_side_vectors[f][0][0];
+          chi_mesh::Vector binorm = khat.Cross(n);
           binorm = binorm/binorm.Norm();
 
           chi_mesh::Vector tangent = binorm.Cross(n);
@@ -189,70 +91,24 @@ void chi_montecarlon::BoundarySource::
           R.SetColJVec(0,tangent);
           R.SetColJVec(1,binorm);
           R.SetColJVec(2,n);
-
-          new_face_ref->area = cell_fv_view->face_area[f];
-
-          ref_cell_faces.push_back(new_face_ref);
         }
-          //================================== If specific bndries
-        else if ((neighbor < 0) and (ref_bndry == abs(neighbor)))
-        {
-          FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
-          chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
 
-          chi_mesh::Vector n = polyh_cell->faces[f].normal*-1.0;
-
-          chi_mesh::Vector temp = cell_fv_view->face_side_vectors[f][0][0];;
-
-          chi_mesh::Vector tangent = temp.Cross(n);
-          tangent = tangent/tangent.Norm();
-
-          chi_mesh::Vector binorm = tangent.Cross(n);
-          binorm = binorm/binorm.Norm();
-
-          R.SetColJVec(0,tangent);
-          R.SetColJVec(1,binorm);
-          R.SetColJVec(2,n);
-
-          new_face_ref->area = cell_fv_view->face_area[f];
-
-          ref_cell_faces.push_back(new_face_ref);
-        }
+        total_patch_area += face_area;
+        source_patches.emplace_back(cell_glob_index,f,R,face_area);
       }
-    }//for polyhedron
-    else
-    {
-      chi_log.Log(LOG_ALLERROR)
-        << "chi_montecarlon: Unsupported cell type encountered in "
-        << "call to BoundarySource::Initialize.";
-      exit(EXIT_FAILURE);
-    }
-  }//for local cell
+      ++f;
+    }//for face
+  }//for cell
 
-  if (ref_cell_faces.empty())
+  //============================================= Build source cdf
+  source_patch_cdf.resize(source_patches.size(),0.0);
+  double cumulative_value = 0.0;
+  int p = 0;
+  for (auto& source_patch : source_patches)
   {
-    chi_log.Log(LOG_ALLERROR)
-    << "No faces matching boundary source.";
+    cumulative_value += std::get<3>(source_patch);
+    source_patch_cdf[p++] = cumulative_value/total_patch_area;
   }
-  chi_log.Log(LOG_ALL) << "Number of boundary faces = " << ref_cell_faces.size();
-
-  //============================================= Build cdf for surface
-  //                                              sampling
-  double total_area = 0.0;
-  int num_ref_faces = ref_cell_faces.size();
-  for (int rf=0; rf<num_ref_faces; rf++)
-    total_area += ref_cell_faces[rf]->area;
-
-  double intgl = 0.0;
-  face_cdf.resize(num_ref_faces);
-  for (int rf=0; rf<num_ref_faces; rf++)
-  {
-//    chi_log.Log(LOG_0) << ref_cell_faces[rf]->area;
-    intgl += ref_cell_faces[rf]->area;
-    face_cdf[rf] = intgl/total_area;
-  }
-
-  surface_sampler = new chi_math::CDFSampler(face_cdf);
 }
 
 //###################################################################
@@ -262,147 +118,80 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
 {
   chi_montecarlon::Particle new_particle;
 
-  chi_mesh::Cell* first_cell = grid->cells[grid->local_cell_glob_indices[0]];
+  //======================================== Sample source patch
+  int source_patch_sample = std::lower_bound(
+    source_patch_cdf.begin(),
+    source_patch_cdf.end(),
+    rng->Rand()) - source_patch_cdf.begin();
 
-  if (ref_cell_faces.empty())
+  auto& source_patch = source_patches[source_patch_sample];
+
+  //======================================== Get references
+  int cell_glob_index  = std::get<0>(source_patch);
+  int f                = std::get<1>(source_patch);
+  auto& RotationMatrix = std::get<2>(source_patch);
+  auto cell            = grid->cells[cell_glob_index];
+  auto face            = cell->faces[f];
+  auto fv_view         = fv_sdm->MapFeView(cell_glob_index);
+
+  //======================================== Sample position
+  if      (cell->Type() == chi_mesh::CellType::SLAB)
+    new_particle.pos = *grid->nodes[face.vertex_ids[0]];
+  else if (cell->Type() == chi_mesh::CellType::POLYGON)
   {
-    new_particle.alive = false;
-    return new_particle;
-  }
-
-  //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
-  // Categorally slab surface sampling does not require
-  // a cdf and therefore we have a specific routine for it.
-  if (first_cell->Type() == chi_mesh::CellType::SLAB)
-  {
-    //====================================== Sample ref face
-    int num_ref_faces = ref_cell_faces.size();
-    int f = std::round(rng->Rand()*(num_ref_faces-1));
-    FACE_REF* face_ref = ref_cell_faces[f];
-
-    auto slab_cell =
-      (chi_mesh::CellSlabV2*)grid->cells[face_ref->cell_glob_index];
-    int ref_vert_index = slab_cell->vertex_ids[face_ref->face_num];
-    chi_mesh::Vertex* ref_vert = grid->nodes[ref_vert_index];
-
-    //====================================== Sample direction
-    double costheta = rng->Rand();     //Sample half-range only
-    double theta    = acos(sqrt(costheta));
-    double varphi   = rng->Rand()*2.0*M_PI;
-
-    chi_mesh::Vector ref_dir;
-    ref_dir.x = sin(theta)*cos(varphi);
-    ref_dir.y = sin(theta)*sin(varphi);
-    ref_dir.z = cos(theta);
-
-    //====================================== Set quantities
-    new_particle.pos = *ref_vert;
-    new_particle.dir = face_ref->RotMatrix*ref_dir;
-
-    new_particle.egrp = 0;
-    new_particle.w = 1.0;
-    new_particle.cur_cell_ind = face_ref->cell_glob_index;
-
-    return new_particle;
-  }//Slab cells
-  else if (first_cell->Type() == chi_mesh::CellType::POLYGON)
-  {
-    int fref = surface_sampler->Sample(rng->Rand());
-
-    FACE_REF* face_ref = ref_cell_faces[fref];
-    auto poly_cell =
-      (chi_mesh::CellPolygonV2*)grid->cells[face_ref->cell_glob_index];
-
-    chi_mesh::CellFace& ref_face = poly_cell->faces[face_ref->face_num];
-
-    chi_mesh::Vertex v0 = *grid->nodes[ref_face.vertex_ids[0]];
-    chi_mesh::Vertex v1 = *grid->nodes[ref_face.vertex_ids[1]];
-
-    //====================================== Sample direction
-    double costheta = rng->Rand();     //Sample half-range only
-    double theta    = acos(sqrt(costheta));
-    double varphi   = rng->Rand()*2.0*M_PI;
-
-    chi_mesh::Vector ref_dir;
-    ref_dir.x = sin(theta)*cos(varphi);
-    ref_dir.y = sin(theta)*sin(varphi);
-    ref_dir.z = cos(theta);
-
-    //====================================== Set quantities
+    chi_mesh::Vertex& v0 = *grid->nodes[face.vertex_ids[0]];
+    chi_mesh::Vertex& v1 = *grid->nodes[face.vertex_ids[1]];
     double w = rng->Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
-    new_particle.dir = face_ref->RotMatrix*ref_dir;
-
-    new_particle.egrp = 0;
-    new_particle.w = 1.0;
-    new_particle.cur_cell_ind = face_ref->cell_glob_index;
-
-    return new_particle;
-  }//polygon
-  else if (first_cell->Type() == chi_mesh::CellType::POLYHEDRON)
+  }
+  else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
   {
-    int fref = surface_sampler->Sample(rng->Rand());
+    auto polyh_cell = (chi_mesh::CellPolyhedronV2*)cell;
+    auto polyh_fv_view = (PolyhedronFVView*)fv_view;
 
-    FACE_REF* face_ref = ref_cell_faces[fref];
-    auto polyh_cell =
-      (chi_mesh::CellPolyhedronV2*)grid->cells[face_ref->cell_glob_index];
-    auto cell_fv_view =
-      (PolyhedronFVView*)fv_sdm->MapFeView(polyh_cell->cell_global_id);
-
-
-    int f = face_ref->face_num;
     auto edges = polyh_cell->GetFaceEdges(f);
 
-    //===================== Sample sides
+    //===================== Sample side
     double rn = rng->Rand();
     int s = -1;
     double cumulated_area = 0.0;
-    for (auto face_side_area : cell_fv_view->face_side_area[f])
+    for (auto face_side_area : polyh_fv_view->face_side_area[f])
     {
       s++;
-      if (rn < ((face_side_area+cumulated_area)/cell_fv_view->face_area[f]))
+      if (rn < ((face_side_area+cumulated_area)/polyh_fv_view->face_area[f]))
         break;
       cumulated_area+=face_side_area;
     }
 
-    //====================================== Sample direction
-    double costheta = rng->Rand();     //Sample half-range only
-    double theta    = acos(sqrt(costheta));
-    double varphi   = rng->Rand()*2.0*M_PI;
-
-    chi_mesh::Vector ref_dir;
-    ref_dir.x = sin(theta)*cos(varphi);
-    ref_dir.y = sin(theta)*sin(varphi);
-    ref_dir.z = cos(theta);
-
-    //====================================== Set quantities
     double w0 = rng->Rand();
     double w1 = rng->Rand()*(1.0-w0);
     chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
-    new_particle.pos =
-      v0 +
-      cell_fv_view->face_side_vectors[f][s][0]*w0 +
-      cell_fv_view->face_side_vectors[f][s][1]*w1;
-    new_particle.dir = face_ref->RotMatrix*ref_dir;
-
-    new_particle.egrp = 0;
-    new_particle.w = 1.0;
-    new_particle.cur_cell_ind = face_ref->cell_glob_index;
-
-//    chi_log.Log(LOG_0) << "v0: " << v0.PrintS();
-//    chi_log.Log(LOG_0) << "w0: " << cell_fv_view->face_side_vectors[f][s][0].PrintS();
-//    chi_log.Log(LOG_0) << "w1: " << cell_fv_view->face_side_vectors[f][s][1].PrintS();
-//    chi_log.Log(LOG_0) << "Pos: " << new_particle.pos.PrintS();
-//    new_particle.dir = chi_mesh::Vector(0.0,1.0,0.0);
-    return new_particle;
-  }//polyhedron
-  else
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "chi_montecarlon: Unsupported cell type encountered in "
-      << "call to BoundarySource::CreateParticle.";
-    exit(EXIT_FAILURE);
+    new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
+                       polyh_fv_view->face_side_vectors[f][s][1]*w1;
   }
+
+  //======================================== Sample direction
+  double costheta = rng->Rand();     //Sample half-range only
+  double theta    = acos(sqrt(costheta));
+  double varphi   = rng->Rand()*2.0*M_PI;
+
+  chi_mesh::Vector ref_dir;
+  ref_dir.x = sin(theta)*cos(varphi);
+  ref_dir.y = sin(theta)*sin(varphi);
+  ref_dir.z = cos(theta);
+
+  new_particle.dir = RotationMatrix*ref_dir;
+
+  //======================================== Sample energy
+  new_particle.egrp = 0;
+
+  //======================================== Determine weight
+  new_particle.w = 1.0;
+
+  new_particle.cur_cell_ind = cell_glob_index;
+
+//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
+//  usleep(100000);
 
   return new_particle;
 }

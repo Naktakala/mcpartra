@@ -1,8 +1,13 @@
 #include "solver_montecarlon.h"
 
+#include <chi_mpi.h>
+
+extern ChiMPI chi_mpi;
+
 //###################################################################
 /**Default constructor*/
-chi_montecarlon::Solver::Solver()
+chi_montecarlon::Solver::Solver() :
+  rng0(chi_mpi.location_id,0)
 {
   num_grps = 1;
 

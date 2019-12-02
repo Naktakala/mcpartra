@@ -68,15 +68,23 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     auto fv_view = fv_sdm->MapFeView(cell_glob_index);
 
 
-    int f=0; for (auto& face : cell->faces)
+    int f=0;
+    for (auto& face : cell->faces)
     {
-      if (not grid->IsCellBndry(face.neighbor)) continue;
+      if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
 
-      if ((ref_bndry == ALL_BOUNDRIES) or (ref_bndry == abs(face.neighbor)) )
+      //Determine if face will be sampled
+      bool sample_face = false;
+      if (ref_bndry == ALL_BOUNDRIES)
+        sample_face = true;
+      else if ((ref_bndry != ALL_BOUNDRIES) and
+               (ref_bndry == abs(face.neighbor)))
+        sample_face = true;
+
+      if (sample_face)
       {
         double face_area = fv_view->face_area[f];
         chi_mesh::Matrix3x3 R;
-        R.SetDiagonalVec(1.0,1.0,1.0);
 
         chi_mesh::Vector n = cell->faces[f].normal*-1.0;
         chi_mesh::Vector khat(0.0,0.0,1.0);
@@ -105,8 +113,6 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     }//for face
   }//for cell
 
-  chi_log.Log(LOG_ALL) << "number of patches=" << source_patches.size();
-
   //============================================= Build source cdf
   source_patch_cdf.resize(source_patches.size(),0.0);
   double cumulative_value = 0.0;
@@ -115,7 +121,6 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   {
     cumulative_value += std::get<3>(source_patch);
     source_patch_cdf[p++] = cumulative_value/total_patch_area;
-    chi_log.Log(LOG_ALL) << source_patch_cdf[p];
   }
 }
 
@@ -140,15 +145,11 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
-//  chi_log.Log(LOG_ALL) << "Sampling source particle";
-
   //======================================== Sample source patch
   int source_patch_sample = std::lower_bound(
     source_patch_cdf.begin(),
     source_patch_cdf.end(),
     rng->Rand()) - source_patch_cdf.begin();
-
-//  chi_log.Log(LOG_ALL) << "The patch is " << source_patch_sample;
 
   auto& source_patch = source_patches[source_patch_sample];
 
@@ -159,7 +160,6 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
   auto cell            = grid->cells[cell_glob_index];
   auto face            = cell->faces[f];
   auto fv_view         = fv_sdm->MapFeView(cell_glob_index);
-//  chi_log.Log(LOG_ALL) << "Got references";
 
   //======================================== Sample position
   if      (cell->Type() == chi_mesh::CellType::SLAB)
@@ -207,7 +207,6 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
 
-//  chi_log.Log(LOG_ALL) << "Applying rotation matrix";
   new_particle.dir = RotationMatrix*ref_dir;
 
   //======================================== Sample energy
@@ -218,10 +217,9 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
 
   new_particle.cur_cell_ind = cell_glob_index;
 
-//  chi_log.Log(LOG_ALL)
-//    << new_particle.pos.PrintS()
-//    << new_particle.dir.PrintS();
+//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
 //  usleep(100000);
+
   return new_particle;
 }
 
@@ -282,7 +280,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
     double w1 = rng->Rand()*(1.0-w0);
     chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
-                            polyh_fv_view->face_side_vectors[f][s][1]*w1;
+                       polyh_fv_view->face_side_vectors[f][s][1]*w1;
   }
 
   //======================================== Sample direction
@@ -304,6 +302,9 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
   new_particle.w = 1.0;
 
   new_particle.cur_cell_ind = cell_glob_index;
+
+//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
+//  usleep(100000);
 
   return new_particle;
 }
