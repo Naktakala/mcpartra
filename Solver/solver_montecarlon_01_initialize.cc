@@ -98,6 +98,7 @@ bool chi_montecarlon::Solver::Initialize()
   phi_tally.resize(tally_size,0.0);
   phi_tally_sqr.resize(tally_size,0.0);
 
+  phi_global_initial_value.resize(tally_size,0.0);
   phi_global.resize(tally_size,0.0);
   phi_global_tally_sqr.resize(tally_size,0.0);
 
@@ -154,7 +155,7 @@ bool chi_montecarlon::Solver::Initialize()
   chi_log.Log(LOG_0) << "Initializing sources";
   for (int s=0; s<sources.size(); s++)
   {
-    sources[s]->Initialize(grid,fv_discretization);
+    sources[s]->Initialize(grid,fv_discretization,this);
   }
 
   //=================================== Initialize field functions

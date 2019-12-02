@@ -23,8 +23,8 @@ extern ChiLog chi_log;
 /**Default constructor.*/
 chi_montecarlon::BoundarySource::BoundarySource()
 {
-  type_index = MC_BNDRY_SRC;
-  ref_bndry = MC_ALL_BOUNDARIES;
+  type_index = SourceTypes::BNDRY_SRC;
+  ref_bndry = -1;
 }
 
 //###################################################################
@@ -36,8 +36,9 @@ chi_montecarlon::BoundarySource::BoundarySource()
  * normals. For this we assemble a rotation matrix for each face
  * that needs to be sampled.*/
 void chi_montecarlon::BoundarySource::
-  Initialize(chi_mesh::MeshContinuum* ref_grid,
-             SpatialDiscretization_FV*   ref_fv_sdm)
+  Initialize(chi_mesh::MeshContinuum*    ref_grid,
+             SpatialDiscretization_FV*   ref_fv_sdm,
+             chi_montecarlon::Solver*    ref_solver)
 {
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
@@ -59,7 +60,7 @@ void chi_montecarlon::BoundarySource::
         int neighbor = slab_cell->faces[f].neighbor;
 
         //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry == MC_ALL_BOUNDARIES))
+        if ((neighbor < 0) and (ref_bndry <= -1))
         {
           FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
           chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
@@ -97,7 +98,7 @@ void chi_montecarlon::BoundarySource::
         int neighbor = poly_cell->faces[f].neighbor;
 
         //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry == MC_ALL_BOUNDARIES))
+        if ((neighbor < 0) and (ref_bndry <= -1))
         {
           FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
           chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;
@@ -172,7 +173,7 @@ void chi_montecarlon::BoundarySource::
         int neighbor = polyh_cell->faces[f].neighbor;
 
         //================================== If all boundaries
-        if ((neighbor < 0) and (ref_bndry == MC_ALL_BOUNDARIES))
+        if ((neighbor < 0) and (ref_bndry <= -1))
         {
           FACE_REF* new_face_ref = new FACE_REF(cell_glob_index,f);
           chi_mesh::Matrix3x3& R = new_face_ref->RotMatrix;

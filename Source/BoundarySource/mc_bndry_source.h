@@ -35,7 +35,8 @@ public:
   BoundarySource();
 
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                  SpatialDiscretization_FV*   ref_fv_sdm);
+                  SpatialDiscretization_FV*   ref_fv_sdm,
+                  chi_montecarlon::Solver* ref_solver);
 
   chi_montecarlon::Particle
   CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
