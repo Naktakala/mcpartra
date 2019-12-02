@@ -37,6 +37,7 @@ chi_montecarlon::ResidualSource::ResidualSource(
   chi_physics::FieldFunction *in_resid_ff, bool use_uniform_sampling) :
   sample_uniformly(use_uniform_sampling)
 {
+  type_index = SourceTypes::RESID_SRC;
   resid_ff = in_resid_ff;
   particles_L = 0;
   particles_R = 0;
@@ -57,7 +58,8 @@ chi_montecarlon::ResidualSource::ResidualSource(
  * to */
 void chi_montecarlon::ResidualSource::
   Initialize(chi_mesh::MeshContinuum *ref_grid,
-             SpatialDiscretization_FV *ref_fv_sdm)
+             SpatialDiscretization_FV *ref_fv_sdm,
+             chi_montecarlon::Solver* ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing RMC Source";
   grid = ref_grid;

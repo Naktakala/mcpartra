@@ -299,6 +299,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
       int ir = lc*num_grps + g;
 
       phi_global[ir] *= tally_multipl_factor/nps_global/V;
+      phi_global[ir] += phi_global_initial_value[ir];
     }//for g
   }//for local cell
 }

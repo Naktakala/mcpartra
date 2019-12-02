@@ -28,6 +28,7 @@
 
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
+#include <MCParTra/Solver/solver_montecarlon.h>
 
 extern ChiLog chi_log;
 extern ChiPhysics chi_physics_handler;
@@ -38,6 +39,7 @@ chi_montecarlon::ResidualMOCSource::ResidualMOCSource(
   chi_physics::FieldFunction *in_resid_ff, bool use_uniform_sampling) :
   sample_uniformly(use_uniform_sampling)
 {
+  type_index = SourceTypes::RESID_MOC;
   resid_ff = in_resid_ff;
   particles_L = 0;
   particles_R = 0;
@@ -53,7 +55,8 @@ chi_montecarlon::ResidualMOCSource::ResidualMOCSource(
  * to */
 void chi_montecarlon::ResidualMOCSource::
 Initialize(chi_mesh::MeshContinuum *ref_grid,
-           SpatialDiscretization_FV *ref_fv_sdm)
+           SpatialDiscretization_FV *ref_fv_sdm,
+           chi_montecarlon::Solver* ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing RMC Source";
   grid = ref_grid;
@@ -259,8 +262,6 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 
   for (size_t n=0; n<quadrature.abscissae.size(); n++)
   {
-    chi_log.Log(LOG_0VERBOSE_0)
-    << "Angle " << n << " " << quadrature.abscissae[n];
     double mu = quadrature.abscissae[n];
     double q_weight = quadrature.weights[n];
     if (mu>0.0)
@@ -307,12 +308,6 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
               q -= mu*nabla_phi;
 
               psi_z_i += q*(1.0-exp(-s_t*dzstar))/cell_sigma_t[lc];
-
-              if (n==17)
-              {
-                chi_log.Log(LOG_0VERBOSE_1)
-                  << zistar << " " << q;
-              }
             }
 
             cell_phi_star[lc][i] += q_weight*psi_z_i;
@@ -426,6 +421,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
         << "Cell avg uncollided flux "
         << lc << " "
         << cell_total_source[lc]/num_subdivs;
+    ref_solver->phi_global_initial_value[lc] = cell_total_source[lc]/num_subdivs;
   }
 }
 
@@ -509,7 +505,7 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
 
     new_particle.cur_cell_ind = cell_glob_index;
 
-    if (w<0.0) new_particle.alive = false;
+//    if (w<0.0) new_particle.alive = false;
 
   }
 
