@@ -229,10 +229,10 @@ int chiMonteCarlonCreateSource(lua_State *L)
   //                                              MOC Uniform sampling
   else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL)
   {
-    if (num_args < 3)
+    if (num_args < 4)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
-                            "MC_RESIDUAL",
-                            3,num_args);
+                            "MCSrcTypes.RESIDUAL",
+                            4,num_args);
 
     int ref_boundary = lua_tonumber(L,3);
     if (ref_boundary == 0)
@@ -244,24 +244,24 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-//    int ff_handle = lua_tonumber(L,3);
-//    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
-//
-//
-//    chi_physics::FieldFunction* ff;
-//    try {
-//      ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
-//    }
-//
-//    catch (std::out_of_range& o)
-//    {
-//      chi_log.Log(LOG_ALLERROR)
-//        << "Invalid field function handle supplied in call to "
-//           "chiMonteCarlonCreateSource-MC_RESID_MOC_SU";
-//      exit(EXIT_FAILURE);
-//    }
+    int ff_handle = lua_tonumber(L,4);
+    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
 
-    auto new_source = new chi_montecarlon::ResidualSource2(nullptr,false);
+
+    chi_physics::FieldFunction* ff;
+    try {
+      ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
+    }
+
+    catch (std::out_of_range& o)
+    {
+      chi_log.Log(LOG_ALLERROR)
+        << "Invalid field function handle supplied in call to "
+           "chiMonteCarlonCreateSource-MC_RESID_MOC_SU";
+      exit(EXIT_FAILURE);
+    }
+
+    auto new_source = new chi_montecarlon::ResidualSource2(ff,false);
     new_source->ref_bndry = ref_boundary;
 
     solver->sources.push_back(new_source);

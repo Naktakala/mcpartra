@@ -56,6 +56,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   chi_log.Log(LOG_0) << "Initializing Residual Bndry Source";
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
+  this->ref_solver = ref_solver;
 
   const int ALL_BOUNDRIES = -1;
 
@@ -74,12 +75,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
       if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
 
       //Determine if face will be sampled
-      bool sample_face = false;
-      if (ref_bndry == ALL_BOUNDRIES)
-        sample_face = true;
-      else if ((ref_bndry != ALL_BOUNDRIES) and
-               (ref_bndry == abs(face.neighbor)))
-        sample_face = true;
+      bool sample_face = true;
+
 
       if (sample_face)
       {
@@ -130,20 +127,6 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
-  if (sample_uniformly)
-    new_particle = UniformSampling(rng);
-  else
-    new_particle = DirectSampling(rng);
-
-  return new_particle;
-}
-
-//###################################################################
-/**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
-{
-  chi_montecarlon::Particle new_particle;
 
   //======================================== Sample source patch
   int source_patch_sample = std::lower_bound(
@@ -209,97 +192,34 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
 
   new_particle.dir = RotationMatrix*ref_dir;
 
-  //======================================== Sample energy
-  new_particle.egrp = 0;
-
   //======================================== Determine weight
-  new_particle.w = 1.0;
+  //============================== Interpolate phi
+  auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
+  std::vector<double> shape_values(pwl_view->dofs,0.0);
+  pwl_view->ShapeValues(new_particle.pos,shape_values);
 
-  new_particle.cur_cell_ind = cell_glob_index;
-
-//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
-//  usleep(100000);
-
-  return new_particle;
-}
-
-
-//###################################################################
-/**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
-{
-  chi_montecarlon::Particle new_particle;
-
-  //======================================== Sample source patch
-  int source_patch_sample = std::lower_bound(
-    source_patch_cdf.begin(),
-    source_patch_cdf.end(),
-    rng->Rand()) - source_patch_cdf.begin();
-
-  auto& source_patch = source_patches[source_patch_sample];
-
-  //======================================== Get references
-  int cell_glob_index  = std::get<0>(source_patch);
-  int f                = std::get<1>(source_patch);
-  auto& RotationMatrix = std::get<2>(source_patch);
-  auto cell            = grid->cells[cell_glob_index];
-  auto face            = cell->faces[f];
-  auto fv_view         = fv_sdm->MapFeView(cell_glob_index);
-
-  //======================================== Sample position
-  if      (cell->Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = *grid->nodes[face.vertex_ids[0]];
-  else if (cell->Type() == chi_mesh::CellType::POLYGON)
+  //TODO: Make proper mappings here
+  double cell_phi = 0.0;
+  for (int dof=0; dof<pwl_view->dofs; dof++)
   {
-    chi_mesh::Vertex& v0 = *grid->nodes[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = *grid->nodes[face.vertex_ids[1]];
-    double w = rng->Rand();
-    new_particle.pos = v0*w + v1*(1.0-w);
+    int map = (*resid_ff->local_cell_dof_array_address)[cell->cell_local_id];
+    int ir = map + dof*resid_ff->num_grps*resid_ff->num_moms +
+             resid_ff->num_grps*0 + new_particle.egrp;
+    cell_phi += (*resid_ff->field_vector_local)[ir]*shape_values[dof];
   }
-  else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
-  {
-    auto polyh_cell = (chi_mesh::CellPolyhedronV2*)cell;
-    auto polyh_fv_view = (PolyhedronFVView*)fv_view;
+  //============================== Get boundary flux
+  double bndry_phi = 0.0;
+  if (ref_bndry == abs(face.neighbor))
+    bndry_phi = 1.0;
 
-    auto edges = polyh_cell->GetFaceEdges(f);
+  const double FOUR_PI = 4.0*acos(-1.0);
 
-    //===================== Sample side
-    double rn = rng->Rand();
-    int s = -1;
-    double cumulated_area = 0.0;
-    for (auto face_side_area : polyh_fv_view->face_side_area[f])
-    {
-      s++;
-      if (rn < ((face_side_area+cumulated_area)/polyh_fv_view->face_area[f]))
-        break;
-      cumulated_area+=face_side_area;
-    }
+  double omega_dot_n = new_particle.dir.Dot(face.normal*-1.0);
 
-    double w0 = rng->Rand();
-    double w1 = rng->Rand()*(1.0-w0);
-    chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
-    new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
-                       polyh_fv_view->face_side_vectors[f][s][1]*w1;
-  }
-
-  //======================================== Sample direction
-  double costheta = rng->Rand();     //Sample half-range only
-  double theta    = acos(sqrt(costheta));
-  double varphi   = rng->Rand()*2.0*M_PI;
-
-  chi_mesh::Vector ref_dir;
-  ref_dir.x = sin(theta)*cos(varphi);
-  ref_dir.y = sin(theta)*sin(varphi);
-  ref_dir.z = cos(theta);
-
-  new_particle.dir = RotationMatrix*ref_dir;
+  new_particle.w = -(1.0/FOUR_PI)*(cell_phi - bndry_phi);
 
   //======================================== Sample energy
   new_particle.egrp = 0;
-
-  //======================================== Determine weight
-  new_particle.w = 1.0;
 
   new_particle.cur_cell_ind = cell_glob_index;
 

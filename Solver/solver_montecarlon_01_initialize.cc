@@ -204,6 +204,10 @@ bool chi_montecarlon::Solver::Initialize()
 
         chi_physics_handler.fieldfunc_stack.push_back(group_ff);
         field_functions.push_back(group_ff);
+
+        chi_log.Log(LOG_0)
+          << "Added pwl field function " << group_ff->text_name
+          << " id=" << group_ff->id;
       }//for m
     }//for g
   }//if make_pwld

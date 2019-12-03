@@ -10,6 +10,8 @@
 
 #include <ChiMesh/Raytrace/raytracing.h>
 
+#include "../Source/ResidualSource/mc_rmc2_source.h"
+
 typedef unsigned long long TULL;
 
 #include <chi_log.h>
@@ -17,6 +19,12 @@ typedef unsigned long long TULL;
 
 extern ChiLog chi_log;
 extern ChiMPI chi_mpi;
+
+#include <ChiPhysics/chi_physics.h>
+
+#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
+
+extern ChiPhysics chi_physics_handler;
 
 //###################################################################
 /**Makes a contribution to tallies*/
@@ -72,6 +80,182 @@ void chi_montecarlon::Solver::ContributeTally(
       {
         ir = map + dof*num_grps*num_moms + num_grps*0 + prtcl.egrp;
         double pwl_tally_contrib = segment_length*prtcl.w*N[dof];
+
+        phi_pwl_tally[ir]     += pwl_tally_contrib;
+        phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
+      }//for dof
+    }//for segment_length
+  }//if make pwld
+
+}
+
+//###################################################################
+/**Makes a contribution to tallies*/
+void chi_montecarlon::Solver::ContributeTallyRMC(
+  chi_montecarlon::Particle &prtcl,
+  chi_mesh::Vector pf)
+{
+  //======================================== Get cell information
+  auto cell = grid->cells[prtcl.cur_cell_ind];
+  int cell_local_ind = cell->cell_local_id;
+  auto cell_pwl_view = pwl_discretization->MapFeView(prtcl.cur_cell_ind);
+  int mat_id = cell->material_id;
+  int xs_id = matid_xs_map[mat_id];
+
+  chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
+  auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
+
+  double siga = xs->sigma_ag[prtcl.egrp];
+  double sigt = xs->sigma_tg[prtcl.egrp];
+
+  //======================================== Contribute avg tally
+  int ir = cell_local_ind*num_grps + prtcl.egrp;
+
+  double tracklength = (pf - prtcl.pos).Norm();
+  double tally_contrib = tracklength*prtcl.w;
+
+  phi_tally[ir]     += tally_contrib;
+  phi_tally_sqr[ir] += tally_contrib*tally_contrib;
+
+  if (std::isnan(tracklength))
+  {
+    chi_log.Log(LOG_ALLERROR)
+      << "Tracklength corruption."
+      << " pos  " << prtcl.pos.PrintS()
+      << " posf " << pf.PrintS();
+    exit(EXIT_FAILURE);
+  }
+
+  //======================================== Contribute PWLD
+  if (make_pwld)
+  {
+    //--------------------------------- Develop segments
+    segment_lengths.clear();
+    segment_lengths.push_back(tracklength);
+    chi_mesh::PopulateRaySegmentLengths(grid, cell,
+                                        segment_lengths,
+                                        prtcl.pos, pf,prtcl.dir);
+
+    //--------------------------------- Get Src and mappings
+    auto src = (chi_montecarlon::ResidualSource2*)sources.back();
+    int map  = local_cell_pwl_dof_array_address[cell_local_ind];
+    int rmap = (*src->resid_ff->local_cell_dof_array_address)[cell_local_ind];
+
+    //--------------------------------- Lambda getting phi
+    auto phi_s = [](std::vector<double>& N,
+                  int dofs, int rmap,
+                  chi_montecarlon::ResidualSource2* rsrc,
+                  int egrp)
+    {
+      double phi = 0.0;
+      for (int dof=0; dof<dofs; dof++)
+      {
+        int ir = rmap +
+                 dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
+                 rsrc->resid_ff->num_grps*0 +
+                 egrp;
+        phi += (*rsrc->resid_ff->field_vector_local)[ir]*N[dof];
+      }//for dof
+
+      return phi;
+    };
+
+    //--------------------------------- Lambda getting gradphi
+    auto gradphi_s = [](std::vector<chi_mesh::Vector>& Grad,
+                    int dofs, int rmap,
+                    chi_montecarlon::ResidualSource2* rsrc,
+                    int egrp)
+    {
+      chi_mesh::Vector gradphi = 0.0;
+      for (int dof=0; dof<dofs; dof++)
+      {
+        int ir = rmap +
+                 dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
+                 rsrc->resid_ff->num_grps*0 +
+                 egrp;
+        gradphi = gradphi + (Grad[dof]*(*rsrc->resid_ff->field_vector_local)[ir]);
+      }//for dof
+
+      return gradphi;
+    };
+
+    //--------------------------------- Lambda computing q
+    auto q_s = [](double siga,double phi, double Q,
+                  chi_mesh::Vector& omega,chi_mesh::Vector& nabla_phi)
+    {
+      const double four_pi = 4.0*acos(-1.0);
+
+      double retval = Q - siga*phi - omega.Dot(nabla_phi);
+
+      return retval/four_pi;
+    };
+
+    //================================= Loop over segments
+    double last_segment_length = 0.0;
+    chi_mesh::Vector p_i = prtcl.pos;
+    for (auto s_L : segment_lengths) //segment_length
+    {
+      //========================== Compute q_i
+      cell_pwl_view->ShapeValues(p_i,N);
+      cell_pwl_view->GradShapeValues(p_i,Grad);
+      double phi_i = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+      auto gradphi_i = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+
+      double q_i = q_s(siga,phi_i,0.0,prtcl.dir,gradphi_i);
+
+      //========================== Compute q_f
+      auto p_f = p_i + prtcl.dir*s_L;
+
+
+      cell_pwl_view->ShapeValues(p_f,N);
+      cell_pwl_view->GradShapeValues(p_f,Grad);
+      double phi_f = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+      auto gradphi_f = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+
+
+      double q_f = q_s(siga,phi_f,0.0,prtcl.dir,gradphi_f);
+//      chi_log.Log(LOG_0)
+//        << " pos_i=" << p_i.PrintS()
+//        << " pos_f=" << p_f.PrintS()
+//        << " phi_i=" << phi_i
+//        << " phi_f=" << phi_f
+//        << " q_i=" << q_i
+//        << " q_f=" << q_f
+//        << " w=" << prtcl.w;
+//
+//      usleep(1000000);
+
+      p_i = p_f;
+
+      //========================== Computing a and b
+      double a = q_i;
+      double b = (q_f-q_i)/s_L;
+
+      //========================== Computing Iq
+      double Iq  = (a/sigt)*(exp(sigt*s_L)-1.0);
+             Iq += (b/sigt/sigt)*(sigt*s_L - 1.0)*exp(sigt*s_L);
+             Iq -= (b/sigt/sigt)*(0.0      - 1.0)*1.0;
+
+      //========================== Computing w_f
+      double w_f = exp(-sigt*s_L)*prtcl.w + exp(-sigt*s_L)*Iq;
+
+      double w_avg = 0.5*(w_f + prtcl.w);
+      prtcl.w = w_f;
+
+//      double w_avg = prtcl.w;
+
+
+
+      double d = last_segment_length + 0.5*s_L;
+      last_segment_length += s_L;
+      auto p = prtcl.pos + prtcl.dir*d;
+
+      cell_pwl_view->ShapeValues(p,N);
+
+      for (int dof=0; dof<cell_pwl_view->dofs; dof++)
+      {
+        ir = map + dof*num_grps*num_moms + num_grps*0 + prtcl.egrp;
+        double pwl_tally_contrib = s_L*w_avg*N[dof];
 
         phi_pwl_tally[ir]     += pwl_tally_contrib;
         phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;

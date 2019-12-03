@@ -74,6 +74,7 @@ private:
 
   std::vector<double> segment_lengths;
   std::vector<double> N;
+  std::vector<chi_mesh::Vector> Grad;
   //runtime quantities
   size_t                                current_batch;
   unsigned long long                    nps;
@@ -123,10 +124,12 @@ public:
 
   //02
   void Execute();
+  void ExecuteRMCUncollided();
 
 private:
   //03
   void Raytrace(Particle& prtcl);
+  void RaytraceRMC(Particle& prtcl);
 
   //04
   std::pair<int,chi_mesh::Vector>
@@ -135,6 +138,8 @@ private:
   //05
   void ContributeTally(Particle& prtcl,
                        chi_mesh::Vector pf);
+  void ContributeTallyRMC(Particle& prtcl,
+                          chi_mesh::Vector pf);
   void RendesvouzTallies();
   void RendesvouzPWLTallies();
 
