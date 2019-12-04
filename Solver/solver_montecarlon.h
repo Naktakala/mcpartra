@@ -59,6 +59,8 @@ private:
 
   std::vector<double>                   phi_local_relsigma;
 
+  std::vector<double>                   phi_uncollided_rmc;
+
   //PWL tallies
   int                                   num_moms;
   std::vector<double>                   phi_pwl_tally_contrib;
@@ -69,6 +71,8 @@ private:
   std::vector<double>                   phi_pwl_global_tally_sqr;
 
   std::vector<double>                   phi_pwl_local_relsigma;
+
+  std::vector<double>                   phi_pwl_uncollided_rmc;
 
   std::vector<int>                      local_cell_pwl_dof_array_address;
 

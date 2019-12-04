@@ -3,7 +3,7 @@
 #include <chi_log.h>
 #include <ChiTimer/chi_timer.h>
 
-#include "../Source/ResidualSource/mc_rmc_source.h"
+#include "../Source/ResidualSource/mc_rmc2_source.h"
 
 extern ChiLog chi_log;
 extern ChiTimer chi_program_timer;
@@ -21,6 +21,8 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   chi_montecarlon::Source* src = sources.back();
 
   if (src->type_index != SourceTypes::RESIDUAL) return;
+
+  auto rsrc = (chi_montecarlon::ResidualSource2*)src;
   chi_log.Log(LOG_0) << "Mother fucker";
   uncollided_only = true;
 
@@ -36,7 +38,7 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
     current_batch = b;
     for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
     {
-      chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
+      chi_montecarlon::Particle prtcl = rsrc->CreateBndryParticle(&rng0);
 
       if (prtcl.alive) nps++;
 
@@ -94,6 +96,65 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   if (make_pwld) NormalizePWLTallies();
 
   ComputePWLDTransformations();
+
+  size_t avg_tally_size = phi_global.size();
+  size_t pwl_tally_size = phi_pwl_tally_contrib.size();
+
+  //======================================== Copy avg tally to uncollided
+  phi_uncollided_rmc.clear();
+  phi_uncollided_rmc.reserve(avg_tally_size);
+  std::copy(phi_global.begin(),
+            phi_global.end(),
+            std::back_inserter(phi_uncollided_rmc));
+
+  //======================================== Copy pwl tally to uncollided
+  phi_pwl_uncollided_rmc.clear();
+  phi_pwl_uncollided_rmc.reserve(pwl_tally_size);
+  std::copy(phi_pwl_global.begin(),
+            phi_pwl_global.end(),
+            std::back_inserter(phi_pwl_uncollided_rmc));
+
+  //======================================== Clear avg tallies
+  phi_tally_contrib.clear();
+  phi_tally.clear();
+  phi_tally_sqr.clear();
+
+  phi_global_initial_value.clear();
+  phi_global.clear();
+  phi_global_tally_sqr.clear();
+
+  phi_local_relsigma.clear();
+
+  //======================================== Clear pwl tallies
+  phi_pwl_tally_contrib.clear();
+  phi_pwl_tally.clear();
+  phi_pwl_tally_sqr.clear();
+
+  phi_pwl_global.clear();
+  phi_pwl_global_tally_sqr.clear();
+
+  phi_pwl_local_relsigma.clear();
+
+  //======================================== Reset avg tallies
+  phi_tally_contrib.resize(avg_tally_size,0.0);
+  phi_tally.resize(avg_tally_size,0.0);
+  phi_tally_sqr.resize(avg_tally_size,0.0);
+
+  phi_global_initial_value.resize(avg_tally_size,0.0);
+  phi_global.resize(avg_tally_size,0.0);
+  phi_global_tally_sqr.resize(avg_tally_size,0.0);
+
+  phi_local_relsigma.resize(avg_tally_size,0.0);
+
+  //======================================== Reset PWL tallies
+  phi_pwl_tally_contrib.resize(pwl_tally_size,0.0);
+  phi_pwl_tally.resize(pwl_tally_size,0.0);
+  phi_pwl_tally_sqr.resize(pwl_tally_size,0.0);
+
+  phi_pwl_global.resize(pwl_tally_size,0.0);
+  phi_pwl_global_tally_sqr.resize(pwl_tally_size,0.0);
+
+  phi_pwl_local_relsigma.resize(pwl_tally_size,0.0);
 
   uncollided_only = false;
 

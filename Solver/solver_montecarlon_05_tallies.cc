@@ -208,16 +208,21 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
         auto gradphi_f = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
 
         q_f = q_s(siga,phi_f,0.0,prtcl.dir,gradphi_f);
-//      chi_log.Log(LOG_0)
-//        << " pos_i=" << p_i.PrintS()
-//        << " pos_f=" << p_f.PrintS()
-//        << " phi_i=" << phi_i
-//        << " phi_f=" << phi_f
-//        << " q_i=" << q_i
-//        << " q_f=" << q_f
-//        << " w=" << prtcl.w;
+
+//        if (prtcl.dir.z <0.0)
+//        {
+//          chi_log.Log(LOG_0)
+//            << " pos_i=" << p_i.PrintS()
+//            << " pos_f=" << p_f.PrintS()
+//            << " phi_i=" << phi_i
+//            << " phi_f=" << phi_f
+//            << " q_i=" << q_i
+//            << " q_f=" << q_f
+//            << " w=" << prtcl.w;
 //
-//      usleep(1000000);
+//          usleep(1000000);
+//        }
+
 
         //========================== Computing a and b
         double a = q_i;
@@ -248,7 +253,13 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
           phi_pwl_tally[ir]     += pwl_tally_contrib;
           phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
+
+//          if (prtcl.dir.z <0.0)
+//            chi_log.Log(LOG_0) << w_avg << " " << N[dof];
         }//for dof
+
+//        if (prtcl.dir.z <0.0)
+//          usleep(100000);
       }//for subdivision
 
     }//for segment_length
@@ -257,7 +268,6 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   //======================================== Contribute avg tally
   int ir = cell_local_ind*num_grps + prtcl.egrp;
-
 
   double tally_contrib = tracklength*avg_weight;
 
@@ -446,6 +456,8 @@ void chi_montecarlon::Solver::ComputeRelativeStdDev()
 /**Compute tally square contributions.*/
 void chi_montecarlon::Solver::NormalizeTallies()
 {
+  if (nps_global == 0) nps_global = 1;
+
   int num_cells = grid->local_cell_glob_indices.size();
   for (int lc=0; lc<num_cells; lc++)
   {
@@ -494,6 +506,8 @@ void chi_montecarlon::Solver::NormalizeTallies()
 
       phi_global[ir] *= tally_multipl_factor/nps_global/V;
       phi_global[ir] += phi_global_initial_value[ir];
+      if (not phi_uncollided_rmc.empty())
+        phi_global[ir] += phi_uncollided_rmc[ir];
     }//for g
   }//for local cell
 }
@@ -502,6 +516,8 @@ void chi_montecarlon::Solver::NormalizeTallies()
 /**Compute tally square contributions.*/
 void chi_montecarlon::Solver::NormalizePWLTallies()
 {
+  if (nps_global == 0) nps_global = 1;
+
   int num_cells = grid->local_cell_glob_indices.size();
   for (int lc=0; lc<num_cells; lc++)
   {
@@ -524,6 +540,7 @@ void chi_montecarlon::Solver::NormalizePWLTallies()
         double V = cell_pwl_view->IntV_shapeI[dof];
 
         phi_pwl_global[ir] *= tally_multipl_factor/nps_global/V;
+
       }//for dof
     }//for g
   }//for local cell

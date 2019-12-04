@@ -1,6 +1,5 @@
 #include"solver_montecarlon.h"
 #include <ChiPhysics/chi_physics.h>
-#include <ChiPhysics/PhysicsMaterial/chi_physicsmaterial.h>
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 
 #include <ChiMesh/MeshHandler/chi_meshhandler.h>
@@ -138,7 +137,7 @@ bool chi_montecarlon::Solver::Initialize()
     }
 
     //=================================== Initialize PWLD tallies
-    tally_size = block_MG_counter-1;
+    tally_size = block_MG_counter;
     phi_pwl_tally_contrib.resize(tally_size,0.0);
     phi_pwl_tally.resize(tally_size,0.0);
     phi_pwl_tally_sqr.resize(tally_size,0.0);

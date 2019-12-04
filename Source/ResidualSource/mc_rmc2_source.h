@@ -36,6 +36,9 @@ public:
                   chi_montecarlon::Solver* ref_solver);
 
   chi_montecarlon::Particle
+  CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng);
+
+  chi_montecarlon::Particle
   CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 
   chi_montecarlon::Particle

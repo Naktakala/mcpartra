@@ -124,7 +124,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
@@ -227,6 +227,18 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 
 //  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
 //  usleep(100000);
+
+  return new_particle;
+}
+
+//###################################################################
+/**Executes a source sampling for the residual source.*/
+chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
+CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+{
+  chi_montecarlon::Particle new_particle;
+
+  new_particle.alive = false;
 
   return new_particle;
 }
