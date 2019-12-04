@@ -108,23 +108,9 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   double siga = xs->sigma_ag[prtcl.egrp];
   double sigt = xs->sigma_tg[prtcl.egrp];
 
-  //======================================== Contribute avg tally
-  int ir = cell_local_ind*num_grps + prtcl.egrp;
-
   double tracklength = (pf - prtcl.pos).Norm();
-  double tally_contrib = tracklength*prtcl.w;
 
-  phi_tally[ir]     += tally_contrib;
-  phi_tally_sqr[ir] += tally_contrib*tally_contrib;
-
-  if (std::isnan(tracklength))
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "Tracklength corruption."
-      << " pos  " << prtcl.pos.PrintS()
-      << " posf " << pf.PrintS();
-    exit(EXIT_FAILURE);
-  }
+  double avg_weight = 0.0;
 
   //======================================== Contribute PWLD
   if (make_pwld)
@@ -142,7 +128,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     int rmap = (*src->resid_ff->local_cell_dof_array_address)[cell_local_ind];
 
     //--------------------------------- Lambda getting phi
-    auto phi_s = [](std::vector<double>& N,
+    auto phi_s = [](std::vector<double>& N_in,
                   int dofs, int rmap,
                   chi_montecarlon::ResidualSource2* rsrc,
                   int egrp)
@@ -154,26 +140,26 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
                  dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
                  rsrc->resid_ff->num_grps*0 +
                  egrp;
-        phi += (*rsrc->resid_ff->field_vector_local)[ir]*N[dof];
+        phi += (*rsrc->resid_ff->field_vector_local)[ir]*N_in[dof];
       }//for dof
 
       return phi;
     };
 
     //--------------------------------- Lambda getting gradphi
-    auto gradphi_s = [](std::vector<chi_mesh::Vector>& Grad,
+    auto gradphi_s = [](std::vector<chi_mesh::Vector>& Grad_in,
                     int dofs, int rmap,
                     chi_montecarlon::ResidualSource2* rsrc,
                     int egrp)
     {
-      chi_mesh::Vector gradphi = 0.0;
+      chi_mesh::Vector gradphi;
       for (int dof=0; dof<dofs; dof++)
       {
         int ir = rmap +
                  dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
                  rsrc->resid_ff->num_grps*0 +
                  egrp;
-        gradphi = gradphi + (Grad[dof]*(*rsrc->resid_ff->field_vector_local)[ir]);
+        gradphi = gradphi + (Grad_in[dof]*(*rsrc->resid_ff->field_vector_local)[ir]);
       }//for dof
 
       return gradphi;
@@ -191,29 +177,37 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     };
 
     //================================= Loop over segments
-    double last_segment_length = 0.0;
     chi_mesh::Vector p_i = prtcl.pos;
-    for (auto s_L : segment_lengths) //segment_length
+    chi_mesh::Vector p_f = prtcl.pos;
+
+    //========================== Compute q_i
+    cell_pwl_view->ShapeValues(p_i,N);
+    cell_pwl_view->GradShapeValues(p_i,Grad);
+    double phi_i = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+    auto gradphi_i = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+
+    double q_i = q_s(siga,phi_i,0.0,prtcl.dir,gradphi_i);
+    double q_f = q_i;
+
+    for (auto seg_len : segment_lengths) //segment_length
     {
-      //========================== Compute q_i
-      cell_pwl_view->ShapeValues(p_i,N);
-      cell_pwl_view->GradShapeValues(p_i,Grad);
-      double phi_i = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
-      auto gradphi_i = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+      int n_s = std::max(std::ceil(5*seg_len*sigt),4.0);
+      double s_L = seg_len/n_s;
 
-      double q_i = q_s(siga,phi_i,0.0,prtcl.dir,gradphi_i);
+      for (int subdiv=0; subdiv<n_s; subdiv++)
+      {
+        p_i = p_f; //Only p_f gets changed below
+        q_i = q_f;
 
-      //========================== Compute q_f
-      auto p_f = p_i + prtcl.dir*s_L;
+        //========================== Compute q_f
+        p_f = p_i + prtcl.dir*s_L;
 
+        cell_pwl_view->ShapeValues(p_f,N);
+        cell_pwl_view->GradShapeValues(p_f,Grad);
+        double phi_f = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+        auto gradphi_f = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
 
-      cell_pwl_view->ShapeValues(p_f,N);
-      cell_pwl_view->GradShapeValues(p_f,Grad);
-      double phi_f = phi_s(N,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
-      auto gradphi_f = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
-
-
-      double q_f = q_s(siga,phi_f,0.0,prtcl.dir,gradphi_f);
+        q_f = q_s(siga,phi_f,0.0,prtcl.dir,gradphi_f);
 //      chi_log.Log(LOG_0)
 //        << " pos_i=" << p_i.PrintS()
 //        << " pos_f=" << p_f.PrintS()
@@ -225,43 +219,59 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 //
 //      usleep(1000000);
 
-      p_i = p_f;
+        //========================== Computing a and b
+        double a = q_i;
+        double b = (q_f-q_i)/s_L;
 
-      //========================== Computing a and b
-      double a = q_i;
-      double b = (q_f-q_i)/s_L;
+        //========================== Computing Iq
+        double Iq  = (a/sigt)*(exp(sigt*s_L)-1.0);
+               Iq += (b/sigt/sigt)*(sigt*s_L - 1.0)*exp(sigt*s_L);
+               Iq -= (b/sigt/sigt)*(0.0      - 1.0)*1.0;
 
-      //========================== Computing Iq
-      double Iq  = (a/sigt)*(exp(sigt*s_L)-1.0);
-             Iq += (b/sigt/sigt)*(sigt*s_L - 1.0)*exp(sigt*s_L);
-             Iq -= (b/sigt/sigt)*(0.0      - 1.0)*1.0;
+        //========================== Computing w_f
+        double w_f = exp(-sigt*s_L)*prtcl.w + exp(-sigt*s_L)*Iq;
 
-      //========================== Computing w_f
-      double w_f = exp(-sigt*s_L)*prtcl.w + exp(-sigt*s_L)*Iq;
+        double w_avg = 0.5*(w_f + prtcl.w);
+        prtcl.w = w_f;
+        avg_weight += s_L*w_avg;
 
-      double w_avg = 0.5*(w_f + prtcl.w);
-      prtcl.w = w_f;
+        //========================== Contribute to tally
 
-//      double w_avg = prtcl.w;
+        //Get shape values at center of contrib
+        auto p_c = (p_f+p_i)*0.5;
+        cell_pwl_view->ShapeValues(p_c,N);
 
+        for (int dof=0; dof<cell_pwl_view->dofs; dof++)
+        {
+          int ir = map + dof*num_grps*num_moms + num_grps*0 + prtcl.egrp;
+          double pwl_tally_contrib = s_L*w_avg*N[dof];
 
+          phi_pwl_tally[ir]     += pwl_tally_contrib;
+          phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
+        }//for dof
+      }//for subdivision
 
-      double d = last_segment_length + 0.5*s_L;
-      last_segment_length += s_L;
-      auto p = prtcl.pos + prtcl.dir*d;
-
-      cell_pwl_view->ShapeValues(p,N);
-
-      for (int dof=0; dof<cell_pwl_view->dofs; dof++)
-      {
-        ir = map + dof*num_grps*num_moms + num_grps*0 + prtcl.egrp;
-        double pwl_tally_contrib = s_L*w_avg*N[dof];
-
-        phi_pwl_tally[ir]     += pwl_tally_contrib;
-        phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
-      }//for dof
     }//for segment_length
   }//if make pwld
+  avg_weight/=tracklength;
+
+  //======================================== Contribute avg tally
+  int ir = cell_local_ind*num_grps + prtcl.egrp;
+
+
+  double tally_contrib = tracklength*avg_weight;
+
+  phi_tally[ir]     += tally_contrib;
+  phi_tally_sqr[ir] += tally_contrib*tally_contrib;
+
+  if (std::isnan(tracklength))
+  {
+    chi_log.Log(LOG_ALLERROR)
+      << "Tracklength corruption."
+      << " pos  " << prtcl.pos.PrintS()
+      << " posf " << pf.PrintS();
+    exit(EXIT_FAILURE);
+  }
 
 }
 

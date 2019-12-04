@@ -183,6 +183,7 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   //======================================== Sample direction
   double costheta = rng->Rand();     //Sample half-range only
   double theta    = acos(sqrt(costheta));
+//  double theta = acos(std::max(costheta,0.001));
   double varphi   = rng->Rand()*2.0*M_PI;
 
   chi_mesh::Vector ref_dir;
@@ -217,7 +218,8 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   double omega_dot_n = new_particle.dir.Dot(face.normal*-1.0);
 
   new_particle.w = -(1.0/FOUR_PI)*(cell_phi - bndry_phi);
-
+//  new_particle.w = -(1.5/FOUR_PI)*omega_dot_n*(cell_phi - bndry_phi);
+//  new_particle.w = 0.0;
   //======================================== Sample energy
   new_particle.egrp = 0;
 
