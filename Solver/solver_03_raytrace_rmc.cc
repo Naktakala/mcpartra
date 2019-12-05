@@ -16,11 +16,13 @@ void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
   chi_mesh::Vector dirf = prtcl.dir;
   int                ef = prtcl.egrp;
   chi_mesh::RayDestinationInfo ray_dest_info =
-    chi_mesh::RayTrace(grid, cell, prtcl.pos, prtcl.dir, d_to_surface, posf);
+    chi_mesh::RayTrace(grid, cell,
+                       prtcl.pos, prtcl.dir,
+                       d_to_surface, posf);
 
 
   //posf set in call to RayTrace
-  ContributeTallyRMC(prtcl,posf);
+  ContributeTallyRMC(prtcl,posf,ray_dest_info);
   if (ray_dest_info.destination_face_neighbor < 0)
   {
     bool reflecting = false;

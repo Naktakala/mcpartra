@@ -13,6 +13,8 @@
 #include <PiecewiseLinear/pwl.h>
 #include <ChiMath/chi_math.h>
 
+#include <ChiMesh/Raytrace/raytracing.h>
+
 namespace chi_montecarlon
 {
   enum Property{
@@ -150,7 +152,8 @@ private:
 
   //05b
   void ContributeTallyRMC(Particle& prtcl,
-                          chi_mesh::Vector pf);
+                          chi_mesh::Vector pf,
+                          chi_mesh::RayDestinationInfo& ray_dest_info);
 
   //05c
   void RendesvouzTallies();
