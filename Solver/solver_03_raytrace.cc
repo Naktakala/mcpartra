@@ -1,17 +1,14 @@
 #include "solver_montecarlon.h"
 
-#include <ChiMesh/Cell/cell.h>
 #include <ChiMesh/Raytrace/raytracing.h>
-#include <ChiPhysics/chi_physics.h>
-
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 
 #include <chi_log.h>
-
-extern ChiPhysics chi_physics_handler;
 extern ChiLog chi_log;
 
-#include<iostream>
+#include <ChiPhysics/chi_physics.h>
+extern ChiPhysics chi_physics_handler;
+
 #include<cmath>
 
 //###################################################################
@@ -83,16 +80,12 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
       bool reflecting = false;
       if (!reflecting)
         prtcl.alive = false;
-      else
-      {
-
-      }
+      else {}
     }//if bndry
     else
     {
       prtcl.cur_cell_ind = ray_dest_info.destination_face_neighbor;
-      if (( not mesh_is_global ) and
-          ( not grid->IsCellLocal(prtcl.cur_cell_ind) ))
+      if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_ind)))
       {
         prtcl.pos = posf;
         prtcl.dir = dirf;
@@ -101,7 +94,6 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
         prtcl.banked = true;
       }
     }
-
   }
 
   prtcl.pos = posf;

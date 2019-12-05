@@ -15,8 +15,9 @@ class chi_montecarlon::ResidualSource2 : public chi_montecarlon::Source
 {
 public:
   int ref_bndry=-1;
-private:
+
   chi_physics::FieldFunction* resid_ff;
+private:
   chi_math::QuadratureGaussLegendre quadrature;
 
   //cell_g_index, face_num, RotationMatrix, Area
@@ -35,10 +36,13 @@ public:
                   chi_montecarlon::Solver* ref_solver);
 
   chi_montecarlon::Particle
+  CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng);
+
+  chi_montecarlon::Particle
   CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 
   chi_montecarlon::Particle
-  UniformSampling(chi_montecarlon::RandomNumberGenerator* rng);
+  SampleBoundary(chi_montecarlon::RandomNumberGenerator* rng);
 
   chi_montecarlon::Particle
   DirectSampling(chi_montecarlon::RandomNumberGenerator* rng);

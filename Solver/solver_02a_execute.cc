@@ -16,6 +16,8 @@ extern ChiMath chi_math_handler;
 /**Executes the solver*/
 void chi_montecarlon::Solver::Execute()
 {
+  ExecuteRMCUncollided();
+
   chi_log.Log(LOG_0) << "Executing Montecarlo solver";
 
 
