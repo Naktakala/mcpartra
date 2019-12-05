@@ -2,11 +2,11 @@
 
 #include"../Solver/solver_montecarlon.h"
 
-#include"ChiPhysics/SolverBase/chi_solver.h"
-#include "../Source/mc_base_source.h"
+
 #include "../Source/BoundarySource/mc_bndry_source.h"
 #include "../Source/ResidualSource/mc_rmc_source.h"
 #include "../Source/ResidualSource/mc_moc_source.h"
+#include "../Source/ResidualSource/mc_rmc2_source.h"
 
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
@@ -65,7 +65,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   int source_type = lua_tonumber(L,2);
 
   //============================================= Boundary source
-  if (source_type == MC_BNDRY_SRC)
+  if (source_type == chi_montecarlon::SourceTypes::BNDRY_SRC)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -83,10 +83,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
 
-    chi_montecarlon::BoundarySource* new_source = new
-      chi_montecarlon::BoundarySource;
-
-    new_source->ref_bndry = ref_boundary;
+    auto new_source = new chi_montecarlon::BoundarySource(ref_boundary);
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);
@@ -94,7 +91,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
   }
   //============================================= Residual source
-  else if (source_type == MC_RESID_SRC)
+  else if (source_type == chi_montecarlon::SourceTypes::RESID_SRC)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -118,8 +115,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-    chi_montecarlon::ResidualSource* new_source = new
-      chi_montecarlon::ResidualSource(ff);
+    auto new_source = new chi_montecarlon::ResidualSource(ff);
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);
@@ -129,7 +125,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
   //============================================= Residual source
   //                                              sampled uniformly
-  else if (source_type == MC_RESID_SRC_SU)
+  else if (source_type == chi_montecarlon::SourceTypes::RESID_SRC_SU)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -153,8 +149,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-    chi_montecarlon::ResidualSource* new_source = new
-      chi_montecarlon::ResidualSource(ff,true);
+    auto new_source = new chi_montecarlon::ResidualSource(ff,true);
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);
@@ -164,7 +159,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
   //============================================= Residual source
   //                                              MOC
-  else if (source_type == MC_RESID_MOC)
+  else if (source_type == chi_montecarlon::SourceTypes::RESID_MOC)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -188,8 +183,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-    chi_montecarlon::ResidualMOCSource* new_source = new
-      chi_montecarlon::ResidualMOCSource(ff);
+    auto new_source = new chi_montecarlon::ResidualMOCSource(ff);
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);
@@ -199,7 +193,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
     //============================================= Residual source
     //                                              MOC Uniform sampling
-  else if (source_type == MC_RESID_MOC_SU)
+  else if (source_type == chi_montecarlon::SourceTypes::RESID_MOC_SU)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -223,8 +217,52 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-    chi_montecarlon::ResidualMOCSource* new_source = new
-      chi_montecarlon::ResidualMOCSource(ff,true);
+    auto new_source = new chi_montecarlon::ResidualMOCSource(ff,true);
+
+    solver->sources.push_back(new_source);
+    lua_pushnumber(L,solver->sources.size()-1);
+
+    chi_log.Log(LOG_0) << "MonteCarlo-created residual source.";
+
+  }
+  //============================================= Improved Residual source
+  //                                              MOC Uniform sampling
+  else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL)
+  {
+    if (num_args < 4)
+      LuaPostArgAmountError("chiMonteCarlonCreateSource-"
+                            "MCSrcTypes.RESIDUAL",
+                            4,num_args);
+
+    int ref_boundary = lua_tonumber(L,3);
+    if (ref_boundary == 0)
+    {
+      chi_log.Log(LOG_ALLERROR)
+        << "Invalid boundary number supplied in call to "
+        << "chiMonteCarlonCreateSource-MC_BNDRY_SRC. Expected a positive number"
+           " or a predefined identifier.";
+      exit(EXIT_FAILURE);
+    }
+
+    int ff_handle = lua_tonumber(L,4);
+    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
+
+
+    chi_physics::FieldFunction* ff;
+    try {
+      ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
+    }
+
+    catch (std::out_of_range& o)
+    {
+      chi_log.Log(LOG_ALLERROR)
+        << "Invalid field function handle supplied in call to "
+           "chiMonteCarlonCreateSource-MC_RESID_MOC_SU";
+      exit(EXIT_FAILURE);
+    }
+
+    auto new_source = new chi_montecarlon::ResidualSource2(ff,false);
+    new_source->ref_bndry = ref_boundary;
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);

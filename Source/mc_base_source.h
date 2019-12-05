@@ -8,15 +8,32 @@
 #include <ChiMesh/chi_mesh.h>
 #include <FiniteVolume/fv.h>
 
-#define MC_BASE_SRC     0
-#define MC_POINT_SRC    1
-#define MC_BNDRY_SRC    2
-#define    MC_ALL_BOUNDARIES -1
-#define MC_LOGICVOL_SRC 3
-#define MC_RESID_SRC    4
-#define MC_RESID_SRC_SU 5
-#define MC_RESID_MOC    6
-#define MC_RESID_MOC_SU 7
+//#define MC_BASE_SRC     0
+//#define MC_POINT_SRC    1
+//#define MC_BNDRY_SRC    2
+//#define    MC_ALL_BOUNDARIES -1
+//#define MC_LOGICVOL_SRC 3
+//#define MC_RESID_SRC    4
+//#define MC_RESID_SRC_SU 5
+//#define MC_RESID_MOC    6
+//#define MC_RESID_MOC_SU 7
+
+namespace chi_montecarlon
+{
+  enum SourceTypes
+  {
+    BASE_SRC     = 0,
+    POINT_SRC    = 1,
+    BNDRY_SRC    = 2,
+    LOGICVOL_SRC = 3,
+    RESID_SRC    = 4,
+    RESID_SRC_SU = 5,
+    RESID_MOC    = 6,
+    RESID_MOC_SU = 7,
+    RESIDUAL     = 8,
+    RESIDUAL_SU  = 9
+  };
+}
 
 //######################################################### Class Def
 /**Parent Monte carlo source.
@@ -33,14 +50,17 @@ public:
 public:
   chi_mesh::MeshContinuum* grid;
   SpatialDiscretization_FV*   fv_sdm;
-  int type_index;
+  SourceTypes type_index;
+
+  chi_montecarlon::Solver* ref_solver;
 
 public:
   //00
           Source();
   //01
   virtual void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                          SpatialDiscretization_FV*   ref_fv_sdm);
+                          SpatialDiscretization_FV*   ref_fv_sdm,
+                          chi_montecarlon::Solver* ref_solver);
   virtual chi_montecarlon::Particle
           CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 
