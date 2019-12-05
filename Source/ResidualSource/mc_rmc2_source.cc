@@ -213,13 +213,9 @@ CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
   if (ref_bndry == abs(face.neighbor))
     bndry_phi = 1.0;
 
-  const double FOUR_PI = 4.0*acos(-1.0);
 
-  double omega_dot_n = new_particle.dir.Dot(face.normal*-1.0);
+  new_particle.w = -(cell_phi - bndry_phi);
 
-  new_particle.w = -(1.0/FOUR_PI)*(cell_phi - bndry_phi);
-//  new_particle.w = -(1.5/FOUR_PI)*omega_dot_n*(cell_phi - bndry_phi);
-//  new_particle.w = 0.0;
   //======================================== Sample energy
   new_particle.egrp = 0;
 
@@ -238,7 +234,73 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
-  new_particle.alive = false;
+  //======================================== Sample cell
+//  int lc = std::lower_bound(ref_solver->cell_residual_cdf.begin(),
+//                            ref_solver->cell_residual_cdf.end(),
+//                            rng->Rand()) -
+//                            ref_solver->cell_residual_cdf.begin();
+
+  int num_loc_cells = ref_solver->grid->glob_cell_local_indices.size();
+  int lc = std::floor((num_loc_cells)*rng->Rand());
+
+  int cell_glob_index = ref_solver->grid->glob_cell_local_indices[lc];
+  auto cell = ref_solver->grid->cells[cell_glob_index];
+  auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
+  int map = ref_solver->local_cell_pwl_dof_array_address[lc];
+
+  int mat_id = cell->material_id;
+  int xs_id = ref_solver->matid_xs_map[mat_id];
+
+  chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
+  auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
+
+  double siga = xs->sigma_ag[0];
+  double sigt = xs->sigma_tg[0];
+  double sigs = sigt-siga;
+
+  new_particle.cur_cell_ind = cell_glob_index;
+
+  //======================================== Sample position
+  if (cell->Type() == chi_mesh::CellType::SLAB)
+  {
+    auto& v0 = *ref_solver->grid->nodes[cell->vertex_ids[0]];
+    auto& v1 = *ref_solver->grid->nodes[cell->vertex_ids[1]];
+
+    double w = rng->Rand();
+
+    new_particle.pos = v0*w + v1*(1.0-w);
+  }
+
+  //======================================== Sample direction
+  double costheta = 2.0*rng->Rand()-1.0;
+  double theta    = acos(costheta);
+  double varphi   = rng->Rand()*2.0*M_PI;
+
+  chi_mesh::Vector ref_dir;
+  ref_dir.x = sin(theta)*cos(varphi);
+  ref_dir.y = sin(theta)*sin(varphi);
+  ref_dir.z = cos(theta);
+
+  new_particle.dir = ref_dir;
+
+  //======================================== Sample uncollided
+  std::vector<double> shape_values;
+  pwl_view->ShapeValues(new_particle.pos,shape_values);
+
+  double weight = 0.0;
+  for (int dof=0; dof<pwl_view->dofs; ++dof)
+  {
+    int ir = map + dof*ref_solver->num_grps*ref_solver->num_moms +
+             ref_solver->num_grps*0 + 0;
+    weight += shape_values[dof]*ref_solver->phi_pwl_uncollided_rmc[ir];
+  }
+//  weight /= std::fabs(ref_solver->phi_uncollided_rmc[lc]);
+  weight *= sigs;
+
+  new_particle.w = weight;
+  new_particle.egrp = 0;
+
+  new_particle.alive = true;
 
   return new_particle;
 }

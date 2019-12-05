@@ -156,6 +156,10 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
 
   phi_pwl_local_relsigma.resize(pwl_tally_size,0.0);
 
+  //======================================== Developing the collided source
+  DevelopCollidedSource();
+
+
   uncollided_only = false;
 
   chi_log.Log(LOG_0) << "Done executing Residual MonteCarlo uncollided solver";

@@ -31,8 +31,8 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
           int ir = map + dof*num_grps*num_moms + num_grps*0 + g;
           phi_pwl_global[ir] = x[dof];
 
-          if (not phi_pwl_uncollided_rmc.empty())
-            phi_pwl_global[ir] += phi_pwl_uncollided_rmc[ir];
+//          if (not phi_pwl_uncollided_rmc.empty())
+//            phi_pwl_global[ir] += phi_pwl_uncollided_rmc[ir];
         }
       }
     }//for local cell lc

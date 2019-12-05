@@ -2,7 +2,6 @@
 
 #include <ChiMesh/Raytrace/raytracing.h>
 
-
 //###################################################################
 /**The default raytracing algorithm.*/
 void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)

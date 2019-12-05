@@ -71,11 +71,15 @@ private:
   std::vector<double>                   phi_pwl_global_tally_sqr;
 
   std::vector<double>                   phi_pwl_local_relsigma;
-
+public:
   std::vector<double>                   phi_pwl_uncollided_rmc;
-
+private:
   std::vector<int>                      local_cell_pwl_dof_array_address;
 
+  //======================== RMC quantities
+public:
+  std::vector<double>                   cell_residual_cdf;
+private:
   std::vector<double> segment_lengths;
   std::vector<double> N;
   std::vector<chi_mesh::Vector> Grad;
@@ -139,27 +143,34 @@ private:
   std::pair<int,chi_mesh::Vector>
   ProcessScattering(Particle& prtcl,
                     chi_physics::TransportCrossSections* xs);
-  //05
+  //05a
   void ContributeTally(Particle& prtcl,
                        chi_mesh::Vector pf);
+  void ComputeRelativeStdDev();
+
+  //05b
   void ContributeTallyRMC(Particle& prtcl,
                           chi_mesh::Vector pf);
+
+  //05c
   void RendesvouzTallies();
   void RendesvouzPWLTallies();
 
-  void ComputeRelativeStdDev();
-
+  //05d
   void NormalizeTallies();
   void NormalizePWLTallies();
 
+  //06
   void ComputePWLDTransformations();
+  void DevelopCollidedSource();
 
+  //07
   void BuildMPITypes();
   void GetOutboundBankSize();
   void ReceiveIncomingParticles(std::vector<Particle>& inbound_particles);
 
 
-
+  friend class chi_montecarlon::ResidualSource2;
 };
 
 #endif
