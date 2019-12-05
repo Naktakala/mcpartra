@@ -288,14 +288,16 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   pwl_view->ShapeValues(new_particle.pos,shape_values);
 
   double weight = 0.0;
+  double volume = 0.0;
   for (int dof=0; dof<pwl_view->dofs; ++dof)
   {
     int ir = map + dof*ref_solver->num_grps*ref_solver->num_moms +
              ref_solver->num_grps*0 + 0;
     weight += shape_values[dof]*ref_solver->phi_pwl_uncollided_rmc[ir];
+    volume += pwl_view->IntV_shapeI[dof];
   }
 //  weight /= std::fabs(ref_solver->phi_uncollided_rmc[lc]);
-  weight *= sigs;
+  weight *= sigs*10;
 
   new_particle.w = weight;
   new_particle.egrp = 0;

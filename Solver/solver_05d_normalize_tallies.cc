@@ -28,8 +28,8 @@ void chi_montecarlon::Solver::NormalizeTallies()
 
       phi_global[ir] *= tally_multipl_factor/nps_global/V;
       phi_global[ir] += phi_global_initial_value[ir];
-//      if (not phi_uncollided_rmc.empty())
-//        phi_global[ir] += phi_uncollided_rmc[ir];
+      if (not phi_uncollided_rmc.empty())
+        phi_global[ir] += phi_uncollided_rmc[ir];
     }//for g
   }//for local cell
 }
