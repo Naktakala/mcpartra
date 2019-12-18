@@ -31,7 +31,9 @@ extern ChiPhysics chi_physics_handler;
 /**Constructor for residual source.*/
 chi_montecarlon::ResidualSource2::ResidualSource2(
   chi_physics::FieldFunction *in_resid_ff,
-  bool use_uniform_sampling) :
+  bool use_uniform_sampling,
+  double in_bndry_val) :
+  ref_bndry_val(in_bndry_val),
   sample_uniformly(use_uniform_sampling)
 {
   type_index = SourceTypes::RESIDUAL;
@@ -204,25 +206,22 @@ CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
   for (int dof=0; dof<pwl_view->dofs; dof++)
   {
     int map = (*resid_ff->local_cell_dof_array_address)[cell->cell_local_id];
+    int mom = 0;
     int ir = map + dof*resid_ff->num_grps*resid_ff->num_moms +
-             resid_ff->num_grps*0 + new_particle.egrp;
+             resid_ff->num_grps*mom + new_particle.egrp;
     cell_phi += (*resid_ff->field_vector_local)[ir]*shape_values[dof];
   }
   //============================== Get boundary flux
   double bndry_phi = 0.0;
   if (ref_bndry == abs(face.neighbor))
-    bndry_phi = 1.0;
+    bndry_phi = 2.0*ref_bndry_val;
 
-
-  new_particle.w = -(cell_phi - bndry_phi);
+  new_particle.w = bndry_phi - cell_phi;
 
   //======================================== Sample energy
   new_particle.egrp = 0;
 
   new_particle.cur_cell_ind = cell_glob_index;
-
-//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
-//  usleep(100000);
 
   return new_particle;
 }
@@ -287,17 +286,17 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   std::vector<double> shape_values;
   pwl_view->ShapeValues(new_particle.pos,shape_values);
 
+  double domain_volume = ref_solver->domain_volume;
+  double tmf = ref_solver->tally_multipl_factor;
+
   double weight = 0.0;
-  double volume = 0.0;
   for (int dof=0; dof<pwl_view->dofs; ++dof)
   {
     int ir = map + dof*ref_solver->num_grps*ref_solver->num_moms +
              ref_solver->num_grps*0 + 0;
     weight += shape_values[dof]*ref_solver->phi_pwl_uncollided_rmc[ir];
-    volume += pwl_view->IntV_shapeI[dof];
   }
-//  weight /= std::fabs(ref_solver->phi_uncollided_rmc[lc]);
-  weight *= sigs*10;
+  weight *= sigs*domain_volume/tmf;
 
   new_particle.w = weight;
   new_particle.egrp = 0;

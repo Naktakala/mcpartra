@@ -110,7 +110,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   for (auto seg_len : segment_lengths) //segment_length
   {
-    int n_s = std::max(std::ceil(5*seg_len*sigt),4.0);
+//    int n_s = std::max(std::ceil(5*seg_len*sigt),4.0);
+    int n_s = 2;
     double s_L = seg_len/n_s;
 
     for (int subdiv=0; subdiv<n_s; subdiv++)
@@ -127,21 +128,6 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
       auto gradphi_f = gradphi_s(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
 
       q_f = q_s(siga,phi_f,0.0,prtcl.dir,gradphi_f);
-
-//        if (prtcl.dir.z <0.0)
-//        {
-//          chi_log.Log(LOG_0)
-//            << " pos_i=" << p_i.PrintS()
-//            << " pos_f=" << p_f.PrintS()
-//            << " phi_i=" << phi_i
-//            << " phi_f=" << phi_f
-//            << " q_i=" << q_i
-//            << " q_f=" << q_f
-//            << " w=" << prtcl.w;
-//
-//          usleep(1000000);
-//        }
-
 
       //========================== Computing a and b
       double a = q_i;
@@ -172,13 +158,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
         phi_pwl_tally[ir]     += pwl_tally_contrib;
         phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
-
-//          if (prtcl.dir.z <0.0)
-//            chi_log.Log(LOG_0) << w_avg << " " << N[dof];
       }//for dof
 
-//        if (prtcl.dir.z <0.0)
-//          usleep(100000);
     }//for subdivision
 
   }//for segment_length
@@ -218,7 +199,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
       (*src->resid_ff->local_cell_dof_array_address)[adj_cell_local_ind];
     phi_pos = phi_s(N,adj_cell_pwl_view->dofs,armap,src,prtcl.egrp);
 
-    prtcl.w += -(phi_pos - phi_neg);
+    prtcl.w += (phi_neg - phi_pos);
   }
 
 

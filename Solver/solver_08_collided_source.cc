@@ -14,17 +14,18 @@ void chi_montecarlon::Solver::DevelopCollidedSource()
   for (size_t lc=0; lc<num_local_cells; ++lc)
     total_uncollided += std::fabs(phi_uncollided_rmc[lc]);
 
-
-
-  chi_log.Log(LOG_0) << "Collided source cdf: " << total_uncollided;
   double running_total = 0.0;
+  double volume = 0.0;
   for (size_t lc=0; lc<num_local_cells; ++lc)
   {
     running_total += std::fabs(phi_uncollided_rmc[lc]);
     cell_residual_cdf[lc] = running_total/total_uncollided;
-    chi_log.Log(LOG_0) << cell_residual_cdf[lc];
-  }
 
+    int cell_glob_index = grid->local_cell_glob_indices[lc];
+    auto fv_view = fv_discretization->MapFeView(cell_glob_index);
+    volume += fv_view->volume;
+  }
+  domain_volume = volume;
 
 
 

@@ -81,6 +81,7 @@ private:
   //======================== RMC quantities
 public:
   std::vector<double>                   cell_residual_cdf;
+  double                                domain_volume = 0.0;
 private:
   std::vector<double> segment_lengths;
   std::vector<double> N;
