@@ -229,10 +229,10 @@ int chiMonteCarlonCreateSource(lua_State *L)
   //                                              MOC Uniform sampling
   else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL)
   {
-    if (num_args < 4)
+    if (num_args < 5)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
                             "MCSrcTypes.RESIDUAL",
-                            4,num_args);
+                            5,num_args);
 
     int ref_boundary = lua_tonumber(L,3);
     if (ref_boundary == 0)
@@ -247,6 +247,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     int ff_handle = lua_tonumber(L,4);
     size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
 
+    double bndry_value = lua_tonumber(L,5);
 
     chi_physics::FieldFunction* ff;
     try {
@@ -261,7 +262,8 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
-    auto new_source = new chi_montecarlon::ResidualSource2(ff,false);
+    auto new_source =
+      new chi_montecarlon::ResidualSource2(ff,false,bndry_value);
     new_source->ref_bndry = ref_boundary;
 
     solver->sources.push_back(new_source);

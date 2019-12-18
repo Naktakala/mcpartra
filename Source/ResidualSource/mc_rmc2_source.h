@@ -15,6 +15,7 @@ class chi_montecarlon::ResidualSource2 : public chi_montecarlon::Source
 {
 public:
   int ref_bndry=-1;
+  double ref_bndry_val = 0.0;
 
   chi_physics::FieldFunction* resid_ff;
 private:
@@ -29,7 +30,8 @@ private:
   const bool sample_uniformly;
 public:
   ResidualSource2(chi_physics::FieldFunction* in_resid_ff,
-                 bool use_uniform_sampling=false);
+                 bool use_uniform_sampling=false,
+                 double in_bndry_val=0.0);
 
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,
