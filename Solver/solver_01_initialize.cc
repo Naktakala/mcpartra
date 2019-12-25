@@ -41,7 +41,8 @@ bool chi_montecarlon::Solver::Initialize()
     size_t num_props = cur_mat->properties.size();
     for (size_t p=0; p<num_props; p++)
     {
-      if (cur_mat->properties[p]->type_index == TRANSPORT_XSECTIONS)
+      if (cur_mat->properties[p]->Type() ==
+        chi_physics::PropertyType::TRANSPORT_XSECTIONS)
       {
         auto transp_xs =
           (chi_physics::TransportCrossSections*)cur_mat->properties[p];
