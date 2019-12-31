@@ -107,7 +107,8 @@ void chi_montecarlon::BoundarySource::
   for (auto& source_patch : source_patches)
   {
     cumulative_value += std::get<3>(source_patch);
-    source_patch_cdf[p++] = cumulative_value/total_patch_area;
+    source_patch_cdf[p] = cumulative_value/total_patch_area;
+    ++p;
   }
 }
 
@@ -117,6 +118,12 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   CreateParticle(chi_montecarlon::RandomNumberGenerator *rng)
 {
   chi_montecarlon::Particle new_particle;
+
+  if (source_patch_cdf.empty())
+  {
+    new_particle.alive = false;
+    return new_particle;
+  }
 
   //======================================== Sample source patch
   int source_patch_sample = std::lower_bound(
@@ -163,11 +170,14 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
       cumulated_area+=face_side_area;
     }
 
-    double w0 = rng->Rand();
-    double w1 = rng->Rand()*(1.0-w0);
+    double u = rng->Rand();
+    double v = rng->Rand();
+    while ((u+v)>1.0)
+    {u = rng->Rand(); v = rng->Rand();}
+
     chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
-    new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
-                       polyh_fv_view->face_side_vectors[f][s][1]*w1;
+    new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
+                            polyh_fv_view->face_side_vectors[f][s][1]*v;
   }
 
   //======================================== Sample direction

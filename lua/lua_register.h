@@ -8,7 +8,7 @@ RegisterNamespace(MCSrcTypes);
 AddNamedConstantToNamespace(VACUUM,                1,MCSrcTypes);
 AddNamedConstantToNamespace(POINT_SRC,             1,MCSrcTypes);
 AddNamedConstantToNamespace(BNDRY_SRC,             2,MCSrcTypes);
-AddNamedConstantToNamespace(LOGICVOL_SRC,          3,MCSrcTypes);
+AddNamedConstantToNamespace(MATERIAL_SRC,          3,MCSrcTypes);
 AddNamedConstantToNamespace(RESID_SRC,             4,MCSrcTypes);
 AddNamedConstantToNamespace(RESID_SRC_SU,          5,MCSrcTypes);
 AddNamedConstantToNamespace(RESID_MOC,             6,MCSrcTypes);

@@ -9,7 +9,7 @@ namespace chi_montecarlon
   class RandomNumberGenerator;
   class Source;
   class BoundarySource;
-  class VolumetricSource;
+  class MaterialSource;
   class ResidualSource;
   class ResidualMOCSource;
   class ResidualSource2;
