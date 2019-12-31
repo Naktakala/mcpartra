@@ -25,7 +25,7 @@ namespace chi_montecarlon
     BASE_SRC     = 0,
     POINT_SRC    = 1,
     BNDRY_SRC    = 2,
-    LOGICVOL_SRC = 3,
+    MATERIAL_SRC = 3,
     RESID_SRC    = 4,
     RESID_SRC_SU = 5,
     RESID_MOC    = 6,

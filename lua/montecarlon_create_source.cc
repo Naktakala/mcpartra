@@ -4,6 +4,7 @@
 
 
 #include "../Source/BoundarySource/mc_bndry_source.h"
+#include "../Source/MaterialSource/mc_material_source.h"
 #include "../Source/ResidualSource/mc_rmc_source.h"
 #include "../Source/ResidualSource/mc_moc_source.h"
 #include "../Source/ResidualSource/mc_rmc2_source.h"
@@ -25,22 +26,25 @@ extern ChiPhysics chi_physics_handler;
 ##_
 
 ###PropertyIndex\n
-MC_BNDRY_SRC\n
+MCSrcTypes.BNDRY_SRC\n
  Source on a surface boundary. Expects to be followed by the boundary number.\n\n
 
-MC_RESID_SRC\n
+MCSrcTypes.MATERIAL_SRC\n
+ Source from material defined isotropic source. No value follows.\n\n
+
+MCSrcTypes.RESID_SRC\n
  Uses a residual source from a field function. Expects to be followed by a
  field function handle. This will sample the residual.\n\n
 
-MC_RESID_SRC_SU\n
+MCSrcTypes.RESID_SRC_SU\n
  Same as above but will sample the domain uniformly and adjust the weights of
  each individual particle.\n\n
 
-MC_RESID_MOC\n
+MCSrcTypes.RESID_MOC\n
  Uses a field-function for computing a residual but uses the Method of
  Characteristics to trace the uncollided portions.\n\n
 
-MC_RESID_MOC_SU\n
+MCSrcTypes.RESID_MOC_SU\n
  Same as above but will sample the domain uniformly and adjust the weights of
  each individual particle.\n\n
 
@@ -84,6 +88,21 @@ int chiMonteCarlonCreateSource(lua_State *L)
 
 
     auto new_source = new chi_montecarlon::BoundarySource(ref_boundary);
+
+    solver->sources.push_back(new_source);
+    lua_pushnumber(L,solver->sources.size()-1);
+
+    chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
+  }
+  //============================================= Material source
+  else if (source_type == chi_montecarlon::SourceTypes::MATERIAL_SRC)
+  {
+    if (num_args < 2)
+      LuaPostArgAmountError("chiMonteCarlonCreateSource-"
+                            "MATERIAL_SRC",
+                            2,num_args);
+
+    auto new_source = new chi_montecarlon::MaterialSource();
 
     solver->sources.push_back(new_source);
     lua_pushnumber(L,solver->sources.size()-1);

@@ -36,13 +36,14 @@ void chi_montecarlon::Solver::Execute()
     for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
     {
       chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
-
+//      usleep(100000);
       if (prtcl.alive) nps++;
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
     }//for pi in batch
 
+//    chi_log.Log(LOG_ALL) << "Barrier";
     MPI_Barrier(MPI_COMM_WORLD);
 
     GetOutboundBankSize();

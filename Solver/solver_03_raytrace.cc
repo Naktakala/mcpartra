@@ -20,7 +20,7 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
   int mat_id = cell->material_id;
   int xs_id = matid_xs_map[mat_id];
 
-  chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
+  auto mat = chi_physics_handler.material_stack[mat_id];
 
   auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
 
@@ -39,6 +39,8 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
                        prtcl.pos, prtcl.dir,
                        d_to_surface, posf);
 
+//  chi_log.Log(LOG_0) << "Pos_i=" << prtcl.pos.PrintS();
+//  chi_log.Log(LOG_0) << "Dir_i=" << prtcl.dir.PrintS();
 
   //======================================== Process interaction
   if (d_to_intract < d_to_surface)
@@ -64,15 +66,25 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
     {
       ef = prtcl.egrp;
       dirf = prtcl.dir;
-      prtcl.w *= (1.0-(sigs/sigt));
+      prtcl.w *= ((sigs/sigt));
       prtcl.alive = true;
     }
 
     ContributeTally(prtcl,posf);
+
+//    chi_log.Log(LOG_0) << "---------INTERACTION------------";
+//    chi_log.Log(LOG_0) << "Pos_f[I]=" << posf.PrintS();
+//    chi_log.Log(LOG_0) << "Dir_f[I]=" << dirf.PrintS();
   }
   //======================================== Process surface
   else
   {
+    if (d_to_surface <0.0)
+    {
+      chi_log.Log(LOG_ALLERROR) << "Negative distance to surface.";
+      exit(EXIT_FAILURE);
+    }
+
     //posf set in call to RayTrace
     ContributeTally(prtcl,posf);
     if (ray_dest_info.destination_face_neighbor < 0)
@@ -92,10 +104,14 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
         prtcl.egrp = ef;
         outbound_particle_bank.push_back(prtcl);
         prtcl.banked = true;
+//        chi_log.Log(LOG_0) << "---------BANKED------------";
       }
     }
-  }
 
+//    chi_log.Log(LOG_0) << "Pos_f[S]=" << posf.PrintS();
+//    chi_log.Log(LOG_0) << "Dir_f[S]=" << dirf.PrintS();
+  }
+//  usleep(100000);
   prtcl.pos = posf;
   prtcl.dir = dirf;
   prtcl.egrp = ef;

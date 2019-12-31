@@ -45,9 +45,9 @@ private:
 
   std::vector<unsigned long long>       batch_sizes;
   std::vector<unsigned long long>       batch_sizes_per_loc;
-
+public:
   int                                   num_grps;
-
+private:
   //FV tallies
   std::vector<double>                   phi_tally_contrib;
   std::vector<double>                   phi_tally;
