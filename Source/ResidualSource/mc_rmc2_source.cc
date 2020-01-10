@@ -158,7 +158,7 @@ CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
   }
   else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
   {
-    auto polyh_cell = (chi_mesh::CellPolyhedronV2*)cell;
+    auto polyh_cell = (chi_mesh::CellPolyhedron*)cell;
     auto polyh_fv_view = (PolyhedronFVView*)fv_view;
 
     auto edges = polyh_cell->GetFaceEdges(f);

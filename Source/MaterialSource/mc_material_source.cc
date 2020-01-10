@@ -105,7 +105,7 @@ void chi_montecarlon::MaterialSource::
           }
           else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
           {
-            auto polyh_cell = (chi_mesh::CellPolyhedronV2*)cell;
+            auto polyh_cell = (chi_mesh::CellPolyhedron*)cell;
             size_t f=0;
             for (auto& face : cell->faces)
             {
