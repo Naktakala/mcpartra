@@ -71,10 +71,6 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
     }
 
     ContributeTally(prtcl,posf);
-
-//    chi_log.Log(LOG_0) << "---------INTERACTION------------";
-//    chi_log.Log(LOG_0) << "Pos_f[I]=" << posf.PrintS();
-//    chi_log.Log(LOG_0) << "Dir_f[I]=" << dirf.PrintS();
   }
   //======================================== Process surface
   else
@@ -104,14 +100,9 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
         prtcl.egrp = ef;
         outbound_particle_bank.push_back(prtcl);
         prtcl.banked = true;
-//        chi_log.Log(LOG_0) << "---------BANKED------------";
       }
     }
-
-//    chi_log.Log(LOG_0) << "Pos_f[S]=" << posf.PrintS();
-//    chi_log.Log(LOG_0) << "Dir_f[S]=" << dirf.PrintS();
   }
-//  usleep(100000);
   prtcl.pos = posf;
   prtcl.dir = dirf;
   prtcl.egrp = ef;

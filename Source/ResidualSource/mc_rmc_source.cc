@@ -136,7 +136,7 @@ void chi_montecarlon::ResidualSource::
     if (cell->Type() == chi_mesh::CellType::SLAB)
     {
       chi_log.Log(LOG_0VERBOSE_1) << "Cell " << cell_glob_index;
-      auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+      auto slab_cell = (chi_mesh::CellSlab*)cell;
       auto cell_fe_view = (SlabFEView*)resid_sdm_pwl->MapFeView(cell_glob_index);
 
       chi_log.Log(LOG_0VERBOSE_1) << "**************** Cell " << cell_glob_index;
@@ -173,7 +173,7 @@ void chi_montecarlon::ResidualSource::
 
         if (adj_cell_index >= 0)
         {
-          auto adj_cell = (chi_mesh::CellSlabV2*)grid->cells[adj_cell_index];
+          auto adj_cell = (chi_mesh::CellSlab*)grid->cells[adj_cell_index];
 
           int adj_num_dofs = 2;
           for (int i=0; i<adj_num_dofs; i++)
@@ -346,7 +346,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
   //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
   if (cell->Type() == chi_mesh::CellType::SLAB)
   {
-    auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+    auto slab_cell = (chi_mesh::CellSlab*)cell;
 
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
@@ -493,7 +493,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
   //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
   if (cell->Type() == chi_mesh::CellType::SLAB)
   {
-    auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+    auto slab_cell = (chi_mesh::CellSlab*)cell;
 
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];

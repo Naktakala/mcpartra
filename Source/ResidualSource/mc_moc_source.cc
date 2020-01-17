@@ -136,7 +136,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     if (cell->Type() == chi_mesh::CellType::SLAB)
     {
       chi_log.Log(LOG_0VERBOSE_1) << "**************** Cell " << cell_glob_index;
-      auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+      auto slab_cell = (chi_mesh::CellSlab*)cell;
       auto cell_fe_view =
         static_cast<SlabFEView*>(
           resid_sdm_pwl->MapFeView(cell_glob_index));
@@ -276,7 +276,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
         //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
         if (cell->Type() == chi_mesh::CellType::SLAB)
         {
-          auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+          auto slab_cell = (chi_mesh::CellSlab*)cell;
 
           int v0i = slab_cell->vertex_ids[0];
           int v1i = slab_cell->vertex_ids[1];
@@ -327,7 +327,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
         //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
         if (cell->Type() == chi_mesh::CellType::SLAB)
         {
-          auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+          auto slab_cell = (chi_mesh::CellSlab*)cell;
 
           int v0i = slab_cell->vertex_ids[0];
           int v1i = slab_cell->vertex_ids[1];
@@ -470,7 +470,7 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
   //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
   if (cell->Type() == chi_mesh::CellType::SLAB)
   {
-    auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+    auto slab_cell = (chi_mesh::CellSlab*)cell;
 
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
@@ -544,7 +544,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
   //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SLAB
   if (cell->Type() == chi_mesh::CellType::SLAB)
   {
-    auto slab_cell = (chi_mesh::CellSlabV2*)cell;
+    auto slab_cell = (chi_mesh::CellSlab*)cell;
 
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];

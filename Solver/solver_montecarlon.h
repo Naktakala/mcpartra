@@ -42,6 +42,7 @@ public:
   SpatialDiscretization_PWL*            pwl_discretization;
 private:
   std::vector<int>                      matid_xs_map;
+  std::vector<int>                      matid_q_map;
 
   std::vector<unsigned long long>       batch_sizes;
   std::vector<unsigned long long>       batch_sizes_per_loc;
@@ -84,7 +85,7 @@ public:
   double                                domain_volume = 0.0;
 private:
   std::vector<double> segment_lengths;
-  std::vector<double> N;
+  std::vector<double> N_f,N_i;
   std::vector<chi_mesh::Vector> Grad;
   //runtime quantities
   size_t                                current_batch;
@@ -152,6 +153,14 @@ private:
   void ComputeRelativeStdDev();
 
   //05b
+  double GetResidualFFPhi(std::vector<double>& N_in,
+                          int dofs, int rmap,
+                          chi_montecarlon::ResidualSource2* rsrc,
+                          int egrp);
+  chi_mesh::Vector GetResidualFFGradPhi(std::vector<chi_mesh::Vector>& Grad_in,
+                              int dofs, int rmap,
+                              chi_montecarlon::ResidualSource2* rsrc,
+                              int egrp);
   void ContributeTallyRMC(Particle& prtcl,
                           chi_mesh::Vector pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
