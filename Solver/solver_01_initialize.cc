@@ -33,6 +33,7 @@ bool chi_montecarlon::Solver::Initialize()
   }
   int num_mat = chi_physics_handler.material_stack.size();
   matid_xs_map.resize(num_mat,-1);
+  matid_q_map.resize(num_mat,-1);
   for (int m=0; m<num_mat; m++)
   {
     chi_physics::Material* cur_mat = chi_physics_handler.material_stack[m];
@@ -54,7 +55,12 @@ bool chi_montecarlon::Solver::Initialize()
           num_grps = transp_xs->G;
 
         matid_xs_map[m] = p;
-        break;
+      }
+
+      if (cur_mat->properties[p]->Type() ==
+        chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
+      {
+        matid_q_map[m] = p;
       }
     }//for prop
   }//for mat
@@ -154,9 +160,7 @@ bool chi_montecarlon::Solver::Initialize()
   //=================================== Initialize Sources
   chi_log.Log(LOG_0) << "Initializing sources";
   for (int s=0; s<sources.size(); s++)
-  {
     sources[s]->Initialize(grid,fv_discretization,this);
-  }
 
   //=================================== Initialize field functions
   for (int g=0; g<num_grps; g++)

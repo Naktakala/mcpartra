@@ -75,39 +75,33 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     for (auto& face : cell->faces)
     {
       if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
+      
+      double face_area = fv_view->face_area[f];
+      chi_mesh::Matrix3x3 R;
 
-      //Determine if face will be sampled
-      bool sample_face = true;
+      chi_mesh::Vector n = cell->faces[f].normal*-1.0;
+      chi_mesh::Vector khat(0.0,0.0,1.0);
 
-
-      if (sample_face)
+      if      (n.Dot(khat) >  0.9999999)
+        R.SetDiagonalVec(1.0,1.0,1.0);
+      else if (n.Dot(khat) < -0.9999999)
+        R.SetDiagonalVec(1.0,1.0,-1.0);
+      else
       {
-        double face_area = fv_view->face_area[f];
-        chi_mesh::Matrix3x3 R;
+        chi_mesh::Vector binorm = khat.Cross(n);
+        binorm = binorm/binorm.Norm();
 
-        chi_mesh::Vector n = cell->faces[f].normal*-1.0;
-        chi_mesh::Vector khat(0.0,0.0,1.0);
+        chi_mesh::Vector tangent = binorm.Cross(n);
+        tangent = tangent/tangent.Norm();
 
-        if      (n.Dot(khat) >  0.9999999)
-          R.SetDiagonalVec(1.0,1.0,1.0);
-        else if (n.Dot(khat) < -0.9999999)
-          R.SetDiagonalVec(1.0,1.0,-1.0);
-        else
-        {
-          chi_mesh::Vector binorm = khat.Cross(n);
-          binorm = binorm/binorm.Norm();
-
-          chi_mesh::Vector tangent = binorm.Cross(n);
-          tangent = tangent/tangent.Norm();
-
-          R.SetColJVec(0,tangent);
-          R.SetColJVec(1,binorm);
-          R.SetColJVec(2,n);
-        }
-
-        total_patch_area += face_area;
-        source_patches.emplace_back(cell_glob_index,f,R,face_area);
+        R.SetColJVec(0,tangent);
+        R.SetColJVec(1,binorm);
+        R.SetColJVec(2,n);
       }
+
+      total_patch_area += face_area;
+      source_patches.emplace_back(cell_glob_index,f,R,face_area);
+
       ++f;
     }//for face
   }//for cell

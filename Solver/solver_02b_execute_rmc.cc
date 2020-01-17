@@ -23,7 +23,6 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   if (src->type_index != SourceTypes::RESIDUAL) return;
 
   auto rsrc = (chi_montecarlon::ResidualSource2*)src;
-  chi_log.Log(LOG_0) << "Mother fucker";
   uncollided_only = true;
 
   std::vector<Particle> inbound_particles;
