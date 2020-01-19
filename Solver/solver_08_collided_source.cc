@@ -25,8 +25,7 @@ void chi_montecarlon::Solver::DevelopCollidedSource()
     auto fv_view = fv_discretization->MapFeView(cell_glob_index);
     volume += fv_view->volume;
   }
-  domain_volume = volume;
 
-
+  MPI_Allreduce(&volume,&domain_volume,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 
 }

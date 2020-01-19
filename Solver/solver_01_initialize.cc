@@ -66,7 +66,26 @@ bool chi_montecarlon::Solver::Initialize()
   }//for mat
   MPI_Barrier(MPI_COMM_WORLD);
 
+//=================================== Process rendesvous intervals
+  int num_unc_batches =
+    std::ceil((double)num_uncollided_particles/tally_rendezvous_intvl);
+  uncollided_batch_sizes.resize(num_unc_batches,tally_rendezvous_intvl);
+  uncollided_batch_sizes[num_unc_batches-1] = num_uncollided_particles -
+                                   (num_unc_batches-1)*tally_rendezvous_intvl;
 
+  //=================================== Procces num_part per interval
+  for (int b=0; b<num_unc_batches; b++)
+  {
+    TULL loc_num_part =
+      std::ceil((double)uncollided_batch_sizes[b]/chi_mpi.process_count);
+
+    uncollided_batch_sizes_per_loc.push_back(loc_num_part);
+    if (chi_mpi.location_id == (chi_mpi.process_count-1))
+    {
+      uncollided_batch_sizes_per_loc[b] = uncollided_batch_sizes[b] -
+                                          chi_mpi.location_id*loc_num_part;
+    }
+  }
 
   //=================================== Process rendesvous intervals
   int num_batches = std::ceil((double)num_particles/tally_rendezvous_intvl);
@@ -165,20 +184,19 @@ bool chi_montecarlon::Solver::Initialize()
   //=================================== Initialize field functions
   for (int g=0; g<num_grps; g++)
   {
-    auto group_ff = new chi_physics::FieldFunction;
-    group_ff->text_name = std::string("Flux_g") +
-                          std::to_string(g);
+    std::string text_name = std::string("Flux_g") + std::to_string(g);
 
-    group_ff->grid = grid;
-    group_ff->spatial_discretization = fv_discretization;
-    group_ff->id = chi_physics_handler.fieldfunc_stack.size();
-
-    group_ff->type = FF_SDM_FV;
-    group_ff->num_grps = num_grps;
-    group_ff->num_moms = 1;
-    group_ff->grp = g;
-    group_ff->mom = 0;
-    group_ff->field_vector_local = &phi_global;
+    auto group_ff = new chi_physics::FieldFunction(
+      text_name,                                    //Text name
+      chi_physics_handler.fieldfunc_stack.size(),   //FF-id
+      chi_physics::FieldFunctionType::FV,           //Type
+      grid,                                         //Grid
+      fv_discretization,                            //Spatial Discretization
+      num_grps,                                     //Number of components
+      1,                                            //Number of sets
+      g,0,                                          //Ref component, ref set
+      nullptr,                                      //Dof block address
+      &phi_global);                                 //Data vector
 
     chi_physics_handler.fieldfunc_stack.push_back(group_ff);
     field_functions.push_back(group_ff);
@@ -190,21 +208,21 @@ bool chi_montecarlon::Solver::Initialize()
     {
       for (int m=0; m<num_moms; m++)
       {
-        auto group_ff = new chi_physics::FieldFunction;
-        group_ff->text_name = std::string("Flux_g") +
-                              std::to_string(g) +
-                              std::string("_m") + std::to_string(m);
-        group_ff->grid = grid;
-        group_ff->spatial_discretization = pwl_discretization;
-        group_ff->id = chi_physics_handler.fieldfunc_stack.size();
+        std::string text_name = std::string("Flux_g") +
+                                std::to_string(g) +
+                                std::string("_m") + std::to_string(m);
 
-        group_ff->type = FF_SDM_PWLD;
-        group_ff->num_grps = num_grps;
-        group_ff->num_moms = num_moms;
-        group_ff->grp = g;
-        group_ff->mom = m;
-        group_ff->field_vector_local = &phi_pwl_global;
-        group_ff->local_cell_dof_array_address = &local_cell_pwl_dof_array_address;
+        auto group_ff = new chi_physics::FieldFunction(
+          text_name,                                    //Text name
+          chi_physics_handler.fieldfunc_stack.size(),   //FF-id
+          chi_physics::FieldFunctionType::DFEM_PWL,     //Type
+          grid,                                         //Grid
+          pwl_discretization,                           //Spatial Discretization
+          num_grps,                                     //Number of components
+          num_moms,                                     //Number of sets
+          g,m,                                          //Ref component, ref set
+          &local_cell_pwl_dof_array_address,            //Dof block address
+          &phi_pwl_global);                             //Data vector
 
         chi_physics_handler.fieldfunc_stack.push_back(group_ff);
         field_functions.push_back(group_ff);

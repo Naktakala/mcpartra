@@ -2,6 +2,9 @@
 
 #include <ChiMesh/Raytrace/raytracing.h>
 
+#include <chi_log.h>
+extern ChiLog chi_log;
+
 //###################################################################
 /**The default raytracing algorithm.*/
 void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
@@ -20,7 +23,6 @@ void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
                        prtcl.pos, prtcl.dir,
                        d_to_surface, posf);
 
-
   //posf set in call to RayTrace
   ContributeTallyRMC(prtcl,posf,ray_dest_info);
   if (ray_dest_info.destination_face_neighbor < 0)
@@ -31,6 +33,7 @@ void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
   }//if bndry
   else
   {
+    prtcl.pre_cell_ind = prtcl.cur_cell_ind;
     prtcl.cur_cell_ind = ray_dest_info.destination_face_neighbor;
     if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_ind)))
     {

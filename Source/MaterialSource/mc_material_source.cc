@@ -85,11 +85,6 @@ void chi_montecarlon::MaterialSource::
 
               double V = ((v01.x)*(v02.y) - (v02.x)*(v01.y))/2.0;
 
-//              chi_log.Log(LOG_0)
-//                << v2.PrintS() << " " << V
-//                << " " << src->source_value_g[g];
-//              usleep(1000000);
-
               std::vector<chi_mesh::Vector> legs;
               legs.push_back(v01);
               legs.push_back(v02);

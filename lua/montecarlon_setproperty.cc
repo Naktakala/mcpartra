@@ -152,6 +152,12 @@ int chiMonteCarlonSetProperty(lua_State *L)
 
     mcsolver->uncollided_only = unc_only;
   }
+  else if (property_index == chi_montecarlon::Property::NUM_UNCOLLIDED_PARTICLES)
+  {
+    unsigned long long num_part = lua_tonumber(L,3);
+
+    mcsolver->num_uncollided_particles = num_part;
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

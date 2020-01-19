@@ -33,10 +33,11 @@ void chi_montecarlon::Solver::Execute()
   {
     nps = 0;
     current_batch = b;
+
     for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
     {
       chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
-//      usleep(100000);
+
       if (prtcl.alive) nps++;
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);

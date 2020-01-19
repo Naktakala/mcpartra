@@ -27,6 +27,15 @@ private:
 
   std::vector<double>      source_patch_cdf;
 
+  struct CellSideData
+  {
+    double volume;
+    chi_mesh::Vector ref_point;
+    std::vector<chi_mesh::Vector> legs;
+  };
+  typedef std::pair<double,std::vector<CellSideData>> CellSideInfo;
+  std::vector<CellSideInfo> cell_vol_info;
+
   const bool sample_uniformly;
 public:
   ResidualSource2(chi_physics::FieldFunction* in_resid_ff,
@@ -36,6 +45,12 @@ public:
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,
                   chi_montecarlon::Solver* ref_solver);
+
+  void BuildCellVolInfo(chi_mesh::MeshContinuum*  ref_grid,
+                        SpatialDiscretization_FV* ref_fv_sdm);
+  chi_mesh::Vector GetRandomPositionInCell(
+          chi_montecarlon::RandomNumberGenerator* rng,
+          CellSideInfo& cell_side_info);
 
   chi_montecarlon::Particle
   CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng);

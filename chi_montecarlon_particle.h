@@ -15,9 +15,11 @@ struct chi_montecarlon::Particle
   double w = 1.0; //Weight
   int egrp = 0; //Energy group
   int cur_cell_ind = -1;
+  int pre_cell_ind = -1;
 
   bool alive = true;
   bool banked = false;
+
 
   Particle() {}
 
@@ -31,6 +33,7 @@ struct chi_montecarlon::Particle
     this->w = that.w;
     this->egrp = that.egrp;
     this->cur_cell_ind = that.cur_cell_ind;
+    this->pre_cell_ind = that.pre_cell_ind;
 
     this->alive = that.alive;
     this->banked = that.banked;
@@ -44,6 +47,7 @@ struct chi_montecarlon::Particle
     w(that.w),
     egrp(that.egrp),
     cur_cell_ind(that.cur_cell_ind),
+    pre_cell_ind(that.pre_cell_ind),
     alive(that.alive),
     banked(that.banked)
   {}

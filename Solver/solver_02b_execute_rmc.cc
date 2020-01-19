@@ -31,11 +31,11 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   double start_time = chi_program_timer.GetTime()/1000.0;
   double time = 0.0;
   double particle_rate = 0.0;
-  for (size_t b=0; b<batch_sizes_per_loc.size(); b++)
+  for (size_t b=0; b<uncollided_batch_sizes_per_loc.size(); b++)
   {
     nps = 0;
     current_batch = b;
-    for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
+    for (TULL pi=0; pi<uncollided_batch_sizes_per_loc[b]; pi++)
     {
       chi_montecarlon::Particle prtcl = rsrc->CreateBndryParticle(&rng0);
 
@@ -55,7 +55,7 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
       {
         prtcl.alive = true;
         prtcl.banked = false;
-        while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+        while (prtcl.alive and !prtcl.banked) RaytraceRMC(prtcl);
       }
       GetOutboundBankSize();
     }

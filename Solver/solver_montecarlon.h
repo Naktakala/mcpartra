@@ -18,16 +18,17 @@
 namespace chi_montecarlon
 {
   enum Property{
-    NUM_PARTICLES     = 1,
-    TFC_UPDATE_INTVL  = 2,
-    MONOENERGETIC     = 3,
-    SCATTERING_ORDER  = 4,
-    FORCE_ISOTROPIC   = 5,
-    GROUP_BOUNDS      = 6,
-    TALLY_MERGE_INTVL = 7,
+    NUM_PARTICLES               = 1,
+    TFC_UPDATE_INTVL            = 2,
+    MONOENERGETIC               = 3,
+    SCATTERING_ORDER            = 4,
+    FORCE_ISOTROPIC             = 5,
+    GROUP_BOUNDS                = 6,
+    TALLY_MERGE_INTVL           = 7,
     TALLY_MULTIPLICATION_FACTOR = 8,
-    MAKE_PWLD_SOLUTION = 9,
-    UNCOLLIDED_ONLY = 10
+    MAKE_PWLD_SOLUTION          = 9,
+    UNCOLLIDED_ONLY             = 10,
+    NUM_UNCOLLIDED_PARTICLES    = 11
   };
 }
 
@@ -46,6 +47,9 @@ private:
 
   std::vector<unsigned long long>       batch_sizes;
   std::vector<unsigned long long>       batch_sizes_per_loc;
+
+  std::vector<unsigned long long>       uncollided_batch_sizes;
+  std::vector<unsigned long long>       uncollided_batch_sizes_per_loc;
 public:
   int                                   num_grps;
 private:
@@ -119,6 +123,7 @@ public:
   double                                tally_multipl_factor = 1.0;
   bool                                  make_pwld = false;
   bool                                  uncollided_only = false;
+  unsigned long long                    num_uncollided_particles = 1000;
 
 
   //derived from options-set during init

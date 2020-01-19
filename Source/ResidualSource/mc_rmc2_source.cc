@@ -2,13 +2,10 @@
 
 #include "../../RandomNumberGenerator/montecarlon_rng.h"
 
-#include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
 #include <FiniteVolume/fv.h>
 #include <FiniteVolume/CellViews/fv_polyhedron.h>
-
-#include <PiecewiseLinear/pwl.h>
 
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 #include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
@@ -60,8 +57,6 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   fv_sdm = ref_fv_sdm;
   this->ref_solver = ref_solver;
 
-  const int ALL_BOUNDRIES = -1;
-
   //============================================= Build surface src patchess
   // The surface points
   double total_patch_area = 0.0;
@@ -70,34 +65,16 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     auto cell = grid->cells[cell_glob_index];
     auto fv_view = fv_sdm->MapFeView(cell_glob_index);
 
-
     int f=0;
     for (auto& face : cell->faces)
     {
       if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
       
       double face_area = fv_view->face_area[f];
-      chi_mesh::Matrix3x3 R;
 
       chi_mesh::Vector n = cell->faces[f].normal*-1.0;
-      chi_mesh::Vector khat(0.0,0.0,1.0);
-
-      if      (n.Dot(khat) >  0.9999999)
-        R.SetDiagonalVec(1.0,1.0,1.0);
-      else if (n.Dot(khat) < -0.9999999)
-        R.SetDiagonalVec(1.0,1.0,-1.0);
-      else
-      {
-        chi_mesh::Vector binorm = khat.Cross(n);
-        binorm = binorm/binorm.Norm();
-
-        chi_mesh::Vector tangent = binorm.Cross(n);
-        tangent = tangent/tangent.Norm();
-
-        R.SetColJVec(0,tangent);
-        R.SetColJVec(1,binorm);
-        R.SetColJVec(2,n);
-      }
+      chi_mesh::Matrix3x3 R =
+        chi_mesh::Matrix3x3::MakeRotationMatrixFromVector(n);
 
       total_patch_area += face_area;
       source_patches.emplace_back(cell_glob_index,f,R,face_area);
@@ -105,6 +82,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
       ++f;
     }//for face
   }//for cell
+
+  BuildCellVolInfo(ref_grid,ref_fv_sdm);
 
   //============================================= Build source cdf
   source_patch_cdf.resize(source_patches.size(),0.0);
@@ -120,9 +99,15 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
+  CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
+
+  if (source_patch_cdf.empty())
+  {
+    new_particle.alive = false;
+    return new_particle;
+  }
 
   //======================================== Sample source patch
   int source_patch_sample = std::lower_bound(
@@ -179,7 +164,6 @@ CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
   //======================================== Sample direction
   double costheta = rng->Rand();     //Sample half-range only
   double theta    = acos(sqrt(costheta));
-//  double theta = acos(std::max(costheta,0.001));
   double varphi   = rng->Rand()*2.0*M_PI;
 
   chi_mesh::Vector ref_dir;
@@ -190,24 +174,21 @@ CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
   new_particle.dir = RotationMatrix*ref_dir;
 
   //======================================== Determine weight
-  //============================== Interpolate phi
+  // Interpolate phi
   auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
   std::vector<double> shape_values(pwl_view->dofs,0.0);
   pwl_view->ShapeValues(new_particle.pos,shape_values);
 
-  //TODO: Make proper mappings here
+  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell->cell_local_id,
+                                                  0,new_particle.egrp);
+
   double cell_phi = 0.0;
   for (int dof=0; dof<pwl_view->dofs; dof++)
-  {
-    int map = (*resid_ff->local_cell_dof_array_address)[cell->cell_local_id];
-    int mom = 0;
-    int ir = map + dof*resid_ff->num_grps*resid_ff->num_moms +
-             resid_ff->num_grps*mom + new_particle.egrp;
-    cell_phi += (*resid_ff->field_vector_local)[ir]*shape_values[dof];
-  }
+    cell_phi += ff_dof_vals[dof]*shape_values[dof];
+
   //============================== Get boundary flux
   double bndry_phi = 0.0;
-  if (ref_bndry == abs(face.neighbor))
+  if (ref_bndry == abs(face.neighbor) and (face.neighbor<0))
     bndry_phi = 2.0*ref_bndry_val;
 
   new_particle.w = bndry_phi - cell_phi;
@@ -233,10 +214,10 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 //                            rng->Rand()) -
 //                            ref_solver->cell_residual_cdf.begin();
 
-  int num_loc_cells = ref_solver->grid->glob_cell_local_indices.size();
+  int num_loc_cells = ref_solver->grid->local_cell_glob_indices.size();
   int lc = std::floor((num_loc_cells)*rng->Rand());
 
-  int cell_glob_index = ref_solver->grid->glob_cell_local_indices[lc];
+  int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
   auto cell = ref_solver->grid->cells[cell_glob_index];
   auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
   int map = ref_solver->local_cell_pwl_dof_array_address[lc];
@@ -254,15 +235,7 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   new_particle.cur_cell_ind = cell_glob_index;
 
   //======================================== Sample position
-  if (cell->Type() == chi_mesh::CellType::SLAB)
-  {
-    auto& v0 = *ref_solver->grid->nodes[cell->vertex_ids[0]];
-    auto& v1 = *ref_solver->grid->nodes[cell->vertex_ids[1]];
-
-    double w = rng->Rand();
-
-    new_particle.pos = v0*w + v1*(1.0-w);
-  }
+  new_particle.pos = GetRandomPositionInCell(rng, cell_vol_info[lc]);
 
   //======================================== Sample direction
   double costheta = 2.0*rng->Rand()-1.0;
@@ -296,6 +269,9 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   new_particle.egrp = 0;
 
   new_particle.alive = true;
+
+  if (std::fabs(weight) < 1.0e-12)
+    new_particle.alive = false;
 
   return new_particle;
 }

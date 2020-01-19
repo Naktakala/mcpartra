@@ -152,9 +152,9 @@ void chi_montecarlon::ResidualSource::
 
       chi_log.Log(LOG_0VERBOSE_1) << "Mapping cell dofs ";
       ff_interp.CreatePWLDMapping(
-        resid_ff->num_grps,resid_ff->num_moms,0,0,
-        dofs_to_map,cells_to_map,
-        *resid_ff->local_cell_dof_array_address,&cur_cell_mapping);
+        resid_ff->num_components, resid_ff->num_sets, 0, 0,
+        dofs_to_map, cells_to_map,
+        *resid_ff->local_cell_dof_array_address, &cur_cell_mapping);
 
       chi_log.Log(LOG_0VERBOSE_1)
         << "dof 0 phi=" << field[cur_cell_mapping[0]] << "\n"
@@ -183,9 +183,9 @@ void chi_montecarlon::ResidualSource::
           }
 
           ff_interp.CreatePWLDMapping(
-            resid_ff->num_grps,resid_ff->num_moms,0,0,
-            dofs_to_map,cells_to_map,
-            *resid_ff->local_cell_dof_array_address,&adj_mapping);
+            resid_ff->num_components, resid_ff->num_sets, 0, 0,
+            dofs_to_map, cells_to_map,
+            *resid_ff->local_cell_dof_array_address, &adj_mapping);
 
           chi_log.Log(LOG_0VERBOSE_1)
             << "adj_cell " << adj_cell_index << "\n"

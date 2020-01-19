@@ -86,8 +86,7 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
     if (ray_dest_info.destination_face_neighbor < 0)
     {
       bool reflecting = false;
-      if (!reflecting)
-        prtcl.alive = false;
+      if (!reflecting) prtcl.alive = false;
       else {}
     }//if bndry
     else

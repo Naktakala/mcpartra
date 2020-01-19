@@ -20,8 +20,8 @@ double chi_montecarlon::Solver::
   for (int dof=0; dof<dofs; dof++)
   {
     int ir = rmap +
-             dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
-             rsrc->resid_ff->num_grps*0 +
+             dof * rsrc->resid_ff->num_components * rsrc->resid_ff->num_sets +
+             rsrc->resid_ff->num_components * 0 +
              egrp;
     phi += (*rsrc->resid_ff->field_vector_local)[ir]*N_in[dof];
   }//for dof
@@ -39,8 +39,8 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector>& Grad_in, int dofs, int rmap,
   for (int dof=0; dof<dofs; dof++)
   {
     int ir = rmap +
-             dof*rsrc->resid_ff->num_grps*rsrc->resid_ff->num_moms +
-             rsrc->resid_ff->num_grps*0 +
+             dof * rsrc->resid_ff->num_components * rsrc->resid_ff->num_sets +
+             rsrc->resid_ff->num_components * 0 +
              egrp;
     gradphi = gradphi + (Grad_in[dof]*(*rsrc->resid_ff->field_vector_local)[ir]);
   }//for dof
@@ -114,6 +114,9 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   //--------------------------------- Compute q_i
   double phi_i = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
   auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+
+  if (prtcl.pre_cell_ind >= 0)
+    prtcl.w -= phi_i;
 
   //Compute residual source at i
   double q_i = Resdiual_Q(siga, phi_i, Q, prtcl.dir, gradphi_i);
@@ -212,21 +215,20 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   cell_pwl_view->ShapeValues(pf, N_f);
   double phi_neg = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
 
-  double phi_pos = 0.0;
-  int neighbor = ray_dest_info.destination_face_neighbor;
-  if (neighbor>0)
-  {
-    auto adj_cell = grid->cells[neighbor];
-    int adj_cell_local_ind = adj_cell->cell_local_id;
-    auto adj_cell_pwl_view = pwl_discretization->MapFeView(neighbor);
-
-    adj_cell_pwl_view->ShapeValues(pf, N_f);
-    int armap =
-      (*src->resid_ff->local_cell_dof_array_address)[adj_cell_local_ind];
-    phi_pos = GetResidualFFPhi(N_f, adj_cell_pwl_view->dofs, armap, src, prtcl.egrp);
-
-    prtcl.w += (phi_neg - phi_pos);
-  }
-
-
+//  double phi_pos = 0.0;
+//  int neighbor = ray_dest_info.destination_face_neighbor;
+//  if (neighbor>0)
+//  {
+//    auto adj_cell = grid->cells[neighbor];
+//    int adj_cell_local_ind = adj_cell->cell_local_id;
+//    auto adj_cell_pwl_view = pwl_discretization->MapFeView(neighbor);
+//
+//    adj_cell_pwl_view->ShapeValues(pf, N_f);
+//    int armap =
+//      (*src->resid_ff->local_cell_dof_array_address)[adj_cell_local_ind];
+//    phi_pos = GetResidualFFPhi(N_f, adj_cell_pwl_view->dofs, armap, src, prtcl.egrp);
+//
+//    prtcl.w += (phi_neg - phi_pos);
+//  }
+  prtcl.w += phi_neg;
 }

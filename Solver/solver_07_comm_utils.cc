@@ -10,24 +10,30 @@ extern ChiLog chi_log;
 /**Populates MPI datatypes*/
 void chi_montecarlon::Solver::BuildMPITypes()
 {
-  int block_lengths[] = {3,3,1,2,2};
+  int block_lengths[] = {3,3,1,1,1,1,1,1};
   MPI_Aint block_disp[] = {
     offsetof(Particle,pos),
     offsetof(Particle,dir),
     offsetof(Particle,w),
     offsetof(Particle,egrp),
-    offsetof(Particle,alive)};
+    offsetof(Particle,cur_cell_ind),
+    offsetof(Particle,pre_cell_ind),
+    offsetof(Particle,alive),
+    offsetof(Particle,banked)};
 
   MPI_Datatype block_types[] = {
     MPI_DOUBLE,
     MPI_DOUBLE,
     MPI_DOUBLE,
     MPI_INT,
+    MPI_INT,
+    MPI_INT,
+    MPIU_BOOL,
     MPIU_BOOL
   };
 
   MPI_Type_create_struct(
-    5,              // Number of blocks
+    7,              // Number of blocks
     block_lengths,  // Block lengths
     block_disp,     // Block displacements
     block_types,    // Block types
