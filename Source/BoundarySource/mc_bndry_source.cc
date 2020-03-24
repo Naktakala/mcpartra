@@ -49,14 +49,13 @@ void chi_montecarlon::BoundarySource::
   //============================================= Build surface src patchess
   // The surface points
   double total_patch_area = 0.0;
-  for (auto& cell_glob_index : grid->local_cell_glob_indices)
+  for (auto& cell : grid->local_cells)
   {
-    auto cell = grid->cells[cell_glob_index];
-    auto fv_view = fv_sdm->MapFeView(cell_glob_index);
+    auto fv_view = fv_sdm->MapFeView(cell.local_id);
 
 
     int f=0;
-    for (auto& face : cell->faces)
+    for (auto& face : cell.faces)
     {
       if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
 
@@ -73,8 +72,8 @@ void chi_montecarlon::BoundarySource::
         double face_area = fv_view->face_area[f];
         chi_mesh::Matrix3x3 R;
 
-        chi_mesh::Vector n = cell->faces[f].normal*-1.0;
-        chi_mesh::Vector khat(0.0,0.0,1.0);
+        chi_mesh::Vector3 n = face.normal*-1.0;
+        chi_mesh::Vector3 khat(0.0,0.0,1.0);
 
         if      (n.Dot(khat) >  0.9999999)
           R.SetDiagonalVec(1.0,1.0,1.0);
@@ -82,10 +81,10 @@ void chi_montecarlon::BoundarySource::
           R.SetDiagonalVec(1.0,1.0,-1.0);
         else
         {
-          chi_mesh::Vector binorm = khat.Cross(n);
+          chi_mesh::Vector3 binorm = khat.Cross(n);
           binorm = binorm/binorm.Norm();
 
-          chi_mesh::Vector tangent = binorm.Cross(n);
+          chi_mesh::Vector3 tangent = binorm.Cross(n);
           tangent = tangent/tangent.Norm();
 
           R.SetColJVec(0,tangent);
@@ -94,7 +93,7 @@ void chi_montecarlon::BoundarySource::
         }
 
         total_patch_area += face_area;
-        source_patches.emplace_back(cell_glob_index,f,R,face_area);
+        source_patches.emplace_back(cell.local_id,f,R,face_area);
       }
       ++f;
     }//for face
@@ -109,6 +108,24 @@ void chi_montecarlon::BoundarySource::
     cumulative_value += std::get<3>(source_patch);
     source_patch_cdf[p] = cumulative_value/total_patch_area;
     ++p;
+  }
+
+  int local_num_patches = source_patches.size();
+  int global_num_patches = 0;
+
+  MPI_Allreduce(&local_num_patches,
+                &global_num_patches,
+                1,
+                MPI_INT,
+                MPI_SUM,
+                MPI_COMM_WORLD);
+
+  if (global_num_patches == 0)
+  {
+    chi_log.Log(LOG_ALLERROR)
+      << "chi_montecarlon::BoundarySource::Initialize"
+         " No source patches.";
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -134,26 +151,26 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   auto& source_patch = source_patches[source_patch_sample];
 
   //======================================== Get references
-  int cell_glob_index  = std::get<0>(source_patch);
+  int cell_local_id    = std::get<0>(source_patch);
   int f                = std::get<1>(source_patch);
   auto& RotationMatrix = std::get<2>(source_patch);
-  auto cell            = grid->cells[cell_glob_index];
-  auto face            = cell->faces[f];
-  auto fv_view         = fv_sdm->MapFeView(cell_glob_index);
+  auto& cell           = grid->local_cells[cell_local_id];
+  auto& face           = cell.faces[f];
+  auto fv_view         = fv_sdm->MapFeView(cell_local_id);
 
   //======================================== Sample position
-  if      (cell->Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = *grid->nodes[face.vertex_ids[0]];
-  else if (cell->Type() == chi_mesh::CellType::POLYGON)
+  if      (cell.Type() == chi_mesh::CellType::SLAB)
+    new_particle.pos = *grid->vertices[face.vertex_ids[0]];
+  else if (cell.Type() == chi_mesh::CellType::POLYGON)
   {
-    chi_mesh::Vertex& v0 = *grid->nodes[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = *grid->nodes[face.vertex_ids[1]];
+    chi_mesh::Vertex& v0 = *grid->vertices[face.vertex_ids[0]];
+    chi_mesh::Vertex& v1 = *grid->vertices[face.vertex_ids[1]];
     double w = rng->Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
-  else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
+  else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
   {
-    auto polyh_cell = (chi_mesh::CellPolyhedron*)cell;
+    auto polyh_cell = (chi_mesh::CellPolyhedron*)(&cell);
     auto polyh_fv_view = (PolyhedronFVView*)fv_view;
 
     auto edges = polyh_cell->GetFaceEdges(f);
@@ -175,7 +192,7 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
     while ((u+v)>1.0)
     {u = rng->Rand(); v = rng->Rand();}
 
-    chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
+    chi_mesh::Vector3& v0 = *grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
                             polyh_fv_view->face_side_vectors[f][s][1]*v;
   }
@@ -185,7 +202,7 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   double theta    = acos(sqrt(costheta));
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -198,10 +215,27 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   //======================================== Determine weight
   new_particle.w = 1.0;
 
-  new_particle.cur_cell_ind = cell_glob_index;
-
-//  chi_log.Log(LOG_ALL) << new_particle.pos.PrintS();
-//  usleep(100000);
+  new_particle.cur_cell_global_id = cell.global_id;
+  new_particle.cur_cell_local_id  = cell.local_id;
 
   return new_particle;
+}
+
+//###################################################################
+/**Gets the relative source strength accross all processors.*/
+double chi_montecarlon::BoundarySource::GetParallelRelativeSourceWeight()
+{
+  double local_total_source_weight = 0.0;
+  for (auto& source_patch : source_patches)
+    local_total_source_weight += std::get<3>(source_patch);
+
+  double global_total_source_weight = 0.0;
+  MPI_Allreduce(&local_total_source_weight,  //sendbuf
+                &global_total_source_weight, //recvbuf
+                1,                           //recvcount
+                MPI_DOUBLE,                  //datatype
+                MPI_SUM,                     //operation
+                MPI_COMM_WORLD);             //communicator
+
+  return local_total_source_weight/global_total_source_weight;
 }

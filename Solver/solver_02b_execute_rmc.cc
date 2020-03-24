@@ -16,11 +16,11 @@ extern ChiMath chi_math_handler;
 /**Executes the solver*/
 void chi_montecarlon::Solver::ExecuteRMCUncollided()
 {
-  chi_log.Log(LOG_0) << "Executing Residual MonteCarlo uncollided solver";
-
   chi_montecarlon::Source* src = sources.back();
 
   if (src->type_index != SourceTypes::RESIDUAL) return;
+
+  chi_log.Log(LOG_0) << "Executing Residual MonteCarlo uncollided solver";
 
   auto rsrc = (chi_montecarlon::ResidualSource2*)src;
   uncollided_only = true;

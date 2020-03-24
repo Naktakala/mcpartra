@@ -64,6 +64,8 @@ public:
   virtual chi_montecarlon::Particle
           CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 
+  virtual double GetParallelRelativeSourceWeight() {return 1.0;}
+
 };
 
 #endif

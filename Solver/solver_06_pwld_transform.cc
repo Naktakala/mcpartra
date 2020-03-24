@@ -9,10 +9,9 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
   {
     for (size_t lc=0; lc<num_cells; lc++)
     {
-      int cell_g_index = grid->local_cell_glob_indices[lc];
       int map = local_cell_pwl_dof_array_address[lc];
 
-      auto cell_pwl_view = pwl_discretization->MapFeView(cell_g_index);
+      auto cell_pwl_view = pwl_discretization->MapFeViewL(lc);
 
       MatDbl A(cell_pwl_view->IntV_shapeI_shapeJ);
       MatDbl Ainv = chi_math::Inverse(A);

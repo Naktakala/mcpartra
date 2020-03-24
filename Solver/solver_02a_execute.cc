@@ -20,7 +20,6 @@ void chi_montecarlon::Solver::Execute()
 
   chi_log.Log(LOG_0) << "Executing Montecarlo solver";
 
-
   chi_montecarlon::Source* src = sources.back();
 
   std::vector<Particle> inbound_particles;
@@ -44,7 +43,6 @@ void chi_montecarlon::Solver::Execute()
 
     }//for pi in batch
 
-//    chi_log.Log(LOG_ALL) << "Barrier";
     MPI_Barrier(MPI_COMM_WORLD);
 
     GetOutboundBankSize();

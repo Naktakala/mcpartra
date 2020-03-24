@@ -16,14 +16,14 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
   for (auto cell_g_index : ref_grid->local_cell_glob_indices)
   {
     auto cell = ref_grid->cells[cell_g_index];
-    auto fv_view = ref_fv_sdm->MapFeView(cell->cell_global_id);
+    auto fv_view = ref_fv_sdm->MapFeView(cell->local_id);
 
     if (cell->Type() == chi_mesh::CellType::SLAB)
     {
       CellSideInfo cell_side_info;
 
-      auto v0 = *ref_grid->nodes[cell->vertex_ids[0]];
-      auto v1 = *ref_grid->nodes[cell->vertex_ids[1]];
+      auto v0 = *ref_grid->vertices[cell->vertex_ids[0]];
+      auto v1 = *ref_grid->vertices[cell->vertex_ids[1]];
 
       auto v01 = v1 - v0;
 
@@ -45,8 +45,8 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
       CellSideInfo cell_side_info(0.0,std::vector<CellSideData>());
       for (auto& face : cell->faces)
       {
-        auto  v0 = *ref_grid->nodes[face.vertex_ids[0]];
-        auto  v1 = *ref_grid->nodes[face.vertex_ids[1]];
+        auto  v0 = *ref_grid->vertices[face.vertex_ids[0]];
+        auto  v1 = *ref_grid->vertices[face.vertex_ids[1]];
         auto& v2 = cell->centroid;
 
         auto v01 = v1-v0;
@@ -77,8 +77,8 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
 
         for (auto& edge : face_edges)
         {
-          auto  v0 = *ref_grid->nodes[edge[0]];
-          auto  v1 = *ref_grid->nodes[edge[1]];
+          auto  v0 = *ref_grid->vertices[edge[0]];
+          auto  v1 = *ref_grid->vertices[edge[1]];
           auto& v2 = face.centroid;
           auto& v3 = cell->centroid;
 
@@ -123,12 +123,12 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
 
 //###################################################################
 /**Samples the cell interior*/
-chi_mesh::Vector chi_montecarlon::ResidualSource2::
+chi_mesh::Vector3 chi_montecarlon::ResidualSource2::
   GetRandomPositionInCell(
     chi_montecarlon::RandomNumberGenerator *rng,
     chi_montecarlon::ResidualSource2::CellSideInfo &cell_side_info)
 {
-  chi_mesh::Vector position;
+  chi_mesh::Vector3 position;
   double rn = rng->Rand();
   double cell_volume = cell_side_info.first;
   double incremental_volume = 0.0;

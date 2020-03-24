@@ -137,7 +137,7 @@ void chi_montecarlon::ResidualSource::
     {
       chi_log.Log(LOG_0VERBOSE_1) << "Cell " << cell_glob_index;
       auto slab_cell = (chi_mesh::CellSlab*)cell;
-      auto cell_fe_view = (SlabFEView*)resid_sdm_pwl->MapFeView(cell_glob_index);
+      auto cell_fe_view = (SlabFEView*)resid_sdm_pwl->MapFeViewL(lc);
 
       chi_log.Log(LOG_0VERBOSE_1) << "**************** Cell " << cell_glob_index;
 
@@ -351,8 +351,8 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
 
-    chi_mesh::Vertex v0 = *grid->nodes[v0i];
-    chi_mesh::Vertex v1 = *grid->nodes[v1i];
+    chi_mesh::Vertex v0 = *grid->vertices[v0i];
+    chi_mesh::Vertex v1 = *grid->vertices[v1i];
 
     double rn = rng->Rand();
 
@@ -376,7 +376,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       double theta    = acos(costheta);
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
@@ -392,7 +392,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       new_particle.w = sampling_normalization*
         ((cell_interior_residual[lc]<0.0) ? -1.0:1.0);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_C++;
 
@@ -407,13 +407,13 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       double theta    = acos(sqrt(costheta));
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
 
       //====================================== Set position
-      new_particle.pos = v0+chi_mesh::Vector(0,0,1.0e-8);
+      new_particle.pos = v0+chi_mesh::Vector3(0,0,1.0e-8);
 
       //====================================== Set quantities
       new_particle.dir = ref_dir;
@@ -422,7 +422,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       new_particle.w = sampling_normalization*
         ((cell_surface_residualL[lc]<0.0) ? -1.0:1.0);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_L++;
       weights_L += new_particle.w;
@@ -437,13 +437,13 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       double theta    = acos(-sqrt(costheta));
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
 
       //====================================== Set position
-      new_particle.pos = v1-chi_mesh::Vector(0,0,1.0e-8);
+      new_particle.pos = v1-chi_mesh::Vector3(0,0,1.0e-8);
 
       //====================================== Set quantities
       new_particle.dir = ref_dir;
@@ -452,7 +452,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
       new_particle.w = sampling_normalization*
         ((cell_surface_residualR[lc]<0.0) ? -1.0:1.0);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_R++;
       weights_R += new_particle.w;
@@ -498,8 +498,8 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
 
-    chi_mesh::Vertex v0 = *grid->nodes[v0i];
-    chi_mesh::Vertex v1 = *grid->nodes[v1i];
+    chi_mesh::Vertex v0 = *grid->vertices[v0i];
+    chi_mesh::Vertex v1 = *grid->vertices[v1i];
 
     double rn = rng->Rand();
 
@@ -525,7 +525,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
       double theta    = acos(-costheta);
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
@@ -542,7 +542,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
                        ((cell_interior_residual[lc]<0.0) ? -1.0:1.0)*
                        (cell_R/total_residual)*(3.0*center_res/cell_R);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_C++;
 
@@ -557,13 +557,13 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
       double theta    = acos(sqrt(costheta));
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
 
       //====================================== Set position
-      new_particle.pos = v0+chi_mesh::Vector(0,0,1.0e-8);
+      new_particle.pos = v0+chi_mesh::Vector3(0,0,1.0e-8);
 
       //====================================== Set quantities
       new_particle.dir = ref_dir;
@@ -573,7 +573,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
                        ((cell_surface_residualL[lc]<0.0) ? -1.0:1.0)*
                        (cell_R/total_residual)*(3.0*surfL_res/cell_R);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_L++;
       weights_L += new_particle.w;
@@ -588,13 +588,13 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
       double theta    = acos(-sqrt(costheta));
       double varphi   = rng->Rand()*2.0*M_PI;
 
-      chi_mesh::Vector ref_dir;
+      chi_mesh::Vector3 ref_dir;
       ref_dir.x = sin(theta)*cos(varphi);
       ref_dir.y = sin(theta)*sin(varphi);
       ref_dir.z = cos(theta);
 
       //====================================== Set position
-      new_particle.pos = v1-chi_mesh::Vector(0,0,1.0e-8);
+      new_particle.pos = v1-chi_mesh::Vector3(0,0,1.0e-8);
 
       //====================================== Set quantities
       new_particle.dir = ref_dir;
@@ -604,7 +604,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
                        ((cell_surface_residualR[lc]<0.0) ? -1.0:1.0)*
                        (cell_R/total_residual)*(3.0*surfR_res/cell_R);
 //      new_particle.w = std::fabs(sampling_normalization);
-      new_particle.cur_cell_ind = cell_glob_index;
+      new_particle.cur_cell_global_id = cell_glob_index;
 //      new_particle.alive = false;
       particles_R++;
       weights_R += new_particle.w;

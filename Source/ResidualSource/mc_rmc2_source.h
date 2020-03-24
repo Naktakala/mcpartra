@@ -30,8 +30,8 @@ private:
   struct CellSideData
   {
     double volume;
-    chi_mesh::Vector ref_point;
-    std::vector<chi_mesh::Vector> legs;
+    chi_mesh::Vector3 ref_point;
+    std::vector<chi_mesh::Vector3> legs;
   };
   typedef std::pair<double,std::vector<CellSideData>> CellSideInfo;
   std::vector<CellSideInfo> cell_vol_info;
@@ -48,7 +48,7 @@ public:
 
   void BuildCellVolInfo(chi_mesh::MeshContinuum*  ref_grid,
                         SpatialDiscretization_FV* ref_fv_sdm);
-  chi_mesh::Vector GetRandomPositionInCell(
+  chi_mesh::Vector3 GetRandomPositionInCell(
           chi_montecarlon::RandomNumberGenerator* rng,
           CellSideInfo& cell_side_info);
 

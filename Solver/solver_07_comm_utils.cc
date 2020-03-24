@@ -6,40 +6,13 @@ extern ChiMPI chi_mpi;
 #include <chi_log.h>
 extern ChiLog chi_log;
 
+#include <sstream>
+
 //###################################################################
 /**Populates MPI datatypes*/
 void chi_montecarlon::Solver::BuildMPITypes()
 {
-  int block_lengths[] = {3,3,1,1,1,1,1,1};
-  MPI_Aint block_disp[] = {
-    offsetof(Particle,pos),
-    offsetof(Particle,dir),
-    offsetof(Particle,w),
-    offsetof(Particle,egrp),
-    offsetof(Particle,cur_cell_ind),
-    offsetof(Particle,pre_cell_ind),
-    offsetof(Particle,alive),
-    offsetof(Particle,banked)};
-
-  MPI_Datatype block_types[] = {
-    MPI_DOUBLE,
-    MPI_DOUBLE,
-    MPI_DOUBLE,
-    MPI_INT,
-    MPI_INT,
-    MPI_INT,
-    MPIU_BOOL,
-    MPIU_BOOL
-  };
-
-  MPI_Type_create_struct(
-    7,              // Number of blocks
-    block_lengths,  // Block lengths
-    block_disp,     // Block displacements
-    block_types,    // Block types
-    &mpi_prtcl_data_type);
-
-  MPI_Type_commit(&mpi_prtcl_data_type);
+  chi_montecarlon::Particle::BuildMPIDatatype(mpi_prtcl_data_type);
 }
 
 //###################################################################
@@ -62,7 +35,7 @@ void chi_montecarlon::Solver::
 
   for (auto& outb_prtcl : outbound_particle_bank)
   {
-    int loc_i = grid->cells[outb_prtcl.cur_cell_ind]->partition_id;
+    int loc_i = grid->cells[outb_prtcl.cur_cell_global_id]->partition_id;
 
     locI_outbound[loc_i].push_back(outb_prtcl); //std::move(outb_prtcl));
   }
@@ -75,9 +48,6 @@ void chi_montecarlon::Solver::
   {
     send_counts[i] = locI_outbound[i].size();
     total_outbound += send_counts[i];
-//    chi_log.Log(LOG_ALL)
-//      << "Send to " << i
-//      << " " << send_counts[i];
   }
 
   //=================================== Determine displacements and
@@ -91,6 +61,59 @@ void chi_montecarlon::Solver::
     for (auto& outb_prtcl : locI_outbound[i])
       linear_outbound.push_back(outb_prtcl);//std::move(outb_prtcl));
   }
+
+//  if (not linear_outbound.empty())
+//  {
+//    auto& prtl0 = linear_outbound[0];
+//    chi_log.Log(LOG_ALL)
+//      << "Send "
+//      << prtl0.pos.PrintS() << " "
+//      << prtl0.dir.PrintS() << " "
+//      << prtl0.w << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
+//  }
+//  if (not linear_outbound.empty())
+//  {
+//    auto& prtl0 = linear_outbound[1];
+//    chi_log.Log(LOG_ALL)
+//      << "Send "
+//      << prtl0.pos.PrintS() << " "
+//      << prtl0.dir.PrintS() << " "
+//      << prtl0.w << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
+//  }
+//  if (not linear_outbound.empty())
+//  {
+//    auto& prtl0 = linear_outbound[2];
+//    chi_log.Log(LOG_ALL)
+//      << "Send "
+//      << prtl0.pos.PrintS() << " "
+//      << prtl0.dir.PrintS() << " "
+//      << prtl0.w << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
+//  }
+//  chi_log.Log(LOG_ALL) << "Communicating";
 
   //=================================== Collect recv counts
   std::vector<int> recv_counts(chi_mpi.process_count,0);
@@ -142,11 +165,52 @@ void chi_montecarlon::Solver::
 //  {
 //    auto& prtl0 = inbound_particles[0];
 //    chi_log.Log(LOG_ALL)
+//      << "Recv "
 //      << prtl0.pos.PrintS() << " "
 //      << prtl0.dir.PrintS() << " "
 //      << prtl0.w << " "
-//      << prtl0.cur_cell_ind << " "
-//      << prtl0.egrp;
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
+//  }
+//  if (total_inbound>0)
+//  {
+//    auto& prtl0 = inbound_particles[1];
+//    chi_log.Log(LOG_ALL)
+//      << "Recv "
+//      << prtl0.pos.PrintS() << " "
+//      << prtl0.dir.PrintS() << " "
+//      << prtl0.w << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
+//  }
+//  if (total_inbound>0)
+//  {
+//    auto& prtl0 = inbound_particles[2];
+//    chi_log.Log(LOG_ALL)
+//      << "Recv "
+//      << prtl0.pos.PrintS() << " "
+//      << prtl0.dir.PrintS() << " "
+//      << prtl0.w << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.egrp << " "
+//      << prtl0.cur_cell_global_id << " "
+//      << prtl0.pre_cell_global_id << " "
+//      << prtl0.cur_cell_local_id << " "
+//      << prtl0.pre_cell_local_id << " "
+//      << prtl0.alive << " "
+//      << prtl0.banked;
 //  }
 
 }

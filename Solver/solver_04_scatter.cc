@@ -16,7 +16,7 @@ extern ChiLog chi_log;
 
 //###################################################################
 /**Processes a scattering event from cross-sections.*/
-std::pair<int,chi_mesh::Vector>
+std::pair<int,chi_mesh::Vector3>
 chi_montecarlon::Solver::
 ProcessScattering(chi_montecarlon::Particle &prtcl,
                   chi_physics::TransportCrossSections *xs)
@@ -31,7 +31,7 @@ ProcessScattering(chi_montecarlon::Particle &prtcl,
   double theta    = acos(mu);
   double varphi   = rng0.Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -43,8 +43,8 @@ ProcessScattering(chi_montecarlon::Particle &prtcl,
   if ((prtcl.dir.z < ( 1.0-1.0e-12)) and
       (prtcl.dir.z > (-1.0+1.0e-12)))
   {
-    chi_mesh::Vector tangent = prtcl.dir.Cross(chi_mesh::Vector(0.0,0.0,1.0));
-    chi_mesh::Vector binorm = prtcl.dir.Cross(tangent);
+    chi_mesh::Vector3 tangent = prtcl.dir.Cross(chi_mesh::Vector3(0.0,0.0,1.0));
+    chi_mesh::Vector3 binorm = prtcl.dir.Cross(tangent);
 
     R.SetColJVec(0,tangent/tangent.Norm());
     R.SetColJVec(1,binorm/binorm.Norm());
@@ -55,7 +55,7 @@ ProcessScattering(chi_montecarlon::Particle &prtcl,
   }
 
   //=================================== Apply rotation matrix
-  chi_mesh::Vector dirf = R*ref_dir;
+  chi_mesh::Vector3 dirf = R*ref_dir;
 
   return {gprime,dirf/dirf.Norm()};
 }

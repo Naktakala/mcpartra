@@ -30,7 +30,7 @@ chiRegionAddLineBoundary(region1,line_mesh);
 chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED);
 chiVolumeMesherCreate(VOLUMEMESHER_LINEMESH1D);
 
-chiVolumeMesherSetProperty(PARTITION_Z,4)
+chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
 
 --############################################### Execute meshing
 chiSurfaceMesherExecute();
@@ -49,7 +49,7 @@ chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 mmesh = chiMeshHandlerCreate()
 
 mesh={}
-N=50
+N=20
 L=2.0
 xmin = 0.0
 dx = L/N
@@ -68,7 +68,8 @@ chiRegionAddLineBoundary(region1,line_mesh);
 chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED);
 chiVolumeMesherCreate(VOLUMEMESHER_LINEMESH1D);
 
-chiVolumeMesherSetProperty(MESH_GLOBAL,true)
+chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
+--chiVolumeMesherSetProperty(MESH_GLOBAL,true)
 
 --############################################### Execute meshing
 chiSurfaceMesherExecute();
@@ -196,11 +197,12 @@ chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 2.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
-for k=1,2 do
+for k=1,1 do
     chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,k-1)
 end
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,2)
 
-for k=1,2 do
+for k=1,1 do
     chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist[k])
 end
 

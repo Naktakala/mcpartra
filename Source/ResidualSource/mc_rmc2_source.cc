@@ -60,24 +60,23 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   //============================================= Build surface src patchess
   // The surface points
   double total_patch_area = 0.0;
-  for (auto& cell_glob_index : grid->local_cell_glob_indices)
+  for (auto& cell : grid->local_cells)
   {
-    auto cell = grid->cells[cell_glob_index];
-    auto fv_view = fv_sdm->MapFeView(cell_glob_index);
+    auto fv_view = fv_sdm->MapFeView(cell.local_id);
 
     int f=0;
-    for (auto& face : cell->faces)
+    for (auto& face : cell.faces)
     {
       if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
       
       double face_area = fv_view->face_area[f];
 
-      chi_mesh::Vector n = cell->faces[f].normal*-1.0;
+      chi_mesh::Vector3 n = face.normal*-1.0;
       chi_mesh::Matrix3x3 R =
         chi_mesh::Matrix3x3::MakeRotationMatrixFromVector(n);
 
       total_patch_area += face_area;
-      source_patches.emplace_back(cell_glob_index,f,R,face_area);
+      source_patches.emplace_back(cell.local_id,f,R,face_area);
 
       ++f;
     }//for face
@@ -118,20 +117,20 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   auto& source_patch = source_patches[source_patch_sample];
 
   //======================================== Get references
-  int cell_glob_index  = std::get<0>(source_patch);
+  int cell_local_id    = std::get<0>(source_patch);
   int f                = std::get<1>(source_patch);
   auto& RotationMatrix = std::get<2>(source_patch);
-  auto cell            = grid->cells[cell_glob_index];
-  auto face            = cell->faces[f];
-  auto fv_view         = fv_sdm->MapFeView(cell_glob_index);
+  auto cell            = &grid->local_cells[cell_local_id];
+  auto& face           = cell->faces[f];
+  auto fv_view         = fv_sdm->MapFeView(cell_local_id);
 
   //======================================== Sample position
   if      (cell->Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = *grid->nodes[face.vertex_ids[0]];
+    new_particle.pos = *grid->vertices[face.vertex_ids[0]];
   else if (cell->Type() == chi_mesh::CellType::POLYGON)
   {
-    chi_mesh::Vertex& v0 = *grid->nodes[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = *grid->nodes[face.vertex_ids[1]];
+    chi_mesh::Vertex& v0 = *grid->vertices[face.vertex_ids[0]];
+    chi_mesh::Vertex& v1 = *grid->vertices[face.vertex_ids[1]];
     double w = rng->Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
@@ -156,7 +155,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 
     double w0 = rng->Rand();
     double w1 = rng->Rand()*(1.0-w0);
-    chi_mesh::Vector& v0 = *grid->nodes[edges[s][0]];
+    chi_mesh::Vector3& v0 = *grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
                        polyh_fv_view->face_side_vectors[f][s][1]*w1;
   }
@@ -166,7 +165,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   double theta    = acos(sqrt(costheta));
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -175,12 +174,12 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 
   //======================================== Determine weight
   // Interpolate phi
-  auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
+  auto pwl_view = ref_solver->pwl_discretization->MapFeViewL(cell_local_id);
   std::vector<double> shape_values(pwl_view->dofs,0.0);
   pwl_view->ShapeValues(new_particle.pos,shape_values);
-
-  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell->cell_local_id,
-                                                  0,new_particle.egrp);
+  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
+                                                  new_particle.egrp,
+                                                  0);
 
   double cell_phi = 0.0;
   for (int dof=0; dof<pwl_view->dofs; dof++)
@@ -196,7 +195,8 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   //======================================== Sample energy
   new_particle.egrp = 0;
 
-  new_particle.cur_cell_ind = cell_glob_index;
+  new_particle.cur_cell_global_id = cell->global_id;
+  new_particle.cur_cell_local_id  = cell_local_id;
 
   return new_particle;
 }
@@ -218,8 +218,8 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   int lc = std::floor((num_loc_cells)*rng->Rand());
 
   int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
-  auto cell = ref_solver->grid->cells[cell_glob_index];
-  auto pwl_view = ref_solver->pwl_discretization->MapFeView(cell_glob_index);
+  auto cell = &ref_solver->grid->local_cells[lc];
+  auto pwl_view = ref_solver->pwl_discretization->MapFeViewL(lc);
   int map = ref_solver->local_cell_pwl_dof_array_address[lc];
 
   int mat_id = cell->material_id;
@@ -232,8 +232,6 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   double sigt = xs->sigma_tg[0];
   double sigs = sigt-siga;
 
-  new_particle.cur_cell_ind = cell_glob_index;
-
   //======================================== Sample position
   new_particle.pos = GetRandomPositionInCell(rng, cell_vol_info[lc]);
 
@@ -242,7 +240,7 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   double theta    = acos(costheta);
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -272,6 +270,9 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 
   if (std::fabs(weight) < 1.0e-12)
     new_particle.alive = false;
+
+  new_particle.cur_cell_global_id = cell_glob_index;
+  new_particle.cur_cell_local_id  = cell->local_id;
 
   return new_particle;
 }

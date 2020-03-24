@@ -80,14 +80,14 @@ chiPhysicsMaterialAddProperty(materials[1],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 
 
-num_groups = 2
+num_groups = 1
 --chiPhysicsMaterialSetProperty(materials[1],TRANSPORT_XSECTIONS,
 --        PDT_XSFILE,"CHI_TEST/xs_3_170.data")
 --chiPhysicsMaterialSetProperty(materials[2],TRANSPORT_XSECTIONS,
 --        PDT_XSFILE,"CHI_TEST/xs_3_170.data")
 
-chiPhysicsMaterialSetProperty(materials[1],TRANSPORT_XSECTIONS,SIMPLEXS0,num_groups,0.5)
-chiPhysicsMaterialSetProperty(materials[2],TRANSPORT_XSECTIONS,SIMPLEXS0,num_groups,0.5)
+chiPhysicsMaterialSetProperty(materials[1],TRANSPORT_XSECTIONS,SIMPLEXS0,num_groups,0.0)
+chiPhysicsMaterialSetProperty(materials[2],TRANSPORT_XSECTIONS,SIMPLEXS0,num_groups,0.0)
 
 --chiPhysicsMaterialSetProperty(materials[1],TRANSPORT_XSECTIONS,SIMPLEXS1,num_groups,1.0,0.8)
 --chiPhysicsMaterialSetProperty(materials[2],TRANSPORT_XSECTIONS,SIMPLEXS1,num_groups,1.0,0.8)
@@ -105,24 +105,24 @@ chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 
 --############################################### Setup Physics
-phys1 = chiMonteCarlonCreateSolver()
-chiSolverAddRegion(phys1,region1)
+phys0 = chiMonteCarlonCreateSolver()
+chiSolverAddRegion(phys0,region1)
 
 --chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
-chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
+chiMonteCarlonCreateSource(phys0,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,40e6)
-chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,2e5)
-chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
-chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.6*1*2)
-chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
-chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,false)
+chiMonteCarlonSetProperty(phys0,MCProperties.NUM_PARTICLES,1e6)
+chiMonteCarlonSetProperty(phys0,MCProperties.TFC_UPDATE_INTVL,10e3)
+chiMonteCarlonSetProperty(phys0,MCProperties.TALLY_MERGE_INTVL,1e5)
+chiMonteCarlonSetProperty(phys0,MCProperties.SCATTERING_ORDER,0)
+chiMonteCarlonSetProperty(phys0,MCProperties.MONOENERGETIC,false)
+chiMonteCarlonSetProperty(phys0,MCProperties.FORCE_ISOTROPIC,false)
+chiMonteCarlonSetProperty(phys0,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.6*1*2)
+chiMonteCarlonSetProperty(phys0,MCProperties.MAKE_PWLD_SOLUTION,true)
+chiMonteCarlonSetProperty(phys0,MCProperties.UNCOLLIDED_ONLY,false)
 
-chiMonteCarlonInitialize(phys1)
-chiMonteCarlonExecute(phys1)
+chiMonteCarlonInitialize(phys0)
+chiMonteCarlonExecute(phys0)
 
 --############################################### Setup LBS Physics
 phys1 = chiLBSCreateSolver()
@@ -176,8 +176,8 @@ fflist,count = chiLBSGetScalarFieldFunctionList(phys1)
 
 --Testing consolidated interpolation
 cline = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.01,-1.0, 0.801)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.01,1.0, 0.801)
+chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT, 0.0+0.5*2/32,-1.0, 0.8+0.5*1.6/8)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0+0.5*2/32, 1.0, 0.8+0.5*1.6/8)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
 for k=1,2 do
@@ -192,7 +192,8 @@ chiFFInterpolationInitialize(cline)
 chiFFInterpolationExecute(cline)
 chiFFInterpolationExportPython(cline)
 
-
+fflist,count = chiGetFieldFunctionList(phys0)
+chiExportFieldFunctionToVTKG(fflist[1]+num_groups,"ZPhiMC")
 --
 
 
