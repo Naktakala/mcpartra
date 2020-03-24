@@ -11,7 +11,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
   {
     int cell_glob_index = grid->local_cell_glob_indices[lc];
     auto cell = grid->cells[cell_glob_index];
-    auto cell_fv_view = fv_discretization->MapFeView(cell->cell_global_id);
+    auto cell_fv_view = fv_discretization->MapFeView(lc);
 
     double V = cell_fv_view->volume;
 
@@ -44,8 +44,7 @@ void chi_montecarlon::Solver::NormalizePWLTallies()
   int num_cells = grid->local_cell_glob_indices.size();
   for (int lc=0; lc<num_cells; lc++)
   {
-    int cell_glob_index = grid->local_cell_glob_indices[lc];
-    auto cell_pwl_view   = pwl_discretization->MapFeView(cell_glob_index);
+    auto cell_pwl_view   = pwl_discretization->MapFeViewL(lc);
     int map             = local_cell_pwl_dof_array_address[lc];
 
     int hi = 0;

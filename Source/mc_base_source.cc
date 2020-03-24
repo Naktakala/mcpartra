@@ -3,6 +3,9 @@
 
 #include "../RandomNumberGenerator/montecarlon_rng.h"
 
+#include "chi_log.h"
+extern ChiLog chi_log;
+
 //#########################################################
 /**Default constructor*/
 chi_montecarlon::Source::Source()
@@ -44,6 +47,8 @@ chi_montecarlon::Particle chi_montecarlon::Source::CreateParticle(chi_montecarlo
 
   new_particle.egrp = 0;
   new_particle.w = 1.0;
+
+  chi_log.Log(LOG_0) << "Default particle created.";
 
 
   return new_particle;

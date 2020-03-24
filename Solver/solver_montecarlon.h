@@ -90,7 +90,7 @@ public:
 private:
   std::vector<double> segment_lengths;
   std::vector<double> N_f,N_i;
-  std::vector<chi_mesh::Vector> Grad;
+  std::vector<chi_mesh::Vector3> Grad;
   //runtime quantities
   size_t                                current_batch;
   unsigned long long                    nps;
@@ -130,14 +130,18 @@ public:
   bool                                  mesh_is_global = false;
 
 
-private:
-  chi_mesh::EmptyRegion empty_region;
+//private:
+//  chi_mesh::EmptyRegion empty_region;
 
 public:
   //00
        Solver();
   //01
   bool Initialize();
+  void InitMaterials();
+  void InitParticleBatches();
+  void InitTallies();
+  void InitFieldFunctions();
 
   //02
   void Execute();
@@ -149,12 +153,12 @@ private:
   void RaytraceRMC(Particle& prtcl);
 
   //04
-  std::pair<int,chi_mesh::Vector>
+  std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
                     chi_physics::TransportCrossSections* xs);
   //05a
   void ContributeTally(Particle& prtcl,
-                       chi_mesh::Vector pf);
+                       chi_mesh::Vector3 pf);
   void ComputeRelativeStdDev();
 
   //05b
@@ -162,12 +166,12 @@ private:
                           int dofs, int rmap,
                           chi_montecarlon::ResidualSource2* rsrc,
                           int egrp);
-  chi_mesh::Vector GetResidualFFGradPhi(std::vector<chi_mesh::Vector>& Grad_in,
+  chi_mesh::Vector3 GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
                               int dofs, int rmap,
                               chi_montecarlon::ResidualSource2* rsrc,
                               int egrp);
   void ContributeTallyRMC(Particle& prtcl,
-                          chi_mesh::Vector pf,
+                          chi_mesh::Vector3 pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
 
   //05c

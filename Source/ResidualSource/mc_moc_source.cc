@@ -139,7 +139,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
       auto slab_cell = (chi_mesh::CellSlab*)cell;
       auto cell_fe_view =
         static_cast<SlabFEView*>(
-          resid_sdm_pwl->MapFeView(cell_glob_index));
+          resid_sdm_pwl->MapFeViewL(cell->local_id));
 
       //==================================== Creating current cell dof-mapping
       std::vector<int> dofs_to_map(cell_fe_view->dofs);
@@ -152,8 +152,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
         cells_to_map[i] = cell_glob_index;
       }
 
-      ff_interp.CreatePWLDMapping(
-        resid_ff,dofs_to_map,cells_to_map,&cur_cell_mapping);
+//      ff_interp.CreatePWLDMapping(
+//        resid_ff,dofs_to_map,cells_to_map,&cur_cell_mapping);
 
       chi_log.Log(LOG_0VERBOSE_1)
         << "dof 0 phi=" << field[cur_cell_mapping[0]] << "\n"
@@ -178,8 +178,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
             cells_to_map[i] = adj_cell_index;
           }
 
-          ff_interp.CreatePWLDMapping(
-            resid_ff,dofs_to_map,cells_to_map,&adj_mapping);
+//          ff_interp.CreatePWLDMapping(
+//            resid_ff,dofs_to_map,cells_to_map,&adj_mapping);
 
           chi_log.Log(LOG_0VERBOSE_1)
             << "adj_cell " << adj_cell_index << "\n"
@@ -281,8 +281,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
           int v0i = slab_cell->vertex_ids[0];
           int v1i = slab_cell->vertex_ids[1];
 
-          chi_mesh::Vertex& v0 = *grid->nodes[v0i];
-          chi_mesh::Vertex& v1 = *grid->nodes[v1i];
+          chi_mesh::Vertex& v0 = *grid->vertices[v0i];
+          chi_mesh::Vertex& v1 = *grid->vertices[v1i];
 
           double dz = (v1-v0).Norm();
           double dzstar = dz/num_subdivs;
@@ -332,8 +332,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
           int v0i = slab_cell->vertex_ids[0];
           int v1i = slab_cell->vertex_ids[1];
 
-          chi_mesh::Vertex& v0 = *grid->nodes[v0i];
-          chi_mesh::Vertex& v1 = *grid->nodes[v1i];
+          chi_mesh::Vertex& v0 = *grid->vertices[v0i];
+          chi_mesh::Vertex& v1 = *grid->vertices[v1i];
 
           double dz = (v1-v0).Norm();
           double dzstar = dz/num_subdivs;
@@ -460,7 +460,7 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
   double theta    = acos(costheta);
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -475,8 +475,8 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
 
-    chi_mesh::Vertex v0 = *grid->nodes[v0i];
-    chi_mesh::Vertex v1 = *grid->nodes[v1i];
+    chi_mesh::Vertex v0 = *grid->vertices[v0i];
+    chi_mesh::Vertex v1 = *grid->vertices[v1i];
 
     //====================================== Sample position
     double dz = (v1-v0).Norm();
@@ -499,11 +499,11 @@ DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
       }
     }
 
-    new_particle.pos = chi_mesh::Vector(0.0,0.0,z);
+    new_particle.pos = chi_mesh::Vector3(0.0,0.0,z);
     new_particle.egrp = 0;
     new_particle.w = sampling_normalization;
 
-    new_particle.cur_cell_ind = cell_glob_index;
+    new_particle.cur_cell_global_id = cell_glob_index;
 
 //    if (w<0.0) new_particle.alive = false;
 
@@ -534,7 +534,7 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
   double theta    = acos(costheta);
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -549,8 +549,8 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
     int v0i = slab_cell->vertex_ids[0];
     int v1i = slab_cell->vertex_ids[1];
 
-    chi_mesh::Vertex v0 = *grid->nodes[v0i];
-    chi_mesh::Vertex v1 = *grid->nodes[v1i];
+    chi_mesh::Vertex v0 = *grid->vertices[v0i];
+    chi_mesh::Vertex v1 = *grid->vertices[v1i];
 
     //====================================== Sample position
     double dz = (v1-v0).Norm();
@@ -563,11 +563,11 @@ UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
     z = cell_z_i_star[lc][i] + w*dzstar;
     sampling_normalization *= cell_subintvl_source[lc][i]*num_subdivs;
 
-    new_particle.pos = chi_mesh::Vector(0.0,0.0,z);
+    new_particle.pos = chi_mesh::Vector3(0.0,0.0,z);
     new_particle.egrp = 0;
     new_particle.w = sampling_normalization;
 
-    new_particle.cur_cell_ind = cell_glob_index;
+    new_particle.cur_cell_global_id = cell_glob_index;
   }
 
   return new_particle;

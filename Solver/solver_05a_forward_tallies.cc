@@ -18,10 +18,10 @@ typedef unsigned long long TULL;
 /**Makes a contribution to tallies*/
 void chi_montecarlon::Solver::ContributeTally(
   chi_montecarlon::Particle &prtcl,
-  chi_mesh::Vector pf)
+  chi_mesh::Vector3 pf)
 {
-  auto cell = grid->cells[prtcl.cur_cell_ind];
-  int cell_local_ind = cell->cell_local_id;
+  auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
+  int cell_local_ind = cell->local_id;
 
   int ir = cell_local_ind*num_grps + prtcl.egrp;
 
@@ -51,7 +51,7 @@ void chi_montecarlon::Solver::ContributeTally(
 
 
 
-    auto cell_pwl_view = pwl_discretization->MapFeView(prtcl.cur_cell_ind);
+    auto cell_pwl_view = pwl_discretization->MapFeViewL(cell_local_ind);
     int map            = local_cell_pwl_dof_array_address[cell_local_ind];
 
     double last_segment_length = 0.0;
@@ -100,12 +100,15 @@ void chi_montecarlon::Solver::ComputeRelativeStdDev()
 
       TULL n = batch_sizes[current_batch];
 
-      double x_avg  = phi_global[ir]/nps_global;
+      TULL divisor = (nps_global==0)? 1 : nps_global;
+
+      double x_avg  = phi_global[ir]/divisor;
       double x2_avg = (phi_global_tally_sqr[ir]/n);
 
-      double stddev = sqrt((x2_avg - x_avg*x_avg)/nps_global);
+      double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
 
-      if (!std::isinf(stddev/x_avg))
+      if (!std::isinf(stddev/x_avg) and
+          !std::isnan(stddev/x_avg))
       {
         phi_local_relsigma[ir] = stddev/x_avg;
 
@@ -122,15 +125,19 @@ void chi_montecarlon::Solver::ComputeRelativeStdDev()
       }
 
 
-      if (std::isinf(phi_local_relsigma[ir]))
+      if (std::isinf(phi_local_relsigma[ir]) or
+          std::isnan(phi_local_relsigma[ir]))
       {
         printf("Infinite lc=%d g=%d\n", lc,g);
-        chi_log.Log(LOG_ALL) << "stddev=" << stddev << "\n";
-        chi_log.Log(LOG_ALL) << "xavg=" << x_avg << "\n";
-        chi_log.Log(LOG_ALL) << "x2avg=" << x2_avg << "\n";
-        chi_log.Log(LOG_ALL) << "phirel=" << phi_local_relsigma[ir] << "\n";
-        chi_log.Log(LOG_ALL) << "batch=" << n << "\n";
-        chi_log.Log(LOG_ALL) << "nps=" << nps_global << "\n";
+        chi_log.Log(LOG_ALL)
+          << "stddev=" << stddev << "\n"
+          << "xavg=" << x_avg << "\n"
+          << "x2avg=" << x2_avg << "\n"
+          << "phirel=" << phi_local_relsigma[ir] << "\n"
+          << "phiglobal=" << phi_global[ir] << "\n"
+          << "batch=" << n << "\n"
+          << "nps=" << nps_global << "\n";
+        exit(EXIT_FAILURE);
       }
     }//for g
   }//for local cell

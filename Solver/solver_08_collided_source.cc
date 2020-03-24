@@ -21,8 +21,7 @@ void chi_montecarlon::Solver::DevelopCollidedSource()
     running_total += std::fabs(phi_uncollided_rmc[lc]);
     cell_residual_cdf[lc] = running_total/total_uncollided;
 
-    int cell_glob_index = grid->local_cell_glob_indices[lc];
-    auto fv_view = fv_discretization->MapFeView(cell_glob_index);
+    auto fv_view = fv_discretization->MapFeView(lc);
     volume += fv_view->volume;
   }
 

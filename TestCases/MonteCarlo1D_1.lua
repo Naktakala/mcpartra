@@ -31,7 +31,7 @@ chiRegionAddLineBoundary(region1,line_mesh);
 chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED);
 chiVolumeMesherCreate(VOLUMEMESHER_LINEMESH1D);
 
-chiVolumeMesherSetProperty(MESH_GLOBAL,true)
+--chiVolumeMesherSetProperty(MESH_GLOBAL,true)
 
 --############################################### Execute meshing
 chiSurfaceMesherExecute();

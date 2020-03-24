@@ -31,11 +31,11 @@ double chi_montecarlon::Solver::
 
 //###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
-chi_mesh::Vector chi_montecarlon::Solver::
-GetResidualFFGradPhi(std::vector<chi_mesh::Vector>& Grad_in, int dofs, int rmap,
+chi_mesh::Vector3 chi_montecarlon::Solver::
+GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in, int dofs, int rmap,
                  chi_montecarlon::ResidualSource2 *rsrc, int egrp)
 {
-  chi_mesh::Vector gradphi;
+  chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
   {
     int ir = rmap +
@@ -53,13 +53,13 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector>& Grad_in, int dofs, int rmap,
 /**Makes a contribution to tallies*/
 void chi_montecarlon::Solver::ContributeTallyRMC(
   chi_montecarlon::Particle &prtcl,
-  chi_mesh::Vector pf,
+  chi_mesh::Vector3 pf,
   chi_mesh::RayDestinationInfo& ray_dest_info)
 {
   //======================================== Get cell information
-  auto cell           = grid->cells[prtcl.cur_cell_ind];
-  int  cell_local_ind = cell->cell_local_id;
-  auto cell_pwl_view  = pwl_discretization->MapFeView(prtcl.cur_cell_ind);
+  auto cell           = &grid->local_cells[prtcl.cur_cell_local_id];
+  int  cell_local_ind = cell->local_id;
+  auto cell_pwl_view  = pwl_discretization->MapFeViewL(cell_local_ind);
 
   //======================================== Get material properties
   int  mat_id         = cell->material_id;
@@ -97,7 +97,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   //--------------------------------- Lambda computing residual source
   auto Resdiual_Q = [](double siga, double phi, double Q,
-                       chi_mesh::Vector& omega, chi_mesh::Vector& nabla_phi)
+                       chi_mesh::Vector3& omega, chi_mesh::Vector3& nabla_phi)
   {
     double retval = Q - siga*phi - omega.Dot(nabla_phi);
 
@@ -105,8 +105,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   };
 
   //--------------------------------- Pre-fetch shape-function values
-  chi_mesh::Vector p_i = prtcl.pos;
-  chi_mesh::Vector p_f = prtcl.pos;
+  chi_mesh::Vector3 p_i = prtcl.pos;
+  chi_mesh::Vector3 p_f = prtcl.pos;
 
   cell_pwl_view->ShapeValues(p_i, N_f);
   cell_pwl_view->GradShapeValues(p_i,Grad);
@@ -115,7 +115,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   double phi_i = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
   auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
 
-  if (prtcl.pre_cell_ind >= 0)
+  if (prtcl.pre_cell_global_id >= 0)
     prtcl.w -= phi_i;
 
   //Compute residual source at i
@@ -158,13 +158,23 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     double c_2 = w_i - c_0;
 
     //========================== Computing Iq
-    double Iq  = (a/sigt)*(exp(sigt*s_L)-1.0);
-    Iq += (b/sigt/sigt)*(sigt*s_L - 1.0)*exp(sigt*s_L);
+    double Iq  = (a/sigt)*(exp(std::fmin(sigt*s_L,100.0))-1.0);
+    Iq += (b/sigt/sigt)*(sigt*s_L - 1.0)*exp(std::fmin(sigt*s_L,100.0));
     Iq -= (b/sigt/sigt)*(0.0      - 1.0)*1.0;
 
     //========================== Computing w_f
+    double w_f_before = prtcl.w;
     double w_f = exp(-sigt*s_L)*w_i + exp(-sigt*s_L)*Iq;
     prtcl.w = w_f;
+
+    if (std::isnan(w_f) or std::isinf(w_f))
+    {
+      chi_log.Log(LOG_ALLERROR)
+        << "Segfault in w, before = " << w_f_before << "\n"
+        << "Iq=" << Iq << "\n"
+        << "s_L=" << s_L;
+      exit(EXIT_FAILURE);
+    }
 
     //========================== Contribute to tally and compute average
     double w_avg = 0.0;
@@ -215,20 +225,5 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   cell_pwl_view->ShapeValues(pf, N_f);
   double phi_neg = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
 
-//  double phi_pos = 0.0;
-//  int neighbor = ray_dest_info.destination_face_neighbor;
-//  if (neighbor>0)
-//  {
-//    auto adj_cell = grid->cells[neighbor];
-//    int adj_cell_local_ind = adj_cell->cell_local_id;
-//    auto adj_cell_pwl_view = pwl_discretization->MapFeView(neighbor);
-//
-//    adj_cell_pwl_view->ShapeValues(pf, N_f);
-//    int armap =
-//      (*src->resid_ff->local_cell_dof_array_address)[adj_cell_local_ind];
-//    phi_pos = GetResidualFFPhi(N_f, adj_cell_pwl_view->dofs, armap, src, prtcl.egrp);
-//
-//    prtcl.w += (phi_neg - phi_pos);
-//  }
   prtcl.w += phi_neg;
 }

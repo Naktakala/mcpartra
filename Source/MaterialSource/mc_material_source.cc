@@ -21,14 +21,15 @@ void chi_montecarlon::MaterialSource::
 {
   //============================================= List cells with mat-sources
   std::vector<chi_mesh::Cell*> mat_src_cells;
-  for (auto cell_g_index : ref_grid->local_cell_glob_indices)
+  for (auto& cell : ref_grid->local_cells)
   {
-    auto cell = ref_grid->cells[cell_g_index];
-
-    auto mat = chi_physics_handler.material_stack[cell->material_id];
+    auto mat = chi_physics_handler.material_stack[cell.material_id];
     for (auto prop : mat->properties)
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
-        mat_src_cells.push_back(cell);
+      {
+        mat_src_cells.push_back(&cell);
+        break;
+      }
   }
 
   //============================================= Determine group-wise
@@ -38,13 +39,12 @@ void chi_montecarlon::MaterialSource::
   group_sources.resize(ref_solver->num_grps);
   for (auto cell : mat_src_cells)
   {
-    auto fv_view = ref_fv_sdm->MapFeView(cell->cell_global_id);
+    auto fv_view = ref_fv_sdm->MapFeView(cell->local_id);
 
     auto mat = chi_physics_handler.material_stack[cell->material_id];
 
     for (auto prop : mat->properties)
     {
-
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
       {
         auto src = (chi_physics::IsotropicMultiGrpSource*)prop;
@@ -54,18 +54,19 @@ void chi_montecarlon::MaterialSource::
 
           if (cell->Type() == chi_mesh::CellType::SLAB)
           {
-            auto v0 = *ref_grid->nodes[cell->vertex_ids[0]];
-            auto v1 = *ref_grid->nodes[cell->vertex_ids[1]];
+            auto v0 = *ref_grid->vertices[cell->vertex_ids[0]];
+            auto v1 = *ref_grid->vertices[cell->vertex_ids[1]];
 
             auto v01 = v1 - v0;
 
             double V = fv_view->volume;
 
-            std::vector<chi_mesh::Vector> legs;
+            std::vector<chi_mesh::Vector3> legs;
             legs.push_back(v01);
 
             if (src->source_value_g[g]>1.0e-12)
-              group_sources[g].emplace_back(cell->cell_global_id,
+              group_sources[g].emplace_back(cell->local_id,
+                                            cell->global_id,
                                             g,
                                             V*src->source_value_g[g],
                                             src->source_value_g[g],
@@ -76,8 +77,8 @@ void chi_montecarlon::MaterialSource::
           {
             for (auto& face : cell->faces)
             {
-              auto  v0 = *ref_grid->nodes[face.vertex_ids[0]];
-              auto  v1 = *ref_grid->nodes[face.vertex_ids[1]];
+              auto  v0 = *ref_grid->vertices[face.vertex_ids[0]];
+              auto  v1 = *ref_grid->vertices[face.vertex_ids[1]];
               auto& v2 = cell->centroid;
 
               auto v01 = v1-v0;
@@ -85,12 +86,13 @@ void chi_montecarlon::MaterialSource::
 
               double V = ((v01.x)*(v02.y) - (v02.x)*(v01.y))/2.0;
 
-              std::vector<chi_mesh::Vector> legs;
+              std::vector<chi_mesh::Vector3> legs;
               legs.push_back(v01);
               legs.push_back(v02);
 
               if (src->source_value_g[g]>1.0e-12)
-                group_sources[g].emplace_back(cell->cell_global_id,
+                group_sources[g].emplace_back(cell->local_id,
+                                              cell->global_id,
                                               g,
                                               V*src->source_value_g[g],
                                               src->source_value_g[g],
@@ -108,8 +110,8 @@ void chi_montecarlon::MaterialSource::
 
               for (auto& edge : face_edges)
               {
-                auto  v0 = *ref_grid->nodes[edge[0]];
-                auto  v1 = *ref_grid->nodes[edge[1]];
+                auto  v0 = *ref_grid->vertices[edge[0]];
+                auto  v1 = *ref_grid->vertices[edge[1]];
                 auto& v2 = face.centroid;
                 auto& v3 = cell->centroid;
 
@@ -126,13 +128,14 @@ void chi_montecarlon::MaterialSource::
 
                 double V = detJ/6.0;
 
-                std::vector<chi_mesh::Vector> legs;
+                std::vector<chi_mesh::Vector3> legs;
                 legs.push_back(v01);
                 legs.push_back(v02);
                 legs.push_back(v03);
 
                 if (src->source_value_g[g]>1.0e-12)
-                  group_sources[g].emplace_back(cell->cell_global_id,
+                  group_sources[g].emplace_back(cell->local_id,
+                                                cell->global_id,
                                                 g,
                                                 V*src->source_value_g[g],
                                                 src->source_value_g[g],
@@ -149,11 +152,14 @@ void chi_montecarlon::MaterialSource::
               << "chi_montecarlon::MaterialSource:: Initialize.";
             exit(EXIT_FAILURE);
           }
-
+          break;
         }
       }//if src prop
     }
   }//for cell
+
+  // The next two steps build two levels of CDFs. The first is group-wise,
+  // then the second is the elements within a group.
 
   //============================================= Construct groupwise cdf
   double IntV_Q_total = 0.0;
@@ -216,8 +222,6 @@ chi_montecarlon::Particle chi_montecarlon::MaterialSource::
     new_particle.alive = false;
     return new_particle;
   }
-  if (g>0)
-    chi_log.Log(LOG_0) << g;
 
   //======================================== Sample element
   int elem = std::lower_bound(
@@ -266,7 +270,7 @@ chi_montecarlon::Particle chi_montecarlon::MaterialSource::
   double theta    = acos(costheta);
   double varphi   = rng->Rand()*2.0*M_PI;
 
-  chi_mesh::Vector ref_dir;
+  chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
   ref_dir.y = sin(theta)*sin(varphi);
   ref_dir.z = cos(theta);
@@ -276,7 +280,29 @@ chi_montecarlon::Particle chi_montecarlon::MaterialSource::
   //======================================== Determine weight
   new_particle.w = 1.0;
 
-  new_particle.cur_cell_ind = src_element.cell_g_index;
+  new_particle.cur_cell_local_id  = src_element.cell_local_index;
+  new_particle.cur_cell_global_id = src_element.cell_global_index;
 
   return new_particle;
+}
+
+//###################################################################
+/**Gets the relative source strength accross all processors.*/
+double chi_montecarlon::MaterialSource::GetParallelRelativeSourceWeight()
+{
+  double local_total_source_weight = 0.0;
+
+  for (auto& grp_src : group_sources)
+    for (auto& src_element : grp_src)
+      local_total_source_weight += src_element.product_V_Q;
+
+  double global_total_source_weight = 0.0;
+  MPI_Allreduce(&local_total_source_weight,  //sendbuf
+                &global_total_source_weight, //recvbuf
+                1,                           //recvcount
+                MPI_DOUBLE,                  //datatype
+                MPI_SUM,                     //operation
+                MPI_COMM_WORLD);             //communicator
+
+  return local_total_source_weight/global_total_source_weight;
 }
