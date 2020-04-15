@@ -26,12 +26,12 @@ extern ChiPhysics chi_physics_handler;
 
 //###################################################################
 /**Constructor for residual source.*/
-chi_montecarlon::ResidualSource2::ResidualSource2(
-  chi_physics::FieldFunction *in_resid_ff,
-  bool use_uniform_sampling,
-  double in_bndry_val) :
-  ref_bndry_val(in_bndry_val),
-  sample_uniformly(use_uniform_sampling)
+chi_montecarlon::ResidualSource2::
+  ResidualSource2(chi_physics::FieldFunction *in_resid_ff,
+                  bool use_uniform_sampling,
+                  double in_bndry_val) :
+                  ref_bndry_val(in_bndry_val),
+                  sample_uniformly(use_uniform_sampling)
 {
   type_index = SourceTypes::RESIDUAL;
   resid_ff = in_resid_ff;
@@ -48,9 +48,9 @@ chi_montecarlon::ResidualSource2::ResidualSource2(
  * This process involves numerous steps. One of the first steps is
  * to */
 void chi_montecarlon::ResidualSource2::
-Initialize(chi_mesh::MeshContinuum *ref_grid,
-           SpatialDiscretization_FV *ref_fv_sdm,
-           chi_montecarlon::Solver* ref_solver)
+  Initialize(chi_mesh::MeshContinuum *ref_grid,
+             SpatialDiscretization_FV *ref_fv_sdm,
+             chi_montecarlon::Solver* ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing Residual Bndry Source";
   grid = ref_grid;
@@ -204,16 +204,11 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+  CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
-  //======================================== Sample cell
-//  int lc = std::lower_bound(ref_solver->cell_residual_cdf.begin(),
-//                            ref_solver->cell_residual_cdf.end(),
-//                            rng->Rand()) -
-//                            ref_solver->cell_residual_cdf.begin();
-
+  //======================================== Randomly Sample Cell
   int num_loc_cells = ref_solver->grid->local_cell_glob_indices.size();
   int lc = std::floor((num_loc_cells)*rng->Rand());
 
@@ -275,4 +270,23 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
   new_particle.cur_cell_local_id  = cell->local_id;
 
   return new_particle;
+}
+
+//###################################################################
+/**Gets the relative source strength accross all processors.*/
+double chi_montecarlon::ResidualSource2::GetRMCParallelRelativeSourceWeight()
+{
+  double local_surface_area = 0.0;
+  for (auto& source_patch : source_patches)
+    local_surface_area += std::get<3>(source_patch);
+
+  double global_surface_area = 0.0;
+  MPI_Allreduce(&local_surface_area,  //sendbuf
+                &global_surface_area, //recvbuf
+                1,                    //recvcount
+                MPI_DOUBLE,           //datatype
+                MPI_SUM,              //operation
+                MPI_COMM_WORLD);      //communicator
+
+  return local_surface_area/global_surface_area;
 }

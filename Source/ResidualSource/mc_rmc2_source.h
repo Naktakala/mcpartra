@@ -63,6 +63,8 @@ public:
 
   chi_montecarlon::Particle
   DirectSampling(chi_montecarlon::RandomNumberGenerator* rng);
+
+  double GetRMCParallelRelativeSourceWeight();
 };
 
 

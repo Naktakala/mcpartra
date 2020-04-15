@@ -3,6 +3,9 @@
 #include <chi_log.h>
 extern ChiLog chi_log;
 
+#include <chi_mpi.h>
+extern ChiMPI chi_mpi;
+
 //###################################################################
 /**Develop the collided source.*/
 void chi_montecarlon::Solver::DevelopCollidedSource()
@@ -26,5 +29,8 @@ void chi_montecarlon::Solver::DevelopCollidedSource()
   }
 
   MPI_Allreduce(&volume,&domain_volume,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+
+  for (auto& val : batch_sizes_per_loc)
+    val *= (volume/domain_volume)*chi_mpi.process_count;
 
 }

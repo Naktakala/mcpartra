@@ -83,6 +83,8 @@ public:
 private:
   std::vector<int>                      local_cell_pwl_dof_array_address;
 
+  std::map<int,int>                     cell_neighbor_nonlocal_local_id;
+
   //======================== RMC quantities
 public:
   std::vector<double>                   cell_residual_cdf;
@@ -142,6 +144,7 @@ public:
   void InitParticleBatches();
   void InitTallies();
   void InitFieldFunctions();
+  void InitGhostIDs();
 
   //02
   void Execute();

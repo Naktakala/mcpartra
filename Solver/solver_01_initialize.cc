@@ -44,7 +44,10 @@ bool chi_montecarlon::Solver::Initialize()
   //=================================== Initialize field functions
   InitFieldFunctions();
 
-  //======================================== Initialize data types
+  //=================================== Init ghost ids
+  InitGhostIDs();
+
+  //=================================== Initialize data types
   BuildMPITypes();
 
   MPI_Barrier(MPI_COMM_WORLD);

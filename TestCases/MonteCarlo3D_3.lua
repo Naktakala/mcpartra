@@ -51,7 +51,7 @@ chiVolumeMesherSetProperty(EXTRUSION_LAYER,0.2*NZ,NZ,"Charlie");--0.8
 chiVolumeMesherSetProperty(EXTRUSION_LAYER,0.2*NZ,NZ,"Charlie");--1.2
 chiVolumeMesherSetProperty(EXTRUSION_LAYER,0.2*NZ,NZ,"Charlie");--1.6
 
-chiVolumeMesherSetProperty(PARTITION_Z,1);
+chiVolumeMesherSetProperty(PARTITION_Z,2);
 
 chiVolumeMesherSetProperty(FORCE_POLYGONS,true);
 --chiVolumeMesherSetProperty(MESH_GLOBAL,true)
@@ -108,10 +108,9 @@ chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 phys0 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys0,region1)
 
---chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys0,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys0,MCProperties.NUM_PARTICLES,1e6)
+chiMonteCarlonSetProperty(phys0,MCProperties.NUM_PARTICLES,10e6)
 chiMonteCarlonSetProperty(phys0,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys0,MCProperties.TALLY_MERGE_INTVL,1e5)
 chiMonteCarlonSetProperty(phys0,MCProperties.SCATTERING_ORDER,0)

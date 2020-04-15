@@ -16,7 +16,13 @@ for i=0,N do
 end
 mesh,region0 = chiMeshCreate3DOrthoMesh(nodes,nodes,nodes)
 
---chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
+chiVolumeMesherSetProperty(CUTS_X, L/2.0)
+chiVolumeMesherSetProperty(CUTS_Y, L/2.0)
+
+chiVolumeMesherSetProperty(VOLUMEPARTITION_X, 2)
+chiVolumeMesherSetProperty(VOLUMEPARTITION_Y, 2)
+
+chiVolumeMesherSetProperty(PARTITION_Z,2)
 
 --Execute meshing
 chiVolumeMesherExecute();
@@ -47,10 +53,10 @@ chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,1.0,0.9)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,1.0,0.9)
 
 src={}
 for g=1,num_groups do
@@ -120,7 +126,7 @@ chiSolverAddRegion(phys1,region0)
 
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,4);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,4e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,12e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
@@ -147,7 +153,7 @@ chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL,4,fflist0[1],0.5*2.0*math.p
 
 
 chiMonteCarlonSetProperty(phys2,MCProperties.NUM_UNCOLLIDED_PARTICLES,2e6)
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,2e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,6e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
@@ -206,6 +212,10 @@ chiFFInterpolationSetProperty(cline,LINE_CUSTOM_ARRAY,true_error)
 chiFFInterpolationInitialize(cline)
 chiFFInterpolationExecute(cline)
 chiFFInterpolationExportPython(cline)
+
+chiExportFieldFunctionToVTKG(fflist0[1],"ZPhiLBS")
+chiExportFieldFunctionToVTKG(fflist1[1]+num_groups,"ZPhiMC")
+chiExportFieldFunctionToVTKG(fflist2[1]+num_groups,"ZPhiRMC")
 
 ----############################################### Show plots
 if (chi_location_id == 0) then

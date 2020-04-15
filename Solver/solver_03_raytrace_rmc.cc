@@ -49,7 +49,9 @@ void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
       prtcl.dir = dirf;
       prtcl.egrp = ef;
       prtcl.banked = true;
-      prtcl.cur_cell_local_id = -1;
+//      prtcl.cur_cell_local_id = -1;
+      prtcl.cur_cell_local_id =
+        cell_neighbor_nonlocal_local_id[ray_dest_info.destination_face_neighbor];
       outbound_particle_bank.push_back(prtcl);
     }
     else
