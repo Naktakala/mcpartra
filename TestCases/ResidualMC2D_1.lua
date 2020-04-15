@@ -16,6 +16,7 @@ for i=0,N do
 end
 mesh,region0 = chiMeshCreate2DOrthoMesh(nodes,nodes)
 
+
 --chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
 
 --Execute meshing

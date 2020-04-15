@@ -1,11 +1,13 @@
 #include "solver_montecarlon.h"
 
 #include <chi_log.h>
+#include <chi_mpi.h>
 #include <ChiTimer/chi_timer.h>
 
 #include "../Source/ResidualSource/mc_rmc2_source.h"
 
 extern ChiLog chi_log;
+extern ChiMPI chi_mpi;
 extern ChiTimer chi_program_timer;
 typedef unsigned long long TULL;
 
@@ -24,6 +26,11 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
 
   auto rsrc = (chi_montecarlon::ResidualSource2*)src;
   uncollided_only = true;
+
+  double local_weight = rsrc->GetRMCParallelRelativeSourceWeight();
+  for (auto& val : uncollided_batch_sizes_per_loc)
+    val *= local_weight*chi_mpi.process_count;
+
 
   std::vector<Particle> inbound_particles;
 
