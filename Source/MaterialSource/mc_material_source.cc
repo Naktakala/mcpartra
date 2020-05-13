@@ -7,10 +7,10 @@
 #include "ChiMesh/Cell/cell_polyhedron.h"
 
 #include "ChiPhysics/chi_physics.h"
-extern ChiPhysics chi_physics_handler;
+extern ChiPhysics&  chi_physics_handler;
 
 #include "ChiLog/chi_log.h"
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 //###################################################################
 /**Initialize material source.*/

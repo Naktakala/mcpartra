@@ -4,13 +4,13 @@
 #include <ChiMesh/Raytrace/raytracing.h>
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 #include <ChiPhysics/chi_physics.h>
 
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 
-extern ChiPhysics chi_physics_handler;
+extern ChiPhysics&  chi_physics_handler;
 
 typedef unsigned long long TULL;
 

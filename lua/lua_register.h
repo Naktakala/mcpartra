@@ -16,6 +16,7 @@ AddNamedConstantToNamespace(RESID_MOC_SU,          7,MCSrcTypes);
 AddNamedConstantToNamespace(RESIDUAL,              8,MCSrcTypes);
 AddNamedConstantToNamespace(RESIDUAL_SU,           9,MCSrcTypes);
 
+RegisterFunction(chiMonteCarlonSetImportances)
 RegisterFunction(chiMonteCarlonSetProperty);
 RegisterNamespace(MCProperties);
   AddNamedConstantToNamespace(NUM_PARTICLES,               1,MCProperties);

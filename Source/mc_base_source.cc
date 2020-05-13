@@ -4,7 +4,7 @@
 #include "../RandomNumberGenerator/montecarlon_rng.h"
 
 #include "chi_log.h"
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 //#########################################################
 /**Default constructor*/

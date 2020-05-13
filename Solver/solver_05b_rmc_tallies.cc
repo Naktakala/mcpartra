@@ -5,10 +5,10 @@
 #include "ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h"
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 #include <ChiPhysics/chi_physics.h>
-extern ChiPhysics chi_physics_handler;
+extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Obtains a field function interpolant of the flux.*/

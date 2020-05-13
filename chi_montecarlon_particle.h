@@ -22,6 +22,9 @@ struct chi_montecarlon::Particle
   int cur_cell_local_id = -1;
   int pre_cell_local_id = -1;
 
+  double cur_cell_importance = 1.0;
+  double pre_cell_importance = 1.0;
+
   bool alive = true;
   bool banked = false;
 
@@ -43,6 +46,9 @@ struct chi_montecarlon::Particle
     this->cur_cell_local_id = that.cur_cell_local_id;
     this->pre_cell_local_id = that.pre_cell_local_id;
 
+    this->cur_cell_importance = that.cur_cell_importance;
+    this->pre_cell_importance = that.pre_cell_importance;
+
     this->alive = that.alive;
     this->banked = that.banked;
 
@@ -58,6 +64,8 @@ struct chi_montecarlon::Particle
     pre_cell_global_id(that.pre_cell_global_id),
     cur_cell_local_id(that.cur_cell_local_id),
     pre_cell_local_id(that.pre_cell_local_id),
+    cur_cell_importance(that.cur_cell_importance),
+    pre_cell_importance(that.pre_cell_importance),
     alive(that.alive),
     banked(that.banked)
   {}
@@ -72,6 +80,8 @@ struct chi_montecarlon::Particle
                            1, //pre_cell_global_id
                            1, //cur_cell_local_id
                            1, //pre_cell_local_id
+                           1, //cur_cell_importance
+                           1, //pre_cell_importance
                            1, //alive
                            1};//banked
 
@@ -84,6 +94,8 @@ struct chi_montecarlon::Particle
       offsetof(Particle, pre_cell_global_id),
       offsetof(Particle, cur_cell_local_id),
       offsetof(Particle, pre_cell_local_id),
+      offsetof(Particle, cur_cell_importance),
+      offsetof(Particle, pre_cell_importance),
       offsetof(Particle, alive),
       offsetof(Particle, banked)};
 
@@ -96,12 +108,14 @@ struct chi_montecarlon::Particle
       MPI_INT,
       MPI_INT,
       MPI_INT,
+      MPI_DOUBLE,
+      MPI_DOUBLE,
       MPI_BYTE,
       MPI_BYTE
     };
 
     MPI_Type_create_struct(
-      10,             // Number of blocks
+      12,             // Number of blocks
       block_lengths,  // Block lengths
       block_disp,     // Block displacements
       block_types,    // Block types

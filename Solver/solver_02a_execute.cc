@@ -5,12 +5,12 @@
 
 #include "../Source/ResidualSource/mc_rmc_source.h"
 
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 extern ChiTimer chi_program_timer;
 typedef unsigned long long TULL;
 
 
-extern ChiMath chi_math_handler;
+extern ChiMath& chi_math_handler;
 
 //#########################################################
 /**Executes the solver*/
@@ -41,6 +41,16 @@ void chi_montecarlon::Solver::Execute()
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
+      while (not particle_source_bank.empty())
+      {
+        prtcl = particle_source_bank.back();
+        particle_source_bank.pop_back();
+
+        prtcl.alive = true;
+        prtcl.banked = false;
+
+        while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+      }
     }//for pi in batch
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -54,6 +64,17 @@ void chi_montecarlon::Solver::Execute()
         prtcl.alive = true;
         prtcl.banked = false;
         while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+
+        while (not particle_source_bank.empty())
+        {
+          prtcl = particle_source_bank.back();
+          particle_source_bank.pop_back();
+
+          prtcl.alive = true;
+          prtcl.banked = false;
+
+          while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+        }
       }
       GetOutboundBankSize();
     }

@@ -4,10 +4,10 @@
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 #include <ChiPhysics/chi_physics.h>
-extern ChiPhysics chi_physics_handler;
+extern ChiPhysics&  chi_physics_handler;
 
 #include<cmath>
 
@@ -18,11 +18,26 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
   //======================================== Get cell
   chi_mesh::Cell* cell;
   if (prtcl.cur_cell_local_id >= 0)
+  {
     cell = &(grid->local_cells[prtcl.cur_cell_local_id]);
+    prtcl.cur_cell_global_id = cell->global_id;
+  }
   else
   {
     cell = grid->cells[prtcl.cur_cell_global_id];
     prtcl.cur_cell_local_id = cell->local_id;
+    prtcl.cur_cell_global_id = cell->global_id;
+  }
+
+  //======================================== Process cell importance
+  if (not local_cell_importance_setting.empty())
+  {
+    if (prtcl.cur_cell_global_id != prtcl.pre_cell_global_id)
+    {
+      prtcl.cur_cell_importance = local_cell_importance[cell->local_id];
+      ProcessImportanceChange(prtcl);
+      if ((prtcl.banked) or (not prtcl.alive)) return;
+    }
   }
 
   //======================================== Get total and scat xs
@@ -44,20 +59,29 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
   chi_mesh::Vector3 dirf = prtcl.dir;
   int                ef = prtcl.egrp;
   chi_mesh::RayDestinationInfo ray_dest_info =
-    chi_mesh::RayTrace(grid, cell,
-                       prtcl.pos, prtcl.dir,
-                       d_to_surface, posf);
+    chi_mesh::RayTrace(grid,          //[Input] Grid
+                       cell,          //[Input] Current cell
+                       prtcl.pos,     //[Input] Current position
+                       prtcl.dir,     //[Input] Current direction
+                       d_to_surface,  //[Otput] Distance to next surface
+                       posf);         //[Otput] Intersection point at next surf
 
   //======================================== Process interaction
   if (d_to_intract < d_to_surface)
   {
     posf = prtcl.pos + prtcl.dir*d_to_intract;
 
-    if (!uncollided_only)
+    if (uncollided_only)
+    {
+      ef = prtcl.egrp;
+      dirf = prtcl.dir;
+      prtcl.w *= ((sigs/sigt));
+      prtcl.alive = true;
+    }
+    else
     {
       if (rng0.Rand() < (sigs/sigt))
       {
-
         auto energy_dir = ProcessScattering(prtcl,xs);
         ef   = energy_dir.first;
         dirf = energy_dir.second;
@@ -67,13 +91,6 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
       }
       else
         prtcl.alive = false;
-    }
-    else
-    {
-      ef = prtcl.egrp;
-      dirf = prtcl.dir;
-      prtcl.w *= ((sigs/sigt));
-      prtcl.alive = true;
     }
 
     ContributeTally(prtcl,posf);
@@ -89,14 +106,20 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 
     //posf set in call to RayTrace
     ContributeTally(prtcl,posf);
+
+    //======================= If surface is boundary
     if (ray_dest_info.destination_face_neighbor < 0)
     {
+      //TODO: Begin - Add reflecting boundaries
       bool reflecting = false;
       if (!reflecting) prtcl.alive = false;
       else {}
+      //TODO: End - Add reflecting boundaries
     }//if bndry
+    //======================= If surface is cell face
     else
     {
+      prtcl.pre_cell_global_id = prtcl.cur_cell_global_id;
       prtcl.cur_cell_global_id = ray_dest_info.destination_face_neighbor;
 
       if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_global_id)))
@@ -105,7 +128,6 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
         prtcl.dir = dirf;
         prtcl.egrp = ef;
         prtcl.banked = true;
-//        prtcl.cur_cell_local_id = -1;
         prtcl.cur_cell_local_id =
           cell_neighbor_nonlocal_local_id[ray_dest_info.destination_face_neighbor];
         outbound_particle_bank.push_back(prtcl);
@@ -116,10 +138,11 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
         int adj_cell_local_id = cell->faces[f].GetNeighborLocalID(grid);
         prtcl.cur_cell_local_id = adj_cell_local_id;
       }
-    }
-  }
+    }//not to bndry
+  }//trace to surface
   prtcl.pos = posf;
   prtcl.dir = dirf;
   prtcl.egrp = ef;
-
+  if (not local_cell_importance_setting.empty())
+    prtcl.pre_cell_importance = prtcl.pre_cell_importance;
 }

@@ -1,10 +1,10 @@
 #include "solver_montecarlon.h"
 
 #include <chi_mpi.h>
-extern ChiMPI chi_mpi;
+extern ChiMPI& chi_mpi;
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 #include <sstream>
 
@@ -37,7 +37,7 @@ void chi_montecarlon::Solver::
   {
     int loc_i = grid->cells[outb_prtcl.cur_cell_global_id]->partition_id;
 
-    locI_outbound[loc_i].push_back(outb_prtcl); //std::move(outb_prtcl));
+    locI_outbound[loc_i].push_back(outb_prtcl);
   }
   outbound_particle_bank.clear();
 
@@ -146,6 +146,12 @@ void chi_montecarlon::Solver::
     recv_counts.data(),
     recv_displacements.data(),mpi_prtcl_data_type,
     MPI_COMM_WORLD);
+
+  //======================================== Add source particles
+//  for (auto& prtcl : particle_source_bank)
+//    inbound_particles.push_back(prtcl);
+//
+//  particle_source_bank.clear();
 
 //  if (error_code != MPI_SUCCESS)
 //  {

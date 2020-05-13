@@ -91,7 +91,7 @@ chiSolverAddRegion(phys1,region1)
 
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,2);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,10e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,0.5e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
@@ -100,6 +100,14 @@ chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.6*2/4.0)
 --chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,false)
+
+imp_vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-0.5,1000,-1000,1000)
+imp_vol1 = chiLogicalVolumeCreate(RPP,-1000,1000, 0.0,1000,-1000,1000)
+imp_vol2 = chiLogicalVolumeCreate(RPP,-1000,1000, 0.5,1000,-1000,1000)
+chiMonteCarlonSetImportances(phys1,imp_vol0,2*4.0)
+chiMonteCarlonSetImportances(phys1,imp_vol1,2*8.0)
+chiMonteCarlonSetImportances(phys1,imp_vol2,2*16.0)
+
 
 chiMonteCarlonInitialize(phys1)
 chiMonteCarlonExecute(phys1)

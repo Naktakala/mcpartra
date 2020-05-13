@@ -1,10 +1,10 @@
 #include "solver_montecarlon.h"
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 #include <chi_mpi.h>
-extern ChiMPI chi_mpi;
+extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Develop the collided source.*/

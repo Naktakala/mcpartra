@@ -3,7 +3,7 @@
 #include <ChiMesh/Raytrace/raytracing.h>
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 //###################################################################
 /**The default raytracing algorithm.*/
@@ -43,13 +43,13 @@ void chi_montecarlon::Solver::RaytraceRMC(Particle& prtcl)
     prtcl.pre_cell_global_id = prtcl.cur_cell_global_id;
     prtcl.cur_cell_global_id = ray_dest_info.destination_face_neighbor;
 
-    if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_global_id)))
+    if ((not grid->IsCellLocal(prtcl.cur_cell_global_id)) and
+        (not mesh_is_global))
     {
       prtcl.pos = posf;
       prtcl.dir = dirf;
       prtcl.egrp = ef;
       prtcl.banked = true;
-//      prtcl.cur_cell_local_id = -1;
       prtcl.cur_cell_local_id =
         cell_neighbor_nonlocal_local_id[ray_dest_info.destination_face_neighbor];
       outbound_particle_bank.push_back(prtcl);

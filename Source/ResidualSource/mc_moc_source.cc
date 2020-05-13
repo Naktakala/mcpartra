@@ -30,8 +30,8 @@
 #include <chi_log.h>
 #include <MCParTra/Solver/solver_montecarlon.h>
 
-extern ChiLog chi_log;
-extern ChiPhysics chi_physics_handler;
+extern ChiLog& chi_log;
+extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Constructor for residual source.*/

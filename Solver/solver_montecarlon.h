@@ -85,6 +85,12 @@ private:
 
   std::map<int,int>                     cell_neighbor_nonlocal_local_id;
 
+  //======================== Variance reduction quantities
+public:
+  std::vector<double>                   local_cell_importance_setting;
+private:
+  std::vector<double>                   local_cell_importance;
+
   //======================== RMC quantities
 public:
   std::vector<double>                   cell_residual_cdf;
@@ -105,6 +111,7 @@ private:
   MPI_Datatype                          mpi_prtcl_data_type;
   std::vector<Particle>                 outbound_particle_bank;
   std::vector<Particle>                 inbound_particle_bank;
+  std::vector<Particle>                 particle_source_bank;
   unsigned int                          total_outbound_bank_size=0;
   unsigned int                          total_inbound_bank_size=0;
 
@@ -159,6 +166,7 @@ private:
   std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
                     chi_physics::TransportCrossSections* xs);
+  void ProcessImportanceChange(Particle& prtcl);
   //05a
   void ContributeTally(Particle& prtcl,
                        chi_mesh::Vector3 pf);

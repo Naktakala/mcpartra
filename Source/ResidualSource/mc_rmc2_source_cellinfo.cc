@@ -5,7 +5,7 @@
 #include "../../Solver/solver_montecarlon.h"
 
 #include <chi_log.h>
-extern ChiLog chi_log;
+extern ChiLog& chi_log;
 
 //###################################################################
 /**Build cell volume information.*/

@@ -6,13 +6,13 @@
 
 #include "../Source/ResidualSource/mc_rmc2_source.h"
 
-extern ChiLog chi_log;
-extern ChiMPI chi_mpi;
+extern ChiLog& chi_log;
+extern ChiMPI& chi_mpi;
 extern ChiTimer chi_program_timer;
 typedef unsigned long long TULL;
 
 
-extern ChiMath chi_math_handler;
+extern ChiMath& chi_math_handler;
 
 //#########################################################
 /**Executes the solver*/

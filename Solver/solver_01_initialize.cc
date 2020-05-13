@@ -5,13 +5,13 @@
 
 #include <ChiMath/Statistics/cdfsampler.h>
 
-extern ChiPhysics chi_physics_handler;
+extern ChiPhysics&  chi_physics_handler;
 
 #include <chi_log.h>
 #include <chi_mpi.h>
 
-extern ChiLog chi_log;
-extern ChiMPI chi_mpi;
+extern ChiLog& chi_log;
+extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Initialize the solver.*/
@@ -22,6 +22,16 @@ bool chi_montecarlon::Solver::Initialize()
   //=================================== Obtain grid reference
   chi_mesh::Region*  aregion = this->regions.back();
   this->grid                 = aregion->GetGrid();
+  size_t num_local_cells = grid->local_cells.size();
+
+  //=================================== Set cell importance
+  if (local_cell_importance_setting.empty())
+  {
+    local_cell_importance.clear();
+    local_cell_importance.resize(num_local_cells,1.0);
+  }
+  else
+    local_cell_importance = local_cell_importance_setting;
 
   //=================================== Initialize materials
   InitMaterials();

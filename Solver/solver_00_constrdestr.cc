@@ -2,7 +2,7 @@
 
 #include <chi_mpi.h>
 
-extern ChiMPI chi_mpi;
+extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Default constructor*/
