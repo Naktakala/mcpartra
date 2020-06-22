@@ -31,7 +31,8 @@ namespace chi_montecarlon
     RESID_MOC    = 6,
     RESID_MOC_SU = 7,
     RESIDUAL     = 8,
-    RESIDUAL_SU  = 9
+    RESIDUAL_SU  = 9,
+    RESIDUAL3    = 10
   };
 }
 

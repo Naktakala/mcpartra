@@ -204,6 +204,7 @@ private:
 
 
   friend class chi_montecarlon::ResidualSource2;
+  friend class chi_montecarlon::ResidualSource3;
 };
 
 #endif

@@ -1,0 +1,18 @@
+.git
+cmake-build-debug/
+cmake-build-debug
+.idea
+
+build/
+
+# Latex compile files
+*.aux
+*.lof
+*.log
+*.lot
+*.synctex.gz
+*.toc
+
+# All vtk mesh files
+*.vtu
+*.pvtu

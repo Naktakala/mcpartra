@@ -8,6 +8,7 @@
 #include "../Source/ResidualSource/mc_rmc_source.h"
 #include "../Source/ResidualSource/mc_moc_source.h"
 #include "../Source/ResidualSource/mc_rmc2_source.h"
+#include "../Source/ResidualSource/mc_rmc3_source.h"
 
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
@@ -289,6 +290,38 @@ int chiMonteCarlonCreateSource(lua_State *L)
     lua_pushnumber(L,solver->sources.size()-1);
 
     chi_log.Log(LOG_0) << "MonteCarlo-created residual source.";
+
+  }
+  else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL3)
+  {
+    if (num_args != 3)
+      LuaPostArgAmountError("chiMonteCarlonCreateSource-"
+                            "MCSrcTypes.RESIDUAL3",
+                            3,num_args);
+
+    int ff_handle = lua_tonumber(L,3);
+    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
+
+    chi_physics::FieldFunction* ff;
+    try {
+      ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
+    }
+
+    catch (std::out_of_range& o)
+    {
+      chi_log.Log(LOG_ALLERROR)
+        << "Invalid field function handle supplied in call to "
+           "chiMonteCarlonCreateSource-RESIDUAL3";
+      exit(EXIT_FAILURE);
+    }
+
+    auto new_source =
+      new chi_montecarlon::ResidualSource3(ff,false);
+
+    solver->sources.push_back(new_source);
+    lua_pushnumber(L,solver->sources.size()-1);
+
+    chi_log.Log(LOG_0) << "MonteCarlo-created residual3 source.";
 
   }
   else

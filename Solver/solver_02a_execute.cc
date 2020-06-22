@@ -4,6 +4,7 @@
 #include <ChiTimer/chi_timer.h>
 
 #include "../Source/ResidualSource/mc_rmc_source.h"
+#include "../Source/ResidualSource/mc_rmc3_source.h"
 
 extern ChiLog& chi_log;
 extern ChiTimer chi_program_timer;
@@ -115,6 +116,14 @@ void chi_montecarlon::Solver::Execute()
 
   ComputePWLDTransformations();
 
+//  auto rmc_src = (ResidualSource3*)src;
+//
+//  double total_avg_R = 0.0;
+//  for (double v : rmc_src->cell_avg_R_value)
+//    total_avg_R += v;
+//
+//  chi_log.Log(LOG_0) << "Average abs(R): "
+//  << total_avg_R/num_particles;
 
 
   chi_log.Log(LOG_0) << "Done executing Montecarlo solver";

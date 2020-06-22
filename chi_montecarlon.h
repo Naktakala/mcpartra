@@ -13,6 +13,7 @@ namespace chi_montecarlon
   class ResidualSource;
   class ResidualMOCSource;
   class ResidualSource2;
+  class ResidualSource3;
 
 
   class Solver;

@@ -1,3 +1,12 @@
+cmake_minimum_required(VERSION 3.2)
+
+SET(TARGET mcpartra)
+project(${TARGET} C CXX)
+
+include(~/Desktop/ChiTech/chi-tech/CHI_RESOURCES/Macros/Downstream.cmake)
+include(~/Desktop/ChiTech/chi-tech/CHI_RESOURCES/Macros/Filter.cmake)
+
+set(SOURCES "mcpartra.cc")
 file (GLOB_RECURSE MORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
 
 FOREACH(item ${MORE_SOURCES})
@@ -6,6 +15,9 @@ FOREACH(item ${MORE_SOURCES})
     ENDIF(${item} MATCHES "lua/montecarlon_maindoc_page.cc")
 ENDFOREACH(item)
 
-set(SOURCES ${SOURCES} ${MORE_SOURCES} PARENT_SCOPE)
+set(SOURCES ${SOURCES} ${MORE_SOURCES})
 
-#set_source_files_properties(chi_console_00_constrdestr.cc PROPERTIES COMPILE_FLAGS -Wno-effc++)
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O3")
+
+add_executable(${TARGET} "${SOURCES}")
+target_link_libraries(${TARGET} ${CHI_LIBS})
