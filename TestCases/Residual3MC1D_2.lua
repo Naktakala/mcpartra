@@ -121,7 +121,10 @@ chiSolverAddRegion(phys1,region0)
 
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,2e6)
+fac=1
+fv_offset = 0
+fv_offset = num_groups
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*2e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
@@ -143,7 +146,7 @@ chiSolverAddRegion(phys2,region0)
 chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL3,fflist0[1]);
 
 
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,1e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*1e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
@@ -165,7 +168,7 @@ chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
 chiFFInterpolationSetProperty(cline0,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist0[1])
-chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist1[1]+num_groups)
+chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist1[1]+fv_offset)
 
 chiFFInterpolationInitialize(cline0)
 chiFFInterpolationExecute(cline0)
@@ -194,7 +197,7 @@ chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+num_groups)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)
 
 chiFFInterpolationSetProperty(cline,LINE_CUSTOM_ARRAY,true_error)
 

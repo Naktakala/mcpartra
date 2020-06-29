@@ -1,0 +1,200 @@
+\documentclass{beamer}
+\include{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\xbold}{\mathbf{x}}
+
+\title{Quick slides on RMC}
+\subtitle{}
+
+%\usetheme{lucid}
+\begin{document}
+	\frame {
+		\titlepage
+	}
+	\frame {
+		\frametitle{Basics, sampling from a CDF}
+		Given a non-normalized probability distribution, $p^*(\xbold)$, defined over a composite domain $X=V\mathbf{\Omega}$, we can determine a normalized probability distribution, $p(\xbold)$, with
+		
+		\begin{equation}
+		p(\xbold) = \frac{
+		p^*(\xbold)
+		}{
+		\int_X p^*(\xbold)d\xbold
+		}.
+		\end{equation}
+		We can then determine a CDF from
+		
+		\begin{equation}
+		c(\xbold) = \int_{\xbold_0}^\xbold p(\xbold)d\xbold
+		\end{equation}
+		where $\xbold_0$ is some starting domain point.
+	}
+	\frame{
+		\frametitle{}
+		\framesubtitle{}
+		We can then determine an inverse CDF, $\xbold_i = c^{-1}(\theta)$, $\theta \in [0,1], \theta \in \mathbb{R}$, from which we can compute the average probability over the sub-domain (or bin), $Y\subset X$, 
+		
+		\begin{equation}
+		p_{Y,avg} = \frac{1}{N} \sum_{i=1}^N
+		\begin{cases}
+		1, \quad &\text{if } \xbold_i \in Y \\
+		0, \quad &\text{if }  \xbold_i \notin Y
+		\end{cases}
+		\end{equation}
+		
+		This value integrated over the portion of the composite domain, $A$, can be written as
+		
+		\begin{equation}
+		\int_{\mathbf{\Omega}} p_{Y,avg} d\mathbf{\Omega} = 
+		\biggr(
+		\int_{\mathbf{\Omega}} d\mathbf{\Omega}
+		\biggr)
+		\frac{1}{N} \sum_{i=1}^N
+				\begin{cases}
+				1, \quad &\text{if } \xbold_i \in Y \\
+				0, \quad &\text{if }  \xbold_i \notin Y
+				\end{cases}
+		\end{equation}
+		
+		Finally:
+		\begin{equation}
+		\int_{\mathbf{\Omega}} p^*_{Y,avg} d\mathbf{\Omega} =
+			\biggr(
+			\int_X p^*(\xbold)d\xbold
+			\biggr)
+			\int_{\mathbf{\Omega}} p_{Y,avg} d\mathbf{\Omega}
+		\end{equation}
+	
+	}
+	
+	\frame{
+	\frametitle{Monte Carlo integration}
+	We seek $\int_X p^*(\xbold)d\xbold$ via Monte Carlo integration we can be determined simply from a uniform sampling in $Y$
+	
+	\begin{equation}
+	\int_X p^*(\xbold)d\xbold = \sum_Y \int_Y p^*(\xbold)d\xbold
+	\end{equation}
+	
+	\begin{equation}
+	\int_Y p^*(\xbold)d\xbold = 
+	\biggr(
+	\int_{V_Y}.dV \int_{\mathbf{\Omega}} .d\mathbf{\Omega}
+	\biggr)
+	\frac{1}{N_Y} \sum_{i=1}^{N_Y} p^*(\xbold_i)
+	\end{equation}
+	
+	}
+	
+	\frame{
+	    \frametitle{Residual}
+	    Our residual is given by
+	    
+	    \begin{equation}
+	    r^* = r^*_{interior} + r^*_{surface} 
+	    \end{equation}
+	    
+	    where we lumped surface sources into $r^*_{surface}$. These surface sources present themselves through discontinuities between the present cell flux, $\phi^P$, and the neighboring flux, $\phi^N$. The latter can be a neighboring cell or a boundary. 
+	    
+	    
+	}
+	
+	\frame{
+	\frametitle{Interior residual}
+	The interior residual is then given by:
+	\begin{equation}
+    r^*_{interior} = \frac{1}{4\pi}
+   	    \biggr(
+    	    q - \sigma_a \phi - \mathbf{\Omega} \cdot \mathbb{\nabla} \phi
+    	    \biggr)
+    \end{equation}
+    from which we can determine the phase-space integration as
+    \begin{equation}
+    \begin{aligned}
+ 	\int_X r^*_{interior} .d\xbold
+    &=
+     \int_V \int_{\mathbf{\Omega}}
+     \frac{1}{4\pi}
+   	    \biggr(
+    	    q - \sigma_a \phi - \mathbf{\Omega} \cdot \mathbb{\nabla} \phi
+    	    \biggr)
+    	   .d\mathbf{\Omega}.dV \\
+    &=  \sum_Y
+    	   \int_{V_Y} \int_{\mathbf{\Omega}} r^*_{Y,interior} .d\mathbf{\Omega}.dV \\
+    & = \sum_Y  \biggr(
+            	\int_{V_Y}.dV \int_{\mathbf{\Omega}} .d\mathbf{\Omega}
+            	\biggr)
+             r^*_{Y,interior,avg}
+    \end{aligned}   
+    \end{equation}
+    Via Monte Carlo:
+    \begin{equation}
+    \begin{aligned}
+    r^*_{Y,interior,avg} = 
+    \frac{1}{N_Y} \sum_{i=1}^{N_Y} r^*_{Y,interior}(\xbold_i)
+    \end{aligned}
+    \end{equation}
+
+	}
+	
+	
+	\frame{
+	\frametitle{Surface residual}
+	The surface residual can be presented as
+	
+	\begin{equation}
+		    \int_S \int_{2\pi} \int_{-1}^{0} \mu \ r^*_{surface}.d\mu .d\varphi. dA = 
+		    \int_S \int_{2\pi} \int_{-1}^{0} 
+		    \mu  \frac{1}{4\pi} (\phi^N - \phi^P)
+		    .d\mu .d\varphi. dA
+		    \end{equation}
+	\begin{equation}
+	\begin{aligned}
+	\therefore
+	\int_X r^*_{surface} .d\xbold &= 
+		 \sum_Y  \biggr(
+		            	\int_{S_Y}.dS\int_{2\pi} \int_{-1}^{0} \mu.d\mu .d\varphi
+		            	\biggr)
+		             r^*_{Y,surface,avg} \\
+    &=\sum_Y  \sum_f \biggr(
+    		            	A_f \pi
+    		            	\biggr)
+    		             r^*_{Y,f,avg}
+	\end{aligned}
+	\end{equation}
+	Via Monte Carlo:
+	\begin{equation}
+    \begin{aligned}
+    r^*_{Y,f,avg} = 
+     \frac{1}{N_f} \sum_{i=1}^{N_f} r^*_{Y,f}(\xbold_i)
+     \end{aligned}
+ \end{equation}
+	}
+	
+\frame{
+\frametitle{Sampling strategy}
+Sample the CDF, first interior vs surface:
+\begin{itemize}
+\item If interior, sample cell ($\to cell \ Y$), sample position randomly in cell, sample direction randomly:
+ \begin{equation}
+    r^*_{i,interior} = \frac{1}{4\pi}
+   	    \biggr(
+    	    q - \sigma_a \phi - \mathbf{\Omega} \cdot \mathbb{\nabla} \phi
+    	    \biggr)
+    \end{equation}
+    Particle weight: $w = \frac{r^*_{i,interior}}{r^*_{Y,interior,avg}}$
+    \item If surface, sample face ($f$), sample random position on face, sample direction using cosine-law:
+  \begin{equation}
+  r^*_{i,surface} = \frac{1}{4\pi} (\phi^N - \phi^P)
+  \end{equation}  
+  Particle weight: $w = \frac{ r^*_{i,surface}}{r^*_{Y,surface,avg}}$
+\end{itemize}
+
+
+Global normalization:
+	\begin{equation}
+	\int_X r^* .d\xbold = 	\int_X r^*_{interior} .d\xbold + 	\int_X r^*_{surf} .d\xbold
+	\end{equation}
+
+}
+\end{document}

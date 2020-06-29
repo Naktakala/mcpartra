@@ -46,6 +46,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
            SpatialDiscretization_FV *ref_fv_sdm,
            chi_montecarlon::Solver* ref_solver)
 {
+  const double FOUR_PI = 4.0*M_PI;
   chi_log.Log(LOG_0) << "Initializing Residual3 Sources";
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
@@ -56,16 +57,16 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   BuildCellVolInfo(ref_grid,ref_fv_sdm);
 
   //============================================= Sample each cell
-  cell_avg_interior_pstar.clear();
-  cell_avg_interior_pstar.resize(num_local_cells, 0.0);
-  cell_avg_surface_pstar.clear();
-  cell_avg_surface_pstar.resize(num_local_cells, 0.0);
+  cell_avg_interior_rstar.clear();
+  cell_avg_interior_rstar.resize(num_local_cells, 0.0);
+  cell_avg_surface_rstar.clear();
+  cell_avg_surface_rstar.resize(num_local_cells, 0.0);
   cell_volumes.clear();
   cell_volumes.resize(num_local_cells,0.0);
-  cell_IntV_pstar.clear();
-  cell_IntV_pstar.resize(num_local_cells, 0.0);
-  cell_IntS_pstar.clear();
-  cell_IntS_pstar.resize(num_local_cells, 0.0);
+  cell_IntVOmega_rstar.clear();
+  cell_IntVOmega_rstar.resize(num_local_cells, 0.0);
+  cell_IntSOmega_rstar.clear();
+  cell_IntSOmega_rstar.resize(num_local_cells, 0.0);
 
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
@@ -119,19 +120,20 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
                                            cell_pwl_view->dofs,
                                            cell.local_id,
                                            e_group);
-      double r = Q - siga*phi - omega.Dot(grad_phi);
-//      double r = Q;
+      double r = (1.0/FOUR_PI)*
+                 ( Q - siga*phi - omega.Dot(grad_phi) );
 
       //==================================== Contribute to avg
-      cell_avg_interior_pstar[cell.local_id] += std::fabs(r);
+      cell_avg_interior_rstar[cell.local_id] += std::fabs(r);
     }
-    cell_avg_interior_pstar[cell.local_id]  /= num_points;
+    cell_avg_interior_rstar[cell.local_id]  /= num_points;
     cell_volumes[cell.local_id]    = cell_FV_view->volume;
-    cell_IntV_pstar[cell.local_id] =
-      cell_avg_interior_pstar[cell.local_id] * cell_volumes[cell.local_id];
+    cell_IntVOmega_rstar[cell.local_id] =
+      cell_volumes[cell.local_id] * FOUR_PI *
+      cell_avg_interior_rstar[cell.local_id];
 
     domain_volume += cell_FV_view->volume;
-    if (std::fabs(cell_avg_interior_pstar[cell.local_id]) > 1.0e-16)
+    if (std::fabs(cell_avg_interior_rstar[cell.local_id]) > 1.0e-16)
       source_volume += cell_FV_view->volume;
   }//for cell
 
@@ -154,15 +156,12 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
       double A_f = cell_FV_view->face_area[f];
       auto&  n   = face.normal;
 
-      if (face.neighbor < 0)
+//      if (face.neighbor < 0)
       {
         double face_ave_surface_pstar=0.0;
         int num_points = 5000;
         for (int k=0; k<num_points; ++k)
         {
-          //==================================== Sample direction
-          chi_mesh::Vector3 omega = RandomCosineLawDirection(rng,-1.0*n);
-
           //==================================== Sample position
           chi_mesh::Vector3 pos =
             GetRandomPositionOnCellSurface(rng,
@@ -174,48 +173,59 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
           cell_pwl_view->GradShapeValues(pos,grad_shape_values);
 
           //==================================== Get Residual
-          double phi = GetResidualFFPhi(shape_values,
-                                        cell_pwl_view->dofs,
-                                        cell.local_id,
-                                        e_group);
+          double phi_P = GetResidualFFPhi(shape_values,
+                                          cell_pwl_view->dofs,
+                                          cell.local_id,
+                                          e_group);
 
-          double phi_b = 0.0;
+          double phi_N = 0.0;
+          if (face.neighbor < 0)
+            phi_N = 0.0; //TODO: Specialize for bndries
+          else
+          {
+            int adj_local_id = face.GetNeighborLocalID(grid);
+            auto neighbor_pwl_view =
+              ref_solver->pwl_discretization->MapFeViewL(adj_local_id);
 
-//          double r = -0.5*n.Dot(omega)*(phi_b - phi);
-          double r = 0.25*(phi_b - phi);
+            neighbor_pwl_view->ShapeValues(pos, shape_values);
+            phi_N = GetResidualFFPhi(shape_values,
+                                     neighbor_pwl_view->dofs,
+                                     adj_local_id,
+                                     e_group);
+          }
+
+          double r = (1.0/FOUR_PI)*(phi_N - phi_P);
 
           //==================================== Contribute to avg
           face_ave_surface_pstar += std::fabs(r);
         }//for k
         face_ave_surface_pstar /= num_points;
-        cell_avg_surface_pstar[cell.local_id] += face_ave_surface_pstar;
+        cell_avg_surface_rstar[cell.local_id] += face_ave_surface_pstar;
         area_sampled += A_f;
         num_faces_sampled++;
 
-       chi_log.Log(LOG_0)
-         << "face_ave_surface_pstar: "
-         << face_ave_surface_pstar;
       }//if bndry
     }//for face
     if (num_faces_sampled>0)
-      cell_avg_surface_pstar[cell.local_id] /= num_faces_sampled;
+      cell_avg_surface_rstar[cell.local_id] /= num_faces_sampled;
 
-    cell_IntS_pstar[cell.local_id] =
-      cell_avg_surface_pstar[cell.local_id] * area_sampled;
+    cell_IntSOmega_rstar[cell.local_id] =
+      area_sampled * M_PI *
+      cell_avg_surface_rstar[cell.local_id];
   }//for cell
 
   //============================================= Integrate sources
-  IntV_pstar = 0.0;
-  for (double v : cell_IntV_pstar)
-    IntV_pstar += v;
+  IntVOmega_rstar = 0.0;
+  for (double v : cell_IntVOmega_rstar)
+    IntVOmega_rstar += v;
 
-  chi_log.Log(LOG_0) << "Total interior source: " << IntV_pstar;
+  chi_log.Log(LOG_0) << "Total interior source: " << IntVOmega_rstar;
 
-  IntS_pstar = 0.0;
-  for (double v : cell_IntS_pstar)
-    IntS_pstar += v;
+  IntSOmega_rstar = 0.0;
+  for (double v : cell_IntSOmega_rstar)
+    IntSOmega_rstar += v;
 
-  chi_log.Log(LOG_0) << "Total surface source: " << IntS_pstar;
+  chi_log.Log(LOG_0) << "Total surface source: " << IntSOmega_rstar;
 
   //============================================= Compute interior cdf
   {
@@ -223,8 +233,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     interior_cdf.resize(num_local_cells, 0.0);
     double running_total = 0.0;
     for (int c = 0; c < num_local_cells; ++c) {
-      running_total += cell_IntV_pstar[c];
-      interior_cdf[c] = running_total / IntV_pstar;
+      running_total += cell_IntVOmega_rstar[c];
+      interior_cdf[c] = running_total / IntVOmega_rstar;
     }
   }
 
@@ -234,8 +244,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     surface_cdf.resize(num_local_cells, 0.0);
     double running_total = 0.0;
     for (int c = 0; c < num_local_cells; ++c) {
-      running_total += cell_IntS_pstar[c];
-      surface_cdf[c] = running_total / IntS_pstar;
+      running_total += cell_IntSOmega_rstar[c];
+      surface_cdf[c] = running_total / IntSOmega_rstar;
     }
   }
   chi_log.Log(LOG_0) << "Done initializing Residual Sources";
@@ -247,6 +257,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 chi_montecarlon::Particle chi_montecarlon::ResidualSource3::
 CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 {
+  const double FOUR_PI = 4.0*M_PI;
   chi_montecarlon::Particle new_particle;
 
   std::vector<double>            shape_values;
@@ -254,7 +265,7 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 
   //======================================== Choose interior or surface
   bool sample_interior = false;
-  if (rng->Rand()<IntV_pstar/(IntV_pstar+IntS_pstar))
+  if (rng->Rand() < IntVOmega_rstar / (IntVOmega_rstar + IntSOmega_rstar))
     sample_interior = true;
 
   //################################################## INTERIOR
@@ -313,12 +324,13 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
                                          cell.local_id,
                                          e_group);
 
-    double r = Q - siga*phi - omega.Dot(grad_phi);
+    double r = (1.0/FOUR_PI)*
+               ( Q - siga*phi - omega.Dot(grad_phi) );
 
     //======================================== Determine weight
     if (std::fabs(r) > 1.0e-14)
-      new_particle.w = r*(IntV_pstar+IntS_pstar) /
-                       cell_avg_interior_pstar[cell.local_id];
+      new_particle.w = r * (IntVOmega_rstar + IntSOmega_rstar) /
+                       cell_avg_interior_rstar[cell.local_id];
     else
     {
       new_particle.w = 0.0;
@@ -341,59 +353,71 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
     auto cell_pwl_view =
       ref_solver->pwl_discretization->MapFeViewL(cell_local_id);
 
+    //================================================ Sample face
+    //==================================== Sample position
     int f=-1;
-    for (auto& face : cell.faces)
+    chi_mesh::Vector3 pos =
+      GetRandomPositionOnCellSurface(*rng,
+                                     cell_geometry_info[cell.local_id],
+                                     -1,&f);
+//    int f=-1;
+//    for (auto& face : cell.faces)
+    auto& face = cell.faces[f];
     {
       ++f;
       auto& n = face.normal;
 
-      if (face.neighbor < 0)
-      {
-        //======================================== Sample energy group
-        int e_group = 0;
-        new_particle.egrp = e_group;
+      //======================================== Sample energy group
+      int e_group = 0;
+      new_particle.egrp = e_group;
 
-        //==================================== Sample position
-        chi_mesh::Vector3 pos =
-          GetRandomPositionOnCellSurface(*rng,
-                                         cell_geometry_info[cell.local_id],
-                                         f);
+      new_particle.pos = pos;
 
-        new_particle.pos = pos;
+      //==================================== Sample direction
+      chi_mesh::Vector3 omega = RandomCosineLawDirection(*rng,-1.0*n);
+      new_particle.dir = omega;
 
-        //==================================== Sample direction
-        chi_mesh::Vector3 omega = RandomCosineLawDirection(*rng,-1.0*n);
-        new_particle.dir = omega;
+      //==================================== Populate shape values
+      cell_pwl_view->ShapeValues(pos, shape_values);
+      cell_pwl_view->GradShapeValues(pos,grad_shape_values);
 
-
-        //==================================== Populate shape values
-        cell_pwl_view->ShapeValues(pos, shape_values);
-        cell_pwl_view->GradShapeValues(pos,grad_shape_values);
-
-        //==================================== Get Residual
-        double phi = GetResidualFFPhi(shape_values,
+      //==================================== Get Residual
+      double phi_P = GetResidualFFPhi(shape_values,
                                       cell_pwl_view->dofs,
                                       cell.local_id,
                                       e_group);
 
-        double phi_b = 0.0;
+      double phi_N = 0.0;
+      if (face.neighbor < 0)
+        phi_N = 0.0; //TODO: Specialize for bndries
+      else
+      {
+        int adj_local_id = face.GetNeighborLocalID(grid);
+        auto neighbor_pwl_view =
+          ref_solver->pwl_discretization->MapFeViewL(adj_local_id);
 
-        double r = 0.25*(phi_b - phi);
+        neighbor_pwl_view->ShapeValues(pos, shape_values);
+        phi_N = GetResidualFFPhi(shape_values,
+                                 neighbor_pwl_view->dofs,
+                                 adj_local_id,
+                                 e_group);
+      }
 
-        //======================================== Determine weight
-        if (std::fabs(r) > 1.0e-14)
-          new_particle.w = r*(IntV_pstar+IntS_pstar) /
-                           cell_avg_surface_pstar[cell.local_id];
-        else
-        {
-          new_particle.w = 0.0;
-          new_particle.alive = false;
-        }
+      double r = (1.0/FOUR_PI)*(phi_N - phi_P);
+
+      //======================================== Determine weight
+      if (std::fabs(r) > 1.0e-14)
+        new_particle.w = r * (IntVOmega_rstar + IntSOmega_rstar) /
+                         cell_avg_surface_rstar[cell.local_id];
+      else
+      {
+        new_particle.w = 0.0;
+        new_particle.alive = false;
+      }
       //  new_particle.alive = false;
 
-        new_particle.cur_cell_local_id  = cell.local_id;
-        new_particle.cur_cell_global_id = cell.global_id;
-      }//if bndry
+      new_particle.cur_cell_local_id  = cell.local_id;
+      new_particle.cur_cell_global_id = cell.global_id;
     }//for face
 
 

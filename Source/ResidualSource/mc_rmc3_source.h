@@ -30,14 +30,14 @@ private:
   };
   std::vector<CellGeometryData> cell_geometry_info;
 public:
-  std::vector<double> cell_avg_interior_pstar;
-  std::vector<double> cell_avg_surface_pstar;
+  std::vector<double> cell_avg_interior_rstar;
+  std::vector<double> cell_avg_surface_rstar;
   std::vector<double> cell_volumes;
-  std::vector<double> cell_IntV_pstar;
-  std::vector<double> cell_IntS_pstar;
+  std::vector<double> cell_IntVOmega_rstar;
+  std::vector<double> cell_IntSOmega_rstar;
 
-  double IntV_pstar = 0.0;
-  double IntS_pstar = 0.0;
+  double IntVOmega_rstar = 0.0;
+  double IntSOmega_rstar = 0.0;
   double domain_volume = 0.0;
   double source_volume = 0.0;
 

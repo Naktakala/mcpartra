@@ -266,6 +266,8 @@ GetRandomPositionOnCellSurface(
         break;
       }//if rn<cdf
     }//for side
+    if (face_sampled != nullptr)
+      *face_sampled = ref_side_data->associated_face;
   }
   //=================================== Specific face
   else
@@ -290,6 +292,9 @@ GetRandomPositionOnCellSurface(
         break;
       }//if rn<cdf
     }//for side
+
+    if (face_sampled != nullptr)
+      *face_sampled = face_mask;
   }
 
   //======================================== Sample face
