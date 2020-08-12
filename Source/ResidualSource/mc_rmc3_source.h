@@ -29,6 +29,16 @@ private:
     std::vector<CellSideGeometryData> sides;
   };
   std::vector<CellGeometryData> cell_geometry_info;
+
+  struct RCellFace
+  {
+    int cell_local_id=-1;
+    int ass_face=-1;
+    double average_rstar=0.0;
+    double area=0.0;
+  };
+
+  std::vector<RCellFace> cell_face_pairs;
 public:
   std::vector<double> cell_avg_interior_rstar;
   std::vector<double> cell_avg_surface_rstar;
@@ -36,8 +46,14 @@ public:
   std::vector<double> cell_IntVOmega_rstar;
   std::vector<double> cell_IntSOmega_rstar;
 
+  double relative_weight = 1.0;
+
   double IntVOmega_rstar = 0.0;
   double IntSOmega_rstar = 0.0;
+
+  double IntVOmega_rstar_global = 0.0;
+  double IntSOmega_rstar_global = 0.0;
+
   double domain_volume = 0.0;
   double source_volume = 0.0;
 
@@ -87,7 +103,9 @@ public:
   CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
 
 
+  void RemoveFFDiscontinuities();
 
+  double GetParallelRelativeSourceWeight() override;
 };
 
 

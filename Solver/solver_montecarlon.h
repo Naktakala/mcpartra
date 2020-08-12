@@ -1,6 +1,5 @@
 #ifndef _solver_montecarlon
 #define _solver_montecarlon
-#include<iostream>
 
 #include"../chi_montecarlon.h"
 #include "../chi_montecarlon_particle.h"
@@ -14,6 +13,11 @@
 #include <ChiMath/chi_math.h>
 
 #include <ChiMesh/Raytrace/raytracing.h>
+
+#include <iostream>
+#include <iomanip>
+#include <map>
+#include <algorithm>
 
 namespace chi_montecarlon
 {
@@ -161,6 +165,7 @@ private:
   //03
   void Raytrace(Particle& prtcl);
   void RaytraceRMC(Particle& prtcl);
+  void RaytraceUNC(Particle& prtcl);
 
   //04
   std::pair<int,chi_mesh::Vector3>
@@ -184,6 +189,10 @@ private:
   void ContributeTallyRMC(Particle& prtcl,
                           chi_mesh::Vector3 pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
+
+  void ContributeTallyUNC(Particle& prtcl,
+                          chi_mesh::Vector3 pf,
+                          double sig_t=0.0);
 
   //05c
   void RendesvouzTallies();

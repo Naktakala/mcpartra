@@ -7,7 +7,7 @@ extern ChiMPI& chi_mpi;
 //###################################################################
 /**Default constructor*/
 chi_montecarlon::Solver::Solver() :
-  rng0(chi_mpi.location_id,0)
+  rng0(chi_mpi.location_id)
 {
   num_grps = 1;
 

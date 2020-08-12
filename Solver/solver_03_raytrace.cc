@@ -15,6 +15,8 @@ extern ChiPhysics&  chi_physics_handler;
 /**The default raytracing algorithm.*/
 void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 {
+  if (uncollided_only) {RaytraceUNC(prtcl); return;}
+
   //======================================== Get cell
   chi_mesh::Cell* cell;
   if (prtcl.cur_cell_local_id >= 0)
@@ -91,6 +93,7 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
       }
       else
         prtcl.alive = false;
+
     }
 
     ContributeTally(prtcl,posf);
