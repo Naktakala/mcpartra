@@ -1,7 +1,5 @@
 #include "mc_bndry_source.h"
 
-#include "../../RandomNumberGenerator/montecarlon_rng.h"
-
 #include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
 #include <ChiMesh/Cell/cell_slab.h>
 #include <ChiMesh/Cell/cell_polygon.h>
@@ -132,7 +130,7 @@ void chi_montecarlon::BoundarySource::
 //###################################################################
 /**Source routine for boundary source.*/
 chi_montecarlon::Particle chi_montecarlon::BoundarySource::
-  CreateParticle(chi_montecarlon::RandomNumberGenerator *rng)
+  CreateParticle(chi_math::RandomNumberGenerator *rng)
 {
   chi_montecarlon::Particle new_particle;
 

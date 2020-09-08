@@ -56,7 +56,7 @@ src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 3.0
+src[1] = 6.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
@@ -78,7 +78,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,8)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,1)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -130,7 +130,7 @@ chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3/3)
+chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*6.0/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 chiMonteCarlonInitialize(phys1)
@@ -144,6 +144,7 @@ phys2 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys2,region0)
 
 chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL3,fflist0[1]);
+
 
 
 chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*1e6)

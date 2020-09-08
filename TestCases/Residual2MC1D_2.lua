@@ -14,24 +14,18 @@ xmin=0.0
 for i=0,N do
     nodes[i+1] = xmin + i*ds
 end
-mesh,region0 = chiMeshCreate2DOrthoMesh(nodes,nodes)
+mesh,region0 = chiMeshCreate1DSlabMesh(nodes)
 
---chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
+chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
 
 --Execute meshing
-if (chi_number_of_processes == 4) then
-    chiSurfaceMesherSetProperty(PARTITION_X,2)
-    chiSurfaceMesherSetProperty(PARTITION_Y,2)
-    chiSurfaceMesherSetProperty(CUT_X,L/2)
-    chiSurfaceMesherSetProperty(CUT_Y,L/2)
-end
 chiVolumeMesherExecute();
 
 ----############################################### Set Material IDs
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
-vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,L/3,1000,-1000,1000)
+vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L/3,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
@@ -84,7 +78,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,1,1)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,1)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -130,13 +124,13 @@ chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 fac=1
 fv_offset = 0
 fv_offset = num_groups
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*100e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*1e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,3.0*L*L/3.0)
+chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 chiMonteCarlonInitialize(phys1)
@@ -149,16 +143,17 @@ chiMeshHandlerSetCurrent(tmesh)
 phys2 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys2,region0)
 
-chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL3,fflist0[1]);
+chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL,-1,fflist0[1],0.0);
 
 
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*100e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_UNCOLLIDED_PARTICLES,fac*1e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*0.5*1e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
-chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
+chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/2.0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 
@@ -169,12 +164,12 @@ fflist2,count = chiGetFieldFunctionList(phys2) --Fine mesh MC
 
 ----############################################### Getting Sn and MC solution
 cline0 = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline0,LINE_FIRSTPOINT ,L/2+0.001,0.0,0.0)
-chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,L/2+0.001,0.0+L,0.0)
+chiFFInterpolationSetProperty(cline0,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
+chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
 chiFFInterpolationSetProperty(cline0,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist0[1])
-chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist1[1]+fv_offset)
+chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist1[1]+num_groups)
 
 chiFFInterpolationInitialize(cline0)
 chiFFInterpolationExecute(cline0)
@@ -199,11 +194,11 @@ end
 
 ----############################################### Getting RMC solution
 cline = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT ,L/2,0.0,0.0)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,L/2,0.0+L,0.0)
+chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+num_groups)
 
 chiFFInterpolationSetProperty(cline,LINE_CUSTOM_ARRAY,true_error)
 
@@ -211,22 +206,8 @@ chiFFInterpolationInitialize(cline)
 chiFFInterpolationExecute(cline)
 chiFFInterpolationExportPython(cline)
 
-----############################################### Slice
-slice2 = chiFFInterpolationCreate(SLICE)
-chiFFInterpolationSetProperty(slice2,SLICE_POINT,0.0,0.0,0.025)
-chiFFInterpolationSetProperty(slice2,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)
-
-chiFFInterpolationInitialize(slice2)
-chiFFInterpolationExecute(slice2)
-chiFFInterpolationExportPython(slice2)
-
 ----############################################### Show plots
 if (chi_location_id == 0) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
-    local handle = io.popen("python3 ZPFFI20.py")
 end
-
-chiExportFieldFunctionToVTKG(fflist2[1]+fv_offset,"ZPhi")
-chiExportFieldFunctionToVTKG(fflist1[1]+fv_offset,"ZSMC")
-chiExportFieldFunctionToVTKG(fflist0,"ZSn")

@@ -1,7 +1,5 @@
 #include "mc_rmc_source.h"
 
-#include "../../RandomNumberGenerator/montecarlon_rng.h"
-
 #include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
 #include <ChiMesh/MeshHandler/chi_meshhandler.h>
 #include <ChiMesh/VolumeMesher/chi_volumemesher.h>
@@ -309,7 +307,7 @@ void chi_montecarlon::ResidualSource::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource::
-CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+CreateParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
   if (sample_uniformly)
@@ -323,7 +321,7 @@ CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource::
-  DirectSampling(chi_montecarlon::RandomNumberGenerator* rng)
+  DirectSampling(chi_math::RandomNumberGenerator* rng)
 {
   int num_local_cells = grid->local_cell_glob_indices.size();
   int lc = 0;
@@ -470,7 +468,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource::
-UniformSampling(chi_montecarlon::RandomNumberGenerator* rng)
+UniformSampling(chi_math::RandomNumberGenerator* rng)
 {
   int num_local_cells = grid->local_cell_glob_indices.size();
   int lc = 0;

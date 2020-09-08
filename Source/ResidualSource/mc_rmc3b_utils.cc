@@ -1,12 +1,11 @@
 #include "mc_rmc3_source.h"
 
-#include "../../RandomNumberGenerator/montecarlon_rng.h"
-
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
 #include <FiniteVolume/fv.h>
 
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
+#include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
 
 #include <ChiMath/Statistics/cdfsampler.h>
 
@@ -176,10 +175,33 @@ void chi_montecarlon::ResidualSource3::BuildCellVolInfo(
 }
 
 //###################################################################
+/**Populates a material information data structure from a mat-id.*/
+void chi_montecarlon::ResidualSource3::
+  PopulateMaterialData(int mat_id, int group_g, MaterialData &mat_data)
+{
+  int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
+  int  src_prop_id    = ref_solver->matid_q_map[mat_id];
+  auto material = chi_physics_handler.material_stack[mat_id];
+  auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
+
+  double siga = xs->sigma_ag[group_g];
+  double Q    = 0.0;
+  if (src_prop_id >= 0)
+  {
+    auto prop = material->properties[src_prop_id];
+    auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
+    Q = q_prop->source_value_g[group_g];
+  }
+
+  mat_data.siga = siga;
+  mat_data.Q = Q;
+}
+
+//###################################################################
 /**Samples the cell interior*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
 GetRandomPositionInCell(
-  chi_montecarlon::RandomNumberGenerator& rng,
+  chi_math::RandomNumberGenerator& rng,
   const chi_montecarlon::ResidualSource3::CellGeometryData &cell_info)
 {
   chi_mesh::Vector3 position;
@@ -242,7 +264,7 @@ GetRandomPositionInCell(
 /**Samples the cell interior*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
 GetRandomPositionOnCellSurface(
-  chi_montecarlon::RandomNumberGenerator& rng,
+  chi_math::RandomNumberGenerator& rng,
   const chi_montecarlon::ResidualSource3::CellGeometryData &cell_info,
   const int face_mask,
   int* face_sampled)
@@ -380,7 +402,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
 /**Gets a true random direction.*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
   RandomDirection(
-    chi_montecarlon::RandomNumberGenerator& rng)
+    chi_math::RandomNumberGenerator& rng)
 {
   double costheta = 2.0*rng.Rand()-1.0;
   double theta    = acos(costheta);
@@ -398,7 +420,7 @@ chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
 /**Gets a cosine law random direction relative to a normal.*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
   RandomCosineLawDirection(
-    chi_montecarlon::RandomNumberGenerator& rng,
+    chi_math::RandomNumberGenerator& rng,
     const chi_mesh::Vector3& normal)
 {
   //Build rotation matrix

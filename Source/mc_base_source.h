@@ -8,6 +8,8 @@
 #include <ChiMesh/chi_mesh.h>
 #include <FiniteVolume/fv.h>
 
+#include "ChiMath/RandomNumberGeneration/random_number_generator.h"
+
 #include <iomanip>
 
 
@@ -56,7 +58,7 @@ public:
                           SpatialDiscretization_FV*   ref_fv_sdm,
                           chi_montecarlon::Solver* ref_solver);
   virtual chi_montecarlon::Particle
-          CreateParticle(chi_montecarlon::RandomNumberGenerator* rng);
+          CreateParticle(chi_math::RandomNumberGenerator* rng);
 
   virtual double GetParallelRelativeSourceWeight() {return 1.0;}
 

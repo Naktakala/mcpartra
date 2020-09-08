@@ -2,9 +2,9 @@
 #define _solver_montecarlon
 
 #include"../chi_montecarlon.h"
+#include "ChiMath/RandomNumberGeneration/random_number_generator.h"
 #include "../chi_montecarlon_particle.h"
 #include"ChiPhysics/SolverBase/chi_solver.h"
-#include "../RandomNumberGenerator/montecarlon_rng.h"
 #include "../Source/mc_base_source.h"
 #include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
@@ -58,28 +58,31 @@ public:
   int                                   num_grps;
 private:
   //FV tallies
-  std::vector<double>                   phi_tally_contrib;
   std::vector<double>                   phi_tally;
   std::vector<double>                   phi_tally_sqr;
 
-public:
-  std::vector<double>                   phi_global_initial_value;
-private:
   std::vector<double>                   phi_global;
   std::vector<double>                   phi_global_tally_sqr;
 
   std::vector<double>                   phi_local_relsigma;
 
-  std::vector<double>                   phi_uncollided_rmc;
-
   //PWL tallies
-  int                                   num_moms;
-  std::vector<double>                   phi_pwl_tally_contrib;
   std::vector<double>                   phi_pwl_tally;
   std::vector<double>                   phi_pwl_tally_sqr;
 
   std::vector<double>                   phi_pwl_global;
   std::vector<double>                   phi_pwl_global_tally_sqr;
+
+public:
+  std::vector<double>                   phi_global_initial_value;
+private:
+
+
+  std::vector<double>                   phi_uncollided_rmc;
+
+  //PWL tallies
+  int                                   num_moms;
+
 
   std::vector<double>                   phi_pwl_local_relsigma;
 public:
@@ -120,7 +123,7 @@ private:
   unsigned int                          total_inbound_bank_size=0;
 
 public:
-  RandomNumberGenerator                 rng0;
+  chi_math::RandomNumberGenerator       rng0;
   std::vector<chi_montecarlon::Source*> sources;
 
   //options

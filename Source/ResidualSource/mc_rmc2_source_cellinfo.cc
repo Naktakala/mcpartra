@@ -125,7 +125,7 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
 /**Samples the cell interior*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSource2::
   GetRandomPositionInCell(
-    chi_montecarlon::RandomNumberGenerator *rng,
+    chi_math::RandomNumberGenerator *rng,
     chi_montecarlon::ResidualSource2::CellSideInfo &cell_side_info)
 {
   chi_mesh::Vector3 position;

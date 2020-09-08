@@ -17,7 +17,7 @@ void chi_montecarlon::Solver::InitTallies()
 
   size_t num_local_cells = grid->local_cell_glob_indices.size();
   size_t tally_size = num_grps*num_local_cells;
-  phi_tally_contrib.resize(tally_size,0.0);
+//  phi_tally_contrib.resize(tally_size,0.0);
   phi_tally.resize(tally_size,0.0);
   phi_tally_sqr.resize(tally_size,0.0);
 
@@ -57,7 +57,6 @@ void chi_montecarlon::Solver::InitTallies()
 
     //=================================== Initialize PWLD tallies
     tally_size = block_MG_counter;
-    phi_pwl_tally_contrib.resize(tally_size,0.0);
     phi_pwl_tally.resize(tally_size,0.0);
     phi_pwl_tally_sqr.resize(tally_size,0.0);
 

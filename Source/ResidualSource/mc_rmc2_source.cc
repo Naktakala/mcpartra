@@ -1,7 +1,5 @@
 #include "mc_rmc2_source.h"
 
-#include "../../RandomNumberGenerator/montecarlon_rng.h"
-
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
 #include <FiniteVolume/fv.h>
@@ -57,7 +55,7 @@ void chi_montecarlon::ResidualSource2::
   fv_sdm = ref_fv_sdm;
   this->ref_solver = ref_solver;
 
-  //============================================= Build surface src patchess
+  //============================================= Build surface src patches
   // The surface points
   double total_patch_area = 0.0;
   for (auto& cell : grid->local_cells)
@@ -98,7 +96,7 @@ void chi_montecarlon::ResidualSource2::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-  CreateBndryParticle(chi_montecarlon::RandomNumberGenerator* rng)
+  CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
@@ -204,7 +202,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-  CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+  CreateParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 

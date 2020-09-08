@@ -50,7 +50,7 @@ public:
                   chi_montecarlon::Solver* ref_solver) override;
 
   chi_montecarlon::Particle
-  CreateParticle(chi_montecarlon::RandomNumberGenerator* rng) override;
+  CreateParticle(chi_math::RandomNumberGenerator* rng) override;
 
   double GetParallelRelativeSourceWeight() override;
 };

@@ -1,8 +1,6 @@
 #include "mc_base_source.h"
 #include<math.h>
 
-#include "../RandomNumberGenerator/montecarlon_rng.h"
-
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
@@ -29,7 +27,7 @@ void chi_montecarlon::Source::Initialize(chi_mesh::MeshContinuum* ref_grid,
 
 //#########################################################
 /**Create a default particle from a point.*/
-chi_montecarlon::Particle chi_montecarlon::Source::CreateParticle(chi_montecarlon::RandomNumberGenerator* rng)
+chi_montecarlon::Particle chi_montecarlon::Source::CreateParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 

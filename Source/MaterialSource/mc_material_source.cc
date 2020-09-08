@@ -205,7 +205,7 @@ void chi_montecarlon::MaterialSource::
 //###################################################################
 /**Creates a source particle.*/
 chi_montecarlon::Particle chi_montecarlon::MaterialSource::
-  CreateParticle(chi_montecarlon::RandomNumberGenerator *rng)
+  CreateParticle(chi_math::RandomNumberGenerator *rng)
 {
   Particle new_particle;
 

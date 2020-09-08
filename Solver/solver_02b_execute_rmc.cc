@@ -104,7 +104,7 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   ComputePWLDTransformations();
 
   size_t avg_tally_size = phi_global.size();
-  size_t pwl_tally_size = phi_pwl_tally_contrib.size();
+  size_t pwl_tally_size = phi_pwl_tally.size();
 
   //======================================== Copy avg tally to uncollided
   phi_uncollided_rmc.clear();
@@ -121,7 +121,6 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
             std::back_inserter(phi_pwl_uncollided_rmc));
 
   //======================================== Clear avg tallies
-  phi_tally_contrib.clear();
   phi_tally.clear();
   phi_tally_sqr.clear();
 
@@ -132,7 +131,6 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   phi_local_relsigma.clear();
 
   //======================================== Clear pwl tallies
-  phi_pwl_tally_contrib.clear();
   phi_pwl_tally.clear();
   phi_pwl_tally_sqr.clear();
 
@@ -142,7 +140,6 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   phi_pwl_local_relsigma.clear();
 
   //======================================== Reset avg tallies
-  phi_tally_contrib.resize(avg_tally_size,0.0);
   phi_tally.resize(avg_tally_size,0.0);
   phi_tally_sqr.resize(avg_tally_size,0.0);
 
@@ -153,7 +150,6 @@ void chi_montecarlon::Solver::ExecuteRMCUncollided()
   phi_local_relsigma.resize(avg_tally_size,0.0);
 
   //======================================== Reset PWL tallies
-  phi_pwl_tally_contrib.resize(pwl_tally_size,0.0);
   phi_pwl_tally.resize(pwl_tally_size,0.0);
   phi_pwl_tally_sqr.resize(pwl_tally_size,0.0);
 
