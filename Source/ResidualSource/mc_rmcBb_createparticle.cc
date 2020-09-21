@@ -1,4 +1,4 @@
-#include "mc_rmc2_source.h"
+#include "mc_rmcB_source.h"
 
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
@@ -7,11 +7,6 @@
 
 #include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
 #include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
-
-#include <ChiMesh/FieldFunctionInterpolation/chi_ffinterpolation.h>
-
-#include <ChiMath/Statistics/cdfsampler.h>
-#include <ChiMath/Quadratures/quadrature_gausslegendre.h>
 
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
@@ -22,81 +17,11 @@ extern ChiPhysics&  chi_physics_handler;
 
 #include <tuple>
 
-//###################################################################
-/**Constructor for residual source.*/
-chi_montecarlon::ResidualSource2::
-  ResidualSource2(chi_physics::FieldFunction *in_resid_ff,
-                  bool use_uniform_sampling,
-                  double in_bndry_val) :
-                  ref_bndry_val(in_bndry_val),
-                  sample_uniformly(use_uniform_sampling)
-{
-  type_index = SourceTypes::RESIDUAL;
-  resid_ff = in_resid_ff;
-  particles_L = 0;
-  particles_R = 0;
-
-  weights_L = 0.0;
-  weights_R = 0.0;
-}
-
-//###################################################################
-/**Initializes an rmc source.
- *
- * This process involves numerous steps. One of the first steps is
- * to */
-void chi_montecarlon::ResidualSource2::
-  Initialize(chi_mesh::MeshContinuum *ref_grid,
-             SpatialDiscretization_FV *ref_fv_sdm,
-             chi_montecarlon::Solver* ref_solver)
-{
-  chi_log.Log(LOG_0) << "Initializing Residual Bndry Source";
-  grid = ref_grid;
-  fv_sdm = ref_fv_sdm;
-  this->ref_solver = ref_solver;
-
-  //============================================= Build surface src patches
-  // The surface points
-  double total_patch_area = 0.0;
-  for (auto& cell : grid->local_cells)
-  {
-    auto fv_view = fv_sdm->MapFeView(cell.local_id);
-
-    int f=0;
-    for (auto& face : cell.faces)
-    {
-      if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
-      
-      double face_area = fv_view->face_area[f];
-
-      chi_mesh::Vector3 n = face.normal*-1.0;
-      chi_mesh::Matrix3x3 R =
-        chi_mesh::Matrix3x3::MakeRotationMatrixFromVector(n);
-
-      total_patch_area += face_area;
-      source_patches.emplace_back(cell.local_id,f,R,face_area);
-
-      ++f;
-    }//for face
-  }//for cell
-
-  BuildCellVolInfo(ref_grid,ref_fv_sdm);
-
-  //============================================= Build source cdf
-  source_patch_cdf.resize(source_patches.size(),0.0);
-  double cumulative_value = 0.0;
-  int p = 0;
-  for (auto& source_patch : source_patches)
-  {
-    cumulative_value += std::get<3>(source_patch);
-    source_patch_cdf[p++] = cumulative_value/total_patch_area;
-  }
-}
 
 //###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-  CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
+chi_montecarlon::Particle chi_montecarlon::ResidualSourceB::
+CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
@@ -172,7 +97,7 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
 
   //======================================== Determine weight
   // Interpolate phi
-  auto pwl_view = ref_solver->pwl_discretization->MapFeViewL(cell_local_id);
+  auto pwl_view = ref_solver->pwl->MapFeViewL(cell_local_id);
   std::vector<double> shape_values(pwl_view->dofs,0.0);
   pwl_view->ShapeValues(new_particle.pos,shape_values);
   auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
@@ -196,24 +121,80 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   new_particle.cur_cell_global_id = cell->global_id;
   new_particle.cur_cell_local_id  = cell_local_id;
 
+  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::UNCOLLIDED;
+  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::RMC_CHAR_RAY;
+
   return new_particle;
 }
 
 //###################################################################
+/**Applies the re-execution efforts.*/
+bool chi_montecarlon::ResidualSourceB::
+  CheckForReExecution()
+{
+  if (ray_trace_phase)
+  {
+    ray_trace_phase = false;
+
+    auto& tally_blocks = ref_solver->grid_tally_blocks;
+    auto& masks = ref_solver->TallyMaskIndex;
+    typedef chi_montecarlon::Solver::TallyMask maskv;
+
+    uncollided_fv_tally = tally_blocks[masks[maskv::DEFAULT_FVTALLY]];
+    uncollided_pwl_tally = tally_blocks[masks[maskv::DEFAULT_PWLTALLY]];
+
+    tally_blocks[masks[maskv::DEFAULT_FVTALLY]].ZeroOut();
+    tally_blocks[masks[maskv::DEFAULT_PWLTALLY]].ZeroOut();
+
+    ref_solver->DevelopCollidedSource(uncollided_fv_tally);
+    return true;
+  }
+  else
+  {
+    auto& tally_blocks = ref_solver->grid_tally_blocks;
+    auto& masks = ref_solver->TallyMaskIndex;
+    typedef chi_montecarlon::Solver::TallyMask maskv;
+
+    tally_blocks[masks[maskv::DEFAULT_FVTALLY]] += uncollided_fv_tally;
+
+    tally_blocks[masks[maskv::DEFAULT_PWLTALLY]] += uncollided_pwl_tally;
+    return false;
+  }
+}
+
+//###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
-  CreateParticle(chi_math::RandomNumberGenerator* rng)
+chi_montecarlon::Particle chi_montecarlon::ResidualSourceB::
+CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
 {
   chi_montecarlon::Particle new_particle;
 
-  //======================================== Randomly Sample Cell
-  int num_loc_cells = ref_solver->grid->local_cell_glob_indices.size();
-  int lc = std::floor((num_loc_cells)*rng->Rand());
+  //======================================== Sample group
+  auto& cdf_group = ref_solver->cdf_phi_unc_group;
+  int group_g = std::lower_bound(
+    cdf_group.begin(),
+    cdf_group.end(),
+    rng->Rand()) - cdf_group.begin();
 
+  //======================================== Sample cell
+  auto& cdf_cell = ref_solver->cdf_phi_unc_group_cell[group_g];
+  int lc = std::lower_bound(
+    cdf_cell.begin(),
+    cdf_cell.end(),
+    rng->Rand()) - cdf_cell.begin();
+
+  auto& tally_blocks = ref_solver->grid_tally_blocks;
+  auto& masks = ref_solver->TallyMaskIndex;
+  typedef chi_montecarlon::Solver::TallyMask maskv;
+
+  auto& unc_fv_tally  = uncollided_fv_tally.tally_global;
+  auto& unc_fem_tally = uncollided_pwl_tally.tally_global;
+
+  //======================================== Randomly Sample Cell
   int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
   auto cell = &ref_solver->grid->local_cells[lc];
-  auto pwl_view = ref_solver->pwl_discretization->MapFeViewL(lc);
-  int map = ref_solver->local_cell_pwl_dof_array_address[lc];
+  auto pwl_view = ref_solver->pwl->MapFeViewL(lc);
+  auto fv_view = ref_solver->fv->MapFeView(lc);
 
   int mat_id = cell->material_id;
   int xs_id = ref_solver->matid_xs_map[mat_id];
@@ -244,22 +225,19 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   std::vector<double> shape_values;
   pwl_view->ShapeValues(new_particle.pos,shape_values);
 
-  double domain_volume = ref_solver->domain_volume;
-  double tmf = ref_solver->tally_multipl_factor;
-
+  int irfv = ref_solver->fv->MapDOFLocal(cell,&ref_solver->uk_man_fv,/*m*/0,0);
   double weight = 0.0;
   for (int dof=0; dof<pwl_view->dofs; ++dof)
   {
-    int ir = map + dof*ref_solver->num_grps*ref_solver->num_moms +
-             ref_solver->num_grps*0 + 0;
-    weight += shape_values[dof]*ref_solver->phi_pwl_uncollided_rmc[ir];
+    int irfem = ref_solver->pwl->MapDFEMDOFLocal(cell,dof,&ref_solver->uk_man_fem,/*m*/0,/*g*/0);
+    weight += shape_values[dof] * unc_fem_tally[irfem];
   }
-  weight *= sigs*domain_volume/tmf;
+  weight *= sigs*ref_solver->IntVSumG_phi_unc/(std::fabs(unc_fv_tally[irfv])/fv_view->volume);
 
   new_particle.w = weight;
   new_particle.egrp = 0;
 
-  new_particle.alive = true;
+  new_particle.alive = true/*true*/;
 
   if (std::fabs(weight) < 1.0e-12)
     new_particle.alive = false;
@@ -267,24 +245,8 @@ chi_montecarlon::Particle chi_montecarlon::ResidualSource2::
   new_particle.cur_cell_global_id = cell_glob_index;
   new_particle.cur_cell_local_id  = cell->local_id;
 
+  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::STANDARD;
+  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::STANDARD;
+
   return new_particle;
-}
-
-//###################################################################
-/**Gets the relative source strength accross all processors.*/
-double chi_montecarlon::ResidualSource2::GetRMCParallelRelativeSourceWeight()
-{
-  double local_surface_area = 0.0;
-  for (auto& source_patch : source_patches)
-    local_surface_area += std::get<3>(source_patch);
-
-  double global_surface_area = 0.0;
-  MPI_Allreduce(&local_surface_area,  //sendbuf
-                &global_surface_area, //recvbuf
-                1,                    //recvcount
-                MPI_DOUBLE,           //datatype
-                MPI_SUM,              //operation
-                MPI_COMM_WORLD);      //communicator
-
-  return local_surface_area/global_surface_area;
 }

@@ -5,17 +5,11 @@ RegisterFunction(chiMonteCarlonInitialize);
 RegisterFunction(chiMonteCarlonExecute);
 
 RegisterNamespace(MCSrcTypes);
-AddNamedConstantToNamespace(VACUUM,                1,MCSrcTypes);
 AddNamedConstantToNamespace(POINT_SRC,             1,MCSrcTypes);
 AddNamedConstantToNamespace(BNDRY_SRC,             2,MCSrcTypes);
 AddNamedConstantToNamespace(MATERIAL_SRC,          3,MCSrcTypes);
-AddNamedConstantToNamespace(RESID_SRC,             4,MCSrcTypes);
-AddNamedConstantToNamespace(RESID_SRC_SU,          5,MCSrcTypes);
-AddNamedConstantToNamespace(RESID_MOC,             6,MCSrcTypes);
-AddNamedConstantToNamespace(RESID_MOC_SU,          7,MCSrcTypes);
-AddNamedConstantToNamespace(RESIDUAL,              8,MCSrcTypes);
-AddNamedConstantToNamespace(RESIDUAL_SU,           9,MCSrcTypes);
-AddNamedConstantToNamespace(RESIDUAL3,            10,MCSrcTypes);
+AddNamedConstantToNamespace(RESIDUAL_TYPE_A,       4,MCSrcTypes);
+AddNamedConstantToNamespace(RESIDUAL_TYPE_B,       5,MCSrcTypes);
 
 RegisterFunction(chiMonteCarlonSetImportances)
 RegisterFunction(chiMonteCarlonSetProperty);
@@ -30,4 +24,4 @@ RegisterNamespace(MCProperties);
   AddNamedConstantToNamespace(TALLY_MULTIPLICATION_FACTOR, 8,MCProperties);
   AddNamedConstantToNamespace(MAKE_PWLD_SOLUTION,          9,MCProperties);
   AddNamedConstantToNamespace(UNCOLLIDED_ONLY,            10,MCProperties);
-  AddNamedConstantToNamespace(NUM_UNCOLLIDED_PARTICLES,     11,MCProperties);
+  AddNamedConstantToNamespace(NUM_UNCOLLIDED_PARTICLES,   11,MCProperties);

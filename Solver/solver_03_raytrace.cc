@@ -12,11 +12,30 @@ extern ChiPhysics&  chi_physics_handler;
 #include<cmath>
 
 //###################################################################
-/**The default raytracing algorithm.*/
+/**Entry point ray-tracer which selects different ray tracing algorithms.*/
 void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 {
-  if (uncollided_only) {RaytraceUNC(prtcl); return;}
+  switch (prtcl.ray_trace_method)
+  {
+    case RayTraceMethod::STANDARD:
+      RaytraceSTD(prtcl);
+      break;
 
+    case RayTraceMethod::UNCOLLIDED:
+      RaytraceUNC(prtcl);
+      break;
+
+    default:
+      RaytraceSTD(prtcl);
+      break;
+  }
+}
+
+//###################################################################
+/**Standard neutral particle raytracer, tracing to next event
+ * or to next surface.*/
+void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
+{
   //======================================== Get cell
   chi_mesh::Cell* cell;
   if (prtcl.cur_cell_local_id >= 0)
@@ -96,9 +115,10 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 
     }
 
-    ContributeTally(prtcl,posf);
+    if (prtcl.tally_method == TallyMethod::STANDARD)
+      ContributeTally(prtcl,posf);
   }
-  //======================================== Process surface
+    //======================================== Process surface
   else
   {
     if (d_to_surface <0.0)
@@ -108,7 +128,8 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
     }
 
     //posf set in call to RayTrace
-    ContributeTally(prtcl,posf);
+    if (prtcl.tally_method == TallyMethod::STANDARD)
+      ContributeTally(prtcl,posf);
 
     //======================= If surface is boundary
     if (ray_dest_info.destination_face_neighbor < 0)
@@ -119,7 +140,7 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
       else {}
       //TODO: End - Add reflecting boundaries
     }//if bndry
-    //======================= If surface is cell face
+      //======================= If surface is cell face
     else
     {
       prtcl.pre_cell_global_id = prtcl.cur_cell_global_id;
@@ -149,3 +170,5 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
   if (not local_cell_importance_setting.empty())
     prtcl.pre_cell_importance = prtcl.pre_cell_importance;
 }
+
+

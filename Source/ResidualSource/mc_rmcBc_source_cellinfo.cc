@@ -1,4 +1,4 @@
-#include "mc_rmc2_source.h"
+#include "mc_rmcB_source.h"
 
 #include "ChiMesh/Cell/cell_polyhedron.h"
 
@@ -9,7 +9,7 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Build cell volume information.*/
-void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
+void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
   chi_mesh::MeshContinuum* ref_grid,
   SpatialDiscretization_FV* ref_fv_sdm)
 {
@@ -123,10 +123,10 @@ void chi_montecarlon::ResidualSource2::BuildCellVolInfo(
 
 //###################################################################
 /**Samples the cell interior*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource2::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceB::
   GetRandomPositionInCell(
     chi_math::RandomNumberGenerator *rng,
-    chi_montecarlon::ResidualSource2::CellSideInfo &cell_side_info)
+    chi_montecarlon::ResidualSourceB::CellSideInfo &cell_side_info)
 {
   chi_mesh::Vector3 position;
   double rn = rng->Rand();

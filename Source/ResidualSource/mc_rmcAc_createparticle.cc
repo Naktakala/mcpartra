@@ -1,4 +1,4 @@
-#include "mc_rmc3_source.h"
+#include "mc_rmcA_source.h"
 
 
 #include <ChiMesh/Cell/cell_polyhedron.h>
@@ -22,7 +22,7 @@ extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSource3::
+chi_montecarlon::Particle chi_montecarlon::ResidualSourceA::
 CreateParticle(chi_math::RandomNumberGenerator* rng)
 {
   const double FOUR_PI = 4.0*M_PI;
@@ -47,7 +47,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     //======================================== Randomly Sample Cell
     auto& cell = ref_solver->grid->local_cells[cell_local_id];
     auto cell_pwl_view =
-      ref_solver->pwl_discretization->MapFeViewL(cell_local_id);
+      ref_solver->pwl->MapFeViewL(cell_local_id);
 
     //======================================== Sample energy group
     int e_group = 0;
@@ -60,7 +60,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     auto material = chi_physics_handler.material_stack[mat_id];
     auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
 
-    double siga = xs->sigma_tg[e_group];
+    double siga = xs->sigma_ag[e_group];
     double Q    = 0.0;
     if (src_prop_id >= 0)
     {
@@ -120,7 +120,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
     auto& cell = ref_solver->grid->local_cells[rcellface.cell_local_id];
     auto cell_pwl_view =
-      ref_solver->pwl_discretization->MapFeViewL(rcellface.cell_local_id);
+      ref_solver->pwl->MapFeViewL(rcellface.cell_local_id);
 
     //==================================== Sample position
     int f=rcellface.ass_face;
@@ -176,7 +176,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
   return new_particle;
 }
 
-double chi_montecarlon::ResidualSource3::
+double chi_montecarlon::ResidualSourceA::
   GetParallelRelativeSourceWeight()
 {
   double global_total_source_weight =

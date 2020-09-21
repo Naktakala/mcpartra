@@ -9,15 +9,19 @@
 
 #include <ChiMath/chi_math.h>
 
+#include "../../Solver/solver_montecarlon.h"
+
 //###################################################################
 /**Residual source class.*/
-class chi_montecarlon::ResidualSource2 : public chi_montecarlon::Source
+class chi_montecarlon::ResidualSourceB : public chi_montecarlon::Source
 {
 public:
   int ref_bndry=-1;
   double ref_bndry_val = 0.0;
 
   chi_physics::FieldFunction* resid_ff;
+  bool ray_trace_phase = true;
+
 private:
   chi_math::QuadratureGaussLegendre quadrature;
 
@@ -37,10 +41,14 @@ private:
   std::vector<CellSideInfo> cell_vol_info;
 
   const bool sample_uniformly;
+
+  chi_montecarlon::GridTallyBlock uncollided_fv_tally;
+  chi_montecarlon::GridTallyBlock uncollided_pwl_tally;
+
 public:
-  ResidualSource2(chi_physics::FieldFunction* in_resid_ff,
-                 bool use_uniform_sampling=false,
-                 double in_bndry_val=0.0);
+  ResidualSourceB(chi_physics::FieldFunction* in_resid_ff,
+                  bool use_uniform_sampling=false,
+                  double in_bndry_val=0.0);
 
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,
@@ -53,18 +61,23 @@ public:
           CellSideInfo& cell_side_info);
 
   chi_montecarlon::Particle
+  CreateParticle(chi_math::RandomNumberGenerator* rng)
+  {
+    if (ray_trace_phase)
+      return CreateBndryParticle(rng);
+    else
+      return CreateCollidedParticle(rng);
+  }
+
+  chi_montecarlon::Particle
   CreateBndryParticle(chi_math::RandomNumberGenerator* rng);
 
   chi_montecarlon::Particle
-  CreateParticle(chi_math::RandomNumberGenerator* rng);
-
-  chi_montecarlon::Particle
-  SampleBoundary(chi_math::RandomNumberGenerator* rng);
-
-  chi_montecarlon::Particle
-  DirectSampling(chi_math::RandomNumberGenerator* rng);
+  CreateCollidedParticle(chi_math::RandomNumberGenerator* rng);
 
   double GetRMCParallelRelativeSourceWeight();
+
+  bool CheckForReExecution() override;
 };
 
 

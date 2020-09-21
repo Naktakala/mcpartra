@@ -1,5 +1,4 @@
 #include "mc_base_source.h"
-#include<math.h>
 
 #include "chi_log.h"
 extern ChiLog& chi_log;
@@ -9,12 +8,6 @@ extern ChiLog& chi_log;
 chi_montecarlon::Source::Source()
 {
   type_index = SourceTypes::BASE_SRC;
-  particles_C = 0;
-  particles_L = 0;
-  particles_R = 0;
-
-  weights_L = 0.0;
-  weights_R = 0.0;
 }
 
 void chi_montecarlon::Source::Initialize(chi_mesh::MeshContinuum* ref_grid,
@@ -47,7 +40,6 @@ chi_montecarlon::Particle chi_montecarlon::Source::CreateParticle(chi_math::Rand
   new_particle.w = 1.0;
 
   chi_log.Log(LOG_0) << "Default particle created.";
-
 
   return new_particle;
 }

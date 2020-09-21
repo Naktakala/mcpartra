@@ -14,10 +14,13 @@
 
 #include <ChiMesh/Raytrace/raytracing.h>
 
+#include "ChiMath/UnknownManager/unknown_manager.h"
+
 #include <iostream>
 #include <iomanip>
 #include <map>
 #include <algorithm>
+#include <functional>
 
 namespace chi_montecarlon
 {
@@ -34,17 +37,129 @@ namespace chi_montecarlon
     UNCOLLIDED_ONLY             = 10,
     NUM_UNCOLLIDED_PARTICLES    = 11
   };
+
+  struct GridTallyBlock;
 }
+
+//######################################################### Tally struct
+/**Tally block.*/
+struct chi_montecarlon::GridTallyBlock
+{
+private:
+  bool is_empty = true;
+public:
+  //FV tallies
+  std::vector<double> tally_local;
+  std::vector<double> tally_global;
+  std::vector<double> tally_sqr_local;
+  std::vector<double> tally_sqr_global;
+
+  std::vector<double> tally_sigma;
+  std::vector<double> tally_relative_sigma;
+
+  void Resize(int tally_size)
+  {
+    tally_local         .resize(tally_size, 0.0);
+    tally_global        .resize(tally_size, 0.0);
+    tally_sqr_local     .resize(tally_size, 0.0);
+    tally_sqr_global    .resize(tally_size, 0.0);
+    tally_sigma         .resize(tally_size, 0.0);
+    tally_relative_sigma.resize(tally_size, 0.0);
+
+    is_empty = false;
+  }
+
+  GridTallyBlock& operator=(const GridTallyBlock& that)
+  {
+    tally_local          = that.tally_local;
+    tally_global         = that.tally_global;
+    tally_sqr_local      = that.tally_sqr_local;
+    tally_sqr_global     = that.tally_sqr_global;
+
+    tally_sigma          = that.tally_sigma;
+    tally_relative_sigma = that.tally_relative_sigma;
+
+    return *this;
+  }
+
+  void ZeroOut()
+  {
+    int tally_size = tally_local.size();
+
+    tally_local          .assign(tally_size, 0.0);
+    tally_global         .assign(tally_size, 0.0);
+    tally_sqr_local      .assign(tally_size, 0.0);
+    tally_sqr_global     .assign(tally_size, 0.0);
+
+    tally_sigma          .assign(tally_size, 0.0);
+    tally_relative_sigma .assign(tally_size, 0.0);
+  }
+
+  GridTallyBlock& operator+=(const GridTallyBlock& that)
+  {
+    int tally_size = tally_local.size();
+
+    for (int i=0; i<tally_size; ++i)
+    {
+      tally_local         [i] += that.tally_local         [i];
+      tally_global        [i] += that.tally_global        [i];
+      tally_sqr_local     [i] += that.tally_sqr_local     [i];
+      tally_sqr_global    [i] += that.tally_sqr_global    [i];
+      tally_sigma         [i] += that.tally_sigma         [i];
+      tally_relative_sigma[i] += that.tally_relative_sigma[i];
+    }
+
+    return *this;
+  }
+
+  bool empty() {return is_empty;}
+};
 
 //######################################################### Class def
 /**Monte Carlo neutron particle solver.*/
 class chi_montecarlon::Solver : public chi_physics::Solver
 {
+public:
+  enum RayTraceMethod
+  {
+    STANDARD   = 0,
+    UNCOLLIDED = 1
+  };
+
+  struct TallyMethod
+  {
+    static const int STANDARD     = 0;
+    static const int RMC_CHAR_RAY = 1;
+  };
+
+  enum TallyMask
+  {
+    DEFAULT_FVTALLY     = 1 << 0, //0000 0001
+    DEFAULT_PWLTALLY    = 1 << 1, //0000 0010
+    UNCOLLIDED_FVTALLY  = 1 << 2, //0000 0100
+    UNCOLLIDED_PWLTALLY = 1 << 3, //0000 1000
+  };
+
+  std::map<TallyMask,int> TallyMaskIndex =
+    {{DEFAULT_FVTALLY,     0},
+     {DEFAULT_PWLTALLY,    1},
+     {UNCOLLIDED_FVTALLY,  2},
+     {UNCOLLIDED_PWLTALLY, 3}};
+
+  std::vector<int> fv_tallies =
+    {TallyMaskIndex[DEFAULT_FVTALLY],
+     TallyMaskIndex[UNCOLLIDED_FVTALLY]};
+
+  std::vector<int> pwl_tallies =
+    {TallyMaskIndex[DEFAULT_PWLTALLY],
+     TallyMaskIndex[UNCOLLIDED_PWLTALLY]};
+
 private:
   chi_mesh::MeshContinuum*              grid;
+  std::map<int,int>                     cell_neighbor_nonlocal_local_id;
 public:
-  SpatialDiscretization_FV*             fv_discretization;
-  SpatialDiscretization_PWL*            pwl_discretization;
+  SpatialDiscretization_FV*             fv;
+  SpatialDiscretization_PWL*            pwl;
 private:
   std::vector<int>                      matid_xs_map;
   std::vector<int>                      matid_q_map;
@@ -55,42 +170,17 @@ private:
   std::vector<unsigned long long>       uncollided_batch_sizes;
   std::vector<unsigned long long>       uncollided_batch_sizes_per_loc;
 public:
-  int                                   num_grps;
+  int                                   num_grps=1; //updated during material init
+  int                                   num_moms=1;
+  chi_math::UnknownManager              uk_man_fv;
+  chi_math::UnknownManager              uk_man_fem;
+
 private:
-  //FV tallies
-  std::vector<double>                   phi_tally;
-  std::vector<double>                   phi_tally_sqr;
-
-  std::vector<double>                   phi_global;
-  std::vector<double>                   phi_global_tally_sqr;
-
-  std::vector<double>                   phi_local_relsigma;
-
-  //PWL tallies
-  std::vector<double>                   phi_pwl_tally;
-  std::vector<double>                   phi_pwl_tally_sqr;
-
-  std::vector<double>                   phi_pwl_global;
-  std::vector<double>                   phi_pwl_global_tally_sqr;
+  std::vector<GridTallyBlock>           grid_tally_blocks;
 
 public:
-  std::vector<double>                   phi_global_initial_value;
-private:
-
-
-  std::vector<double>                   phi_uncollided_rmc;
-
-  //PWL tallies
-  int                                   num_moms;
-
-
-  std::vector<double>                   phi_pwl_local_relsigma;
-public:
-  std::vector<double>                   phi_pwl_uncollided_rmc;
-private:
-  std::vector<int>                      local_cell_pwl_dof_array_address;
-
-  std::map<int,int>                     cell_neighbor_nonlocal_local_id;
+  chi_math::RandomNumberGenerator       rng0;
+  std::vector<chi_montecarlon::Source*> sources;
 
   //======================== Variance reduction quantities
 public:
@@ -100,35 +190,40 @@ private:
 
   //======================== RMC quantities
 public:
-  std::vector<double>                   cell_residual_cdf;
+  std::vector<double>                   cdf_phi_unc_group;
+  std::vector<std::vector<double>>      cdf_phi_unc_group_cell;
+  double                                IntVSumG_phi_unc=0.0;
+  std::vector<double>                   IntV_phi_unc_g;
   double                                domain_volume = 0.0;
+  //========================= Runtime quantities
 private:
-  std::vector<double> segment_lengths;
-  std::vector<double> N_f,N_i;
-  std::vector<chi_mesh::Vector3> Grad;
-  //runtime quantities
+  std::vector<double>                   segment_lengths;
+  std::vector<double>                   N_f,N_i;
+  std::vector<chi_mesh::Vector3>        Grad;
   size_t                                current_batch;
   unsigned long long                    nps;
   unsigned long long                    nps_global;
-  double                                max_relative_error;
-  double                                max_relative_error2;
-  double                                max_relative_error3;
-  chi_math::CDFSampler*                 surface_source_sampler;
+
+  double                                max_sigma=0.0;
+  double                                max_relative_sigma=0.0;
+  double                                avg_sigma=0.0;
+
+  double                                max_fem_sigma=0.0;
+  double                                max_fem_relative_sigma=0.0;
+  double                                avg_fem_sigma=0.0;
 
   MPI_Datatype                          mpi_prtcl_data_type;
   std::vector<Particle>                 outbound_particle_bank;
-  std::vector<Particle>                 inbound_particle_bank;
   std::vector<Particle>                 particle_source_bank;
   unsigned int                          total_outbound_bank_size=0;
-  unsigned int                          total_inbound_bank_size=0;
 
 public:
-  chi_math::RandomNumberGenerator       rng0;
-  std::vector<chi_montecarlon::Source*> sources;
 
-  //options
+
+  //========================= Options
   double                                tolerance = 0.000001;
   unsigned long long                    num_particles = 1000;
+  unsigned long long                    num_uncollided_particles = 1000;
   int                                   tfc_update_interval = 2000;
   bool                                  mono_energy = false;
   int                                   scattering_order = 10;
@@ -139,19 +234,15 @@ public:
   double                                tally_multipl_factor = 1.0;
   bool                                  make_pwld = false;
   bool                                  uncollided_only = false;
-  unsigned long long                    num_uncollided_particles = 1000;
 
 
   //derived from options-set during init
   bool                                  mesh_is_global = false;
 
-
-//private:
-//  chi_mesh::EmptyRegion empty_region;
-
 public:
   //00
        Solver();
+       std::pair<int,int> GetGroupBounds();
   //01
   bool Initialize();
   void InitMaterials();
@@ -163,32 +254,34 @@ public:
   //02
   void Execute();
   void ExecuteRMCUncollided();
+  void PrintBatchInfo(int b, double particle_rate);
 
 private:
   //03
   void Raytrace(Particle& prtcl);
-  void RaytraceRMC(Particle& prtcl);
+  void RaytraceSTD(Particle& prtcl);
   void RaytraceUNC(Particle& prtcl);
+  void RaytraceRMC(Particle& prtcl);
 
   //04
   std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
                     chi_physics::TransportCrossSections* xs);
   void ProcessImportanceChange(Particle& prtcl);
+
   //05a
   void ContributeTally(Particle& prtcl,
                        chi_mesh::Vector3 pf);
-  void ComputeRelativeStdDev();
-
-  //05b
-  double GetResidualFFPhi(std::vector<double>& N_in,
-                          int dofs, int rmap,
-                          chi_montecarlon::ResidualSource2* rsrc,
-                          int egrp);
-  chi_mesh::Vector3 GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
-                              int dofs, int rmap,
-                              chi_montecarlon::ResidualSource2* rsrc,
-                              int egrp);
+  double
+  GetResidualFFPhi(std::vector<double>& N_in,
+                   int dofs, int rmap,
+                   chi_montecarlon::ResidualSourceB* rsrc,
+                   int egrp);
+  chi_mesh::Vector3
+  GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
+                       int dofs, int rmap,
+                       chi_montecarlon::ResidualSourceB* rsrc,
+                       int egrp);
   void ContributeTallyRMC(Particle& prtcl,
                           chi_mesh::Vector3 pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
@@ -197,26 +290,30 @@ private:
                           chi_mesh::Vector3 pf,
                           double sig_t=0.0);
 
-  //05c
+  //05b
   void RendesvouzTallies();
-  void RendesvouzPWLTallies();
+
+  //05c
+  void ComputeUncertainty();
 
   //05d
   void NormalizeTallies();
-  void NormalizePWLTallies();
 
   //06
   void ComputePWLDTransformations();
-  void DevelopCollidedSource();
 
   //07
   void BuildMPITypes();
   void GetOutboundBankSize();
   void ReceiveIncomingParticles(std::vector<Particle>& inbound_particles);
 
+  //08
+  void DevelopCollidedSource(chi_montecarlon::GridTallyBlock& input_fv_tally);
 
-  friend class chi_montecarlon::ResidualSource2;
-  friend class chi_montecarlon::ResidualSource3;
+  friend class chi_montecarlon::ResidualSourceB;
+  friend class chi_montecarlon::ResidualSourceA;
+
+
 };
 
 #endif

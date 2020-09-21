@@ -1,4 +1,4 @@
-#include "mc_rmc3_source.h"
+#include "mc_rmcA_source.h"
 
 #include "../../Solver/solver_montecarlon.h"
 
@@ -13,18 +13,13 @@ extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Constructor for residual source.*/
-chi_montecarlon::ResidualSource3::
-ResidualSource3(chi_physics::FieldFunction *in_resid_ff,
+chi_montecarlon::ResidualSourceA::
+ResidualSourceA(chi_physics::FieldFunction *in_resid_ff,
                 bool use_uniform_sampling) :
   sample_uniformly(use_uniform_sampling)
 {
-  type_index = SourceTypes::RESIDUAL3;
+  type_index = SourceTypes::RESIDUAL_TYPE_A;
   resid_ff = in_resid_ff;
-  particles_L = 0;
-  particles_R = 0;
-
-  weights_L = 0.0;
-  weights_R = 0.0;
 }
 
 //###################################################################
@@ -32,7 +27,7 @@ ResidualSource3(chi_physics::FieldFunction *in_resid_ff,
  *
  * This process involves numerous steps. One of the first steps is
  * to */
-void chi_montecarlon::ResidualSource3::
+void chi_montecarlon::ResidualSourceA::
 Initialize(chi_mesh::MeshContinuum *ref_grid,
            SpatialDiscretization_FV *ref_fv_sdm,
            chi_montecarlon::Solver* ref_solver)
@@ -45,8 +40,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   this->ref_solver       = ref_solver;
   auto& rng              = ref_solver->rng0;
   size_t num_local_cells = ref_solver->grid->local_cells.size();
-  auto& pwl              = ref_solver->pwl_discretization;
-  auto& fv               = ref_solver->fv_discretization;
+  auto& pwl              = ref_solver->pwl;
+  auto& fv               = ref_solver->fv;
 
   //============================================= Build cell composition data
   //This info is basically constituent side triangles/tetrahedrons

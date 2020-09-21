@@ -1,7 +1,7 @@
 #ifndef _chi_montecarlon_h
 #define _chi_montecarlon_h
 
-
+#include <map>
 
 //######################################################### Namespace
 namespace chi_montecarlon
@@ -9,11 +9,8 @@ namespace chi_montecarlon
   class Source;
   class BoundarySource;
   class MaterialSource;
-  class ResidualSource;
-  class ResidualMOCSource;
-  class ResidualSource2;
-  class ResidualSource3;
-
+  class ResidualSourceA;
+  class ResidualSourceB;
 
   class Solver;
 

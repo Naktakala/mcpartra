@@ -1,5 +1,5 @@
 #include "solver_montecarlon.h"
-#include "../Source/ResidualSource/mc_rmc2_source.h"
+#include "../Source/ResidualSource/mc_rmcB_source.h"
 
 #include <ChiMesh/Raytrace/raytracing.h>
 #include "ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h"
@@ -14,7 +14,7 @@ extern ChiPhysics&  chi_physics_handler;
 /**Obtains a field function interpolant of the flux.*/
 double chi_montecarlon::Solver::
   GetResidualFFPhi(std::vector<double> &N_in, int dofs, int rmap,
-                   chi_montecarlon::ResidualSource2 *rsrc, int egrp)
+                   chi_montecarlon::ResidualSourceB *rsrc, int egrp)
 {
   double phi = 0.0;
   for (int dof=0; dof<dofs; dof++)
@@ -33,7 +33,7 @@ double chi_montecarlon::Solver::
 /**Obtains a field function interpolant of the flux-gradient.*/
 chi_mesh::Vector3 chi_montecarlon::Solver::
 GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in, int dofs, int rmap,
-                 chi_montecarlon::ResidualSource2 *rsrc, int egrp)
+                     chi_montecarlon::ResidualSourceB *rsrc, int egrp)
 {
   chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
@@ -59,7 +59,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   //======================================== Get cell information
   auto cell           = &grid->local_cells[prtcl.cur_cell_local_id];
   int  cell_local_ind = cell->local_id;
-  auto cell_pwl_view  = pwl_discretization->MapFeViewL(cell_local_ind);
+  auto cell_pwl_view  = pwl->MapFeViewL(cell_local_ind);
 
   //======================================== Get material properties
   int  mat_id         = cell->material_id;
@@ -83,8 +83,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   double avg_weight = 0.0;
 
   //======================================== Get residual-source and mappings
-  auto src = (chi_montecarlon::ResidualSource2*)sources.back();
-  int map  = local_cell_pwl_dof_array_address[cell_local_ind];
+  auto src = (chi_montecarlon::ResidualSourceB*)sources.back();
   int rmap = (*src->resid_ff->local_cell_dof_array_address)[cell_local_ind];
 
   //======================================== Contribute PWLD
@@ -191,11 +190,16 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
       double w_avg_i = (c_4+c_5+c_6+c_7+c_8*c_9)/s_L;
 
-      int ir = map + i * num_grps * num_moms + num_grps * 0 + prtcl.egrp;
+      int ir = pwl->MapDFEMDOFLocal(cell,i,&uk_man_fem,/*m*/0,prtcl.egrp);
       double pwl_tally_contrib = s_L * w_avg_i;
 
-      phi_pwl_tally[ir]     += pwl_tally_contrib;
-      phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
+      for (int t : pwl_tallies)
+      {
+        if (not (prtcl.tally_mask & (1 << t))) continue;
+
+        grid_tally_blocks[t].tally_local[ir]     += pwl_tally_contrib;
+        grid_tally_blocks[t].tally_sqr_local[ir] += pwl_tally_contrib*pwl_tally_contrib;
+      }
 
       w_avg += w_avg_i;
     }//for dof
@@ -205,12 +209,17 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   avg_weight/=tracklength;
 
   //======================================== Contribute avg tally
-  int ir = cell_local_ind*num_grps + prtcl.egrp;
+  int ir = fv->MapDOFLocal(cell,&uk_man_fv,/*m*/0,prtcl.egrp);
 
   double tally_contrib = tracklength*avg_weight;
 
-  phi_tally[ir]     += tally_contrib;
-  phi_tally_sqr[ir] += tally_contrib*tally_contrib;
+  for (int t : fv_tallies)
+  {
+    if (not (prtcl.tally_mask & (1 << t))) continue;
+
+    grid_tally_blocks[t].tally_local[ir]     += tally_contrib;
+    grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*tally_contrib;
+  }
 
   if (std::isnan(tracklength))
   {

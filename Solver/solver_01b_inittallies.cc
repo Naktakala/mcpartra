@@ -15,55 +15,62 @@ void chi_montecarlon::Solver::InitTallies()
   auto handler = chi_mesh::GetCurrentHandler();
   mesh_is_global = handler->volume_mesher->options.mesh_global;
 
-  size_t num_local_cells = grid->local_cell_glob_indices.size();
-  size_t tally_size = num_grps*num_local_cells;
-//  phi_tally_contrib.resize(tally_size,0.0);
-  phi_tally.resize(tally_size,0.0);
-  phi_tally_sqr.resize(tally_size,0.0);
+  //=================================== Unknown Manager
+  for (int m=0; m<num_moms; ++m)
+  {
+    uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
+    uk_man_fem.AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
+    for (int g=0; g<num_grps; ++g)
+    {
+      auto fv_comp_name = std::string("PhiFV");
+      auto fem_comp_name = std::string("PhiFEM");
 
-  phi_global_initial_value.resize(tally_size,0.0);
-  phi_global.resize(tally_size,0.0);
-  phi_global_tally_sqr.resize(tally_size,0.0);
+      fv_comp_name += std::string("_m")+std::to_string(m);
+      fv_comp_name += std::string("_g")+std::to_string(g);
 
-  phi_local_relsigma.resize(tally_size,0.0);
+      fem_comp_name += std::string("_m")+std::to_string(m);
+      fem_comp_name += std::string("_g")+std::to_string(g);
+
+      uk_man_fv .SetUnknownComponentTextName(m, g, fv_comp_name);
+      uk_man_fem.SetUnknownComponentTextName(m, g, fem_comp_name);
+    }//for g
+  }//for m
+
+  //=================================== Initialize tally blocks
+  grid_tally_blocks.clear();
+  grid_tally_blocks.emplace_back(); //DEFAULT_FVTALLY
+  grid_tally_blocks.emplace_back(); //DEFAULT_PWLTALLY
+  grid_tally_blocks.emplace_back(); //UNCOLLIDED_FVTALLY
+  grid_tally_blocks.emplace_back(); //UNCOLLIDED_PWLTALLY
+
 
   //=================================== Initialize Finite Volume discretization
   chi_log.Log(LOG_0) << "Adding finite volume views.";
-  fv_discretization = new SpatialDiscretization_FV;
+  fv = new SpatialDiscretization_FV;
+  fv->AddViewOfLocalContinuum(grid);
 
-  fv_discretization->AddViewOfLocalContinuum(grid);
+  //=================================== Tally sizes
+  auto fv_tally_size = fv->GetNumLocalDOFs(grid, &uk_man_fv);
+
+  grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].Resize(fv_tally_size);
+  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_FVTALLY]].Resize(fv_tally_size);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  if (make_pwld)
-  {
-    chi_log.Log(LOG_0) << "Adding PWL finite element views.";
-    //=================================== Initialize pwl discretization
-    pwl_discretization = new SpatialDiscretization_PWL;
 
-    pwl_discretization->
-      AddViewOfLocalContinuum(grid);
+  //=================================== Initialize pwl discretization
+  chi_log.Log(LOG_0) << "Adding PWL finite element views.";
+  pwl = new SpatialDiscretization_PWL;
+  pwl->AddViewOfLocalContinuum(grid);
+  pwl->OrderNodesDFEM(grid);
 
-    //=================================== Generate moment wise addresses
-    num_moms = 1;
-    local_cell_pwl_dof_array_address.resize(num_local_cells,0);
-    int block_MG_counter = 0;
-    for (size_t lc=0; lc<num_local_cells; lc++)
-    {
-      local_cell_pwl_dof_array_address[lc] = block_MG_counter;
-      auto cell_pwl_view = pwl_discretization->MapFeViewL(lc);
+  //=================================== Initialize PWLD tallies
+  auto fem_tally_size = pwl->GetNumLocalDOFs(grid, &uk_man_fem);
 
-      block_MG_counter += cell_pwl_view->dofs*num_grps*num_moms;
-    }
+  chi_log.Log(LOG_0) << "PWL #local-dofs: " << fem_tally_size;
 
-    //=================================== Initialize PWLD tallies
-    tally_size = block_MG_counter;
-    phi_pwl_tally.resize(tally_size,0.0);
-    phi_pwl_tally_sqr.resize(tally_size,0.0);
+  grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].Resize(fem_tally_size);
+  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_PWLTALLY]].Resize(fem_tally_size);
 
-    phi_pwl_global.resize(tally_size,0.0);
-    phi_pwl_global_tally_sqr.resize(tally_size,0.0);
-
-    phi_pwl_local_relsigma.resize(tally_size,0.0);
-  }
+  chi_log.Log(LOG_0) << "Done initializing tallies.";
   MPI_Barrier(MPI_COMM_WORLD);
 }

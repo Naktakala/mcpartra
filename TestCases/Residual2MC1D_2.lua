@@ -47,10 +47,10 @@ chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,1.0,0.6)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,1.0,0.6)
 
 src={}
 for g=1,num_groups do
@@ -143,7 +143,7 @@ chiMeshHandlerSetCurrent(tmesh)
 phys2 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys2,region0)
 
-chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL,-1,fflist0[1],0.0);
+chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_B,-1,fflist0[1],0.0);
 
 
 chiMonteCarlonSetProperty(phys2,MCProperties.NUM_UNCOLLIDED_PARTICLES,fac*1e6)

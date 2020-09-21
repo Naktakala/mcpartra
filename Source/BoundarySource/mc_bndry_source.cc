@@ -1,5 +1,7 @@
 #include "mc_bndry_source.h"
 
+#include "../../Solver/solver_montecarlon.h"
+
 #include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
 #include <ChiMesh/Cell/cell_slab.h>
 #include <ChiMesh/Cell/cell_polygon.h>
@@ -41,6 +43,7 @@ void chi_montecarlon::BoundarySource::
   chi_log.Log(LOG_0) << "Initializing Boundary Source";
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
+  this->ref_solver = ref_solver;
 
   const int ALL_BOUNDRIES = -1;
 
@@ -215,6 +218,9 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
 
   new_particle.cur_cell_global_id = cell.global_id;
   new_particle.cur_cell_local_id  = cell.local_id;
+
+  if (ref_solver->uncollided_only)
+    new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::UNCOLLIDED;
 
   return new_particle;
 }

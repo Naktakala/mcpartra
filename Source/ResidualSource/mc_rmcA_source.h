@@ -9,7 +9,7 @@
 
 //###################################################################
 /**Residual source class.*/
-class chi_montecarlon::ResidualSource3 : public chi_montecarlon::Source
+class chi_montecarlon::ResidualSourceA : public chi_montecarlon::Source
 {
 public:
   chi_physics::FieldFunction* resid_ff;
@@ -74,12 +74,12 @@ public:
   const bool sample_uniformly;
 public:
   //a
-  ResidualSource3(chi_physics::FieldFunction* in_resid_ff,
+  ResidualSourceA(chi_physics::FieldFunction* in_resid_ff,
                   bool use_uniform_sampling=false);
 
   void Initialize(chi_mesh::MeshContinuum* ref_grid,
                   SpatialDiscretization_FV*   ref_fv_sdm,
-                  chi_montecarlon::Solver* ref_solver);
+                  chi_montecarlon::Solver* ref_solver) override;
 
   //b
   void BuildCellVolInfo(chi_mesh::MeshContinuum*  ref_grid,

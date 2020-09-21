@@ -4,36 +4,47 @@
 /**Computes PWLD transformations of the PWLD tallies.*/
 void chi_montecarlon::Solver::ComputePWLDTransformations()
 {
-  size_t num_cells = grid->local_cell_glob_indices.size();
   if (make_pwld)
   {
-    for (size_t lc=0; lc<num_cells; lc++)
+    for (auto& cell : grid->local_cells)
     {
-      int map = local_cell_pwl_dof_array_address[lc];
-
-      auto cell_pwl_view = pwl_discretization->MapFeViewL(lc);
+      auto cell_pwl_view = pwl->MapFeViewL(cell.local_id);
 
       MatDbl A(cell_pwl_view->IntV_shapeI_shapeJ);
       MatDbl Ainv = chi_math::Inverse(A);
       VecDbl b(cell_pwl_view->dofs,0.0);
 
-      for (int g=0; g<num_grps; g++)
-      {
-        for (int dof=0; dof<cell_pwl_view->dofs; dof++)
-        {
-          int ir = map + dof*num_grps*num_moms + num_grps*0 + g;
-          b[dof] = phi_pwl_global[ir]*cell_pwl_view->IntV_shapeI[dof];
-        }
-        VecDbl x = chi_math::MatMul(Ainv,b);
-        for (int dof=0; dof<cell_pwl_view->dofs; dof++)
-        {
-          int ir = map + dof*num_grps*num_moms + num_grps*0 + g;
-          phi_pwl_global[ir] = x[dof];
+//      for (int t : pwl_tallies)
+      auto& raw_tally = grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]];
+      auto& out_tally = grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]];
 
-          if (not phi_pwl_uncollided_rmc.empty())
-            phi_pwl_global[ir] += phi_pwl_uncollided_rmc[ir];
-        }
-      }
+      {
+        if (raw_tally.empty()) continue;
+
+        for (int m=0; m<num_moms; ++m)
+        {
+          for (int g=0; g<num_grps; ++g)
+          {
+
+            for (int i=0; i<cell.vertex_ids.size(); ++i)
+            {
+              int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,/*m*/0,g);
+              b[i] = raw_tally.tally_global[ir]*
+                     cell_pwl_view->IntV_shapeI[i];
+            }//for dof
+
+            VecDbl x = chi_math::MatMul(Ainv,b);
+
+            for (int i=0; i<cell.vertex_ids.size(); ++i)
+            {
+              int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,/*m*/0,g);
+              out_tally.tally_global[ir] = x[i];
+            }//for dof
+
+          }//for group
+        }//for moment
+      }//for tally
+
     }//for local cell lc
   }//if make_pwld
 }

@@ -17,17 +17,12 @@ namespace chi_montecarlon
 {
   enum SourceTypes
   {
-    BASE_SRC     = 0,
-    POINT_SRC    = 1,
-    BNDRY_SRC    = 2,
-    MATERIAL_SRC = 3,
-    RESID_SRC    = 4,
-    RESID_SRC_SU = 5,
-    RESID_MOC    = 6,
-    RESID_MOC_SU = 7,
-    RESIDUAL     = 8,
-    RESIDUAL_SU  = 9,
-    RESIDUAL3    = 10
+    BASE_SRC           = 0,
+    POINT_SRC          = 1,
+    BNDRY_SRC          = 2,
+    MATERIAL_SRC       = 3,
+    RESIDUAL_TYPE_A    = 4,
+    RESIDUAL_TYPE_B    = 5,
   };
 }
 
@@ -36,13 +31,6 @@ namespace chi_montecarlon
 This source is an isotropic source at [0 0 0] with energy of 4 MeV.*/
 class chi_montecarlon::Source
 {
-public:
-  int particles_C;
-  int particles_L;
-  int particles_R;
-  double weights_L;
-  double weights_R;
-
 public:
   chi_mesh::MeshContinuum* grid;
   SpatialDiscretization_FV*   fv_sdm;
@@ -62,6 +50,9 @@ public:
 
   virtual double GetParallelRelativeSourceWeight() {return 1.0;}
 
+  virtual bool CheckForReExecution() {return false;}
+
+  virtual ~Source() {};
 };
 
 #endif

@@ -22,6 +22,11 @@ struct chi_montecarlon::Particle
   int cur_cell_local_id = -1;
   int pre_cell_local_id = -1;
 
+  int ray_trace_method = 0; //STANDARD
+  int tally_method = 0;     //STANDARD
+  int tally_mask = (1 << 0) | //DEFAULT_FVTALLY
+                   (1 << 1);  //DEFAULT_PWLTALLY
+
   double cur_cell_importance = 1.0;
   double pre_cell_importance = 1.0;
 
@@ -46,6 +51,10 @@ struct chi_montecarlon::Particle
     this->cur_cell_local_id = that.cur_cell_local_id;
     this->pre_cell_local_id = that.pre_cell_local_id;
 
+    this->ray_trace_method = that.ray_trace_method;
+    this->tally_method = that.tally_method;
+    this->tally_mask       = that.tally_mask;
+
     this->cur_cell_importance = that.cur_cell_importance;
     this->pre_cell_importance = that.pre_cell_importance;
 
@@ -64,6 +73,9 @@ struct chi_montecarlon::Particle
     pre_cell_global_id(that.pre_cell_global_id),
     cur_cell_local_id(that.cur_cell_local_id),
     pre_cell_local_id(that.pre_cell_local_id),
+    ray_trace_method(that.ray_trace_method),
+    tally_method(that.tally_method),
+    tally_mask(that.tally_mask),
     cur_cell_importance(that.cur_cell_importance),
     pre_cell_importance(that.pre_cell_importance),
     alive(that.alive),
@@ -80,6 +92,9 @@ struct chi_montecarlon::Particle
                            1, //pre_cell_global_id
                            1, //cur_cell_local_id
                            1, //pre_cell_local_id
+                           1, //ray_trace_method
+                           1, //tally_method
+                           1, //tally_mask
                            1, //cur_cell_importance
                            1, //pre_cell_importance
                            1, //alive
@@ -94,28 +109,34 @@ struct chi_montecarlon::Particle
       offsetof(Particle, pre_cell_global_id),
       offsetof(Particle, cur_cell_local_id),
       offsetof(Particle, pre_cell_local_id),
+      offsetof(Particle, ray_trace_method),
+      offsetof(Particle, tally_method),
+      offsetof(Particle, tally_mask),
       offsetof(Particle, cur_cell_importance),
       offsetof(Particle, pre_cell_importance),
       offsetof(Particle, alive),
       offsetof(Particle, banked)};
 
     MPI_Datatype block_types[] = {
-      MPI_DOUBLE,
-      MPI_DOUBLE,
-      MPI_DOUBLE,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_DOUBLE,
-      MPI_DOUBLE,
-      MPI_BYTE,
-      MPI_BYTE
+      MPI_DOUBLE, //pos
+      MPI_DOUBLE, //dir
+      MPI_DOUBLE, //w
+      MPI_INT,    //egrp
+      MPI_INT,    //cur_cell_global_id
+      MPI_INT,    //pre_cell_global_id
+      MPI_INT,    //cur_cell_local_id
+      MPI_INT,    //pre_cell_local_id
+      MPI_INT,    //ray_trace_method
+      MPI_INT,    //tally_method
+      MPI_INT,    //tally_mask
+      MPI_DOUBLE, //cur_cell_importance
+      MPI_DOUBLE, //pre_cell_importance
+      MPI_BYTE,   //alive
+      MPI_BYTE    //banked
     };
 
     MPI_Type_create_struct(
-      12,             // Number of blocks
+      15,             // Number of blocks
       block_lengths,  // Block lengths
       block_disp,     // Block displacements
       block_types,    // Block types

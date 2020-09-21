@@ -1,4 +1,4 @@
-#include "mc_rmc3_source.h"
+#include "mc_rmcA_source.h"
 
 #include "ChiMath/SpatialDiscretization/PiecewiseLinear/pwl.h"
 #include "ChiMath/PETScUtils/petsc_utils.h"
@@ -6,7 +6,7 @@
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
-void chi_montecarlon::ResidualSource3::RemoveFFDiscontinuities()
+void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
 {
 //  size_t num_verts = resid_ff->grid->vertices.size();
 //

@@ -19,6 +19,10 @@ void chi_montecarlon::MaterialSource::
              SpatialDiscretization_FV *ref_fv_sdm,
              chi_montecarlon::Solver *ref_solver)
 {
+  grid = ref_grid;
+  fv_sdm = ref_fv_sdm;
+  this->ref_solver = ref_solver;
+
   //============================================= List cells with mat-sources
   std::vector<chi_mesh::Cell*> mat_src_cells;
   for (auto& cell : ref_grid->local_cells)
@@ -282,6 +286,9 @@ chi_montecarlon::Particle chi_montecarlon::MaterialSource::
 
   new_particle.cur_cell_local_id  = src_element.cell_local_index;
   new_particle.cur_cell_global_id = src_element.cell_global_index;
+
+  if (ref_solver->uncollided_only)
+    new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::UNCOLLIDED;
 
   return new_particle;
 }

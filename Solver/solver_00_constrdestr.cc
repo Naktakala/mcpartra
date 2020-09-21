@@ -1,7 +1,9 @@
 #include "solver_montecarlon.h"
 
-#include <chi_mpi.h>
+#include "chi_log.h"
+extern ChiLog& chi_log;
 
+#include "chi_mpi.h"
 extern ChiMPI& chi_mpi;
 
 //###################################################################
@@ -26,6 +28,24 @@ chi_montecarlon::Solver::Solver() :
   make_pwld = false;
   uncollided_only = false;
 
-  max_relative_error = 0.0;
+  max_sigma = 0.0;
 
+}
+
+//###################################################################
+/**Returns the group-mask for this solver.*/
+std::pair<int,int> chi_montecarlon::Solver::GetGroupBounds()
+{
+  if (group_lo_bound>group_hi_bound)
+  {
+    chi_log.Log(LOG_ALLERROR)
+      << "chi_montecarlon::Solver: "
+      << "Invalid group mask " << group_lo_bound << "->" << group_hi_bound
+      << ". group_hi_bound must be >= group_lo_bound.";
+    exit(EXIT_FAILURE);
+  }
+  int start = (group_lo_bound<0)? 0 : group_lo_bound;
+  int end   = (group_hi_bound<0)? num_grps : group_lo_bound;
+
+  return {start,end};
 }

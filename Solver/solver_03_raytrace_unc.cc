@@ -72,9 +72,10 @@ void chi_montecarlon::Solver::RaytraceUNC(Particle& prtcl)
   }
 
   //posf set in call to RayTrace
-  ContributeTallyUNC(prtcl,posf,sigt);
-
-//  if (prtcl.w < 1.0e-6) prtcl.alive = false;
+  if (prtcl.tally_method == TallyMethod::STANDARD)
+    ContributeTallyUNC(prtcl,posf,sigt);
+  if (prtcl.tally_method == TallyMethod::RMC_CHAR_RAY)
+    ContributeTallyRMC(prtcl,posf,ray_dest_info);
 
   //======================= If surface is boundary
   if (ray_dest_info.destination_face_neighbor < 0)

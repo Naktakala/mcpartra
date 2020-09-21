@@ -56,7 +56,7 @@ src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 6.0
+src[1] = 3.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
@@ -130,7 +130,7 @@ chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*6.0/3)
+chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3.0/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 chiMonteCarlonInitialize(phys1)
@@ -143,7 +143,7 @@ chiMeshHandlerSetCurrent(tmesh)
 phys2 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys2,region0)
 
-chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL3,fflist0[1]);
+chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_A,fflist0[1]);
 
 
 

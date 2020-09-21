@@ -6,64 +6,54 @@ void chi_montecarlon::Solver::NormalizeTallies()
 {
   if (nps_global == 0) nps_global = 1;
 
-  int num_cells = grid->local_cell_glob_indices.size();
-  for (int lc=0; lc<num_cells; lc++)
+  //======================================== FV Tallies
+  for (int t : fv_tallies)
   {
-    int cell_glob_index = grid->local_cell_glob_indices[lc];
-    auto cell = grid->cells[cell_glob_index];
-    auto cell_fv_view = fv_discretization->MapFeView(lc);
-
-    double V = cell_fv_view->volume;
-
-    int hi = 0;
-    int lo = num_grps-1;
-    if (group_hi_bound >= 0)
-      hi = group_hi_bound;
-    if (group_lo_bound >=0 && group_lo_bound >= group_hi_bound)
-      lo = group_lo_bound;
-
-    for (int g=hi; g<=lo; g++)
+    if (not grid_tally_blocks[t].empty())
     {
-      int ir = lc*num_grps + g;
-
-      phi_global[ir] *= tally_multipl_factor/nps_global/V;
-      phi_global[ir] += phi_global_initial_value[ir];
-      if (not phi_uncollided_rmc.empty())
-        phi_global[ir] += phi_uncollided_rmc[ir];
-    }//for g
-  }//for local cell
-}
-
-
-//###################################################################
-/**Compute tally square contributions.*/
-void chi_montecarlon::Solver::NormalizePWLTallies()
-{
-  if (nps_global == 0) nps_global = 1;
-
-  int num_cells = grid->local_cell_glob_indices.size();
-  for (int lc=0; lc<num_cells; lc++)
-  {
-    auto cell_pwl_view   = pwl_discretization->MapFeViewL(lc);
-    int map             = local_cell_pwl_dof_array_address[lc];
-
-    int hi = 0;
-    int lo = num_grps-1;
-    if (group_hi_bound >= 0)
-      hi = group_hi_bound;
-    if (group_lo_bound >=0 && group_lo_bound >= group_hi_bound)
-      lo = group_lo_bound;
-
-    for (int g=hi; g<=lo; g++)
-    {
-      for (int dof=0; dof<cell_pwl_view->dofs; dof++)
+      for (auto& cell : grid->local_cells)
       {
-        int ir = map + dof*num_grps*num_moms + num_grps*0 + g;
-        double V = cell_pwl_view->IntV_shapeI[dof];
+        auto cell_fv_view = fv->MapFeView(cell.local_id);
 
-        phi_pwl_global[ir] *= tally_multipl_factor/nps_global/V;
+        for (int m=0; m<num_moms; ++m)
+        {
+          for (int g=0; g<num_grps; ++g)
+          {
+            int ir = fv->MapDOFLocal(&cell,&uk_man_fv,m,g);
 
-      }//for dof
-    }//for g
-  }//for local cell
+            grid_tally_blocks[t].tally_global[ir] *=
+              tally_multipl_factor/nps_global/cell_fv_view->volume;
+
+          }//for g
+        }//for m
+      }//for local cell
+    }//if tally active
+  }//for tallies
+
+  //============================================= PWL Tallies
+  for (int t : pwl_tallies)
+  {
+    if (not grid_tally_blocks[t].empty())
+    {
+      for (auto& cell : grid->local_cells)
+      {
+        auto cell_pwl_view   = pwl->MapFeViewL(cell.local_id);
+
+        for (int i=0; i<cell.vertex_ids.size(); ++i)
+        {
+          for (int m=0; m<num_moms; ++m)
+          {
+            for (int g=0; g<num_grps; ++g)
+            {
+              int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,m,g);
+
+              grid_tally_blocks[t].tally_global[ir] *=
+                tally_multipl_factor/nps_global/cell_pwl_view->IntV_shapeI[i];
+
+            }//for g
+          }//for m
+        }//for node
+      }//for local cell
+    }//if tally active
+  }//for tallies
 }

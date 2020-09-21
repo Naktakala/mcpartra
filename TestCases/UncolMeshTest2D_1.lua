@@ -86,7 +86,7 @@ chiSolverAddRegion(phys1,region1)
 --chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,20.0e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1.0e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)

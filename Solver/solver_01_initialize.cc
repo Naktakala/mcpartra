@@ -1,11 +1,4 @@
 #include"solver_montecarlon.h"
-#include <ChiPhysics/chi_physics.h>
-
-#include <ChiMesh/MeshHandler/chi_meshhandler.h>
-
-#include <ChiMath/Statistics/cdfsampler.h>
-
-extern ChiPhysics&  chi_physics_handler;
 
 #include <chi_log.h>
 #include <chi_mpi.h>
@@ -45,7 +38,7 @@ bool chi_montecarlon::Solver::Initialize()
   chi_log.Log(LOG_0) << "Initializing sources";
   for (auto source : sources)
   {
-    source->Initialize(grid,fv_discretization,this);
+    source->Initialize(grid, fv, this);
     double local_weight = source->GetParallelRelativeSourceWeight();
     for (auto& val : batch_sizes_per_loc)
       val *= local_weight*chi_mpi.process_count;

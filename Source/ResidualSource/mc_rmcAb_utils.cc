@@ -1,4 +1,4 @@
-#include "mc_rmc3_source.h"
+#include "mc_rmcA_source.h"
 
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
@@ -20,7 +20,7 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Build cell volume information.*/
-void chi_montecarlon::ResidualSource3::BuildCellVolInfo(
+void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
   chi_mesh::MeshContinuum* ref_grid,
   SpatialDiscretization_FV* ref_fv_sdm)
 {
@@ -176,7 +176,7 @@ void chi_montecarlon::ResidualSource3::BuildCellVolInfo(
 
 //###################################################################
 /**Populates a material information data structure from a mat-id.*/
-void chi_montecarlon::ResidualSource3::
+void chi_montecarlon::ResidualSourceA::
   PopulateMaterialData(int mat_id, int group_g, MaterialData &mat_data)
 {
   int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
@@ -199,10 +199,10 @@ void chi_montecarlon::ResidualSource3::
 
 //###################################################################
 /**Samples the cell interior*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
 GetRandomPositionInCell(
   chi_math::RandomNumberGenerator& rng,
-  const chi_montecarlon::ResidualSource3::CellGeometryData &cell_info)
+  const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info)
 {
   chi_mesh::Vector3 position;
   double rn = rng.Rand();
@@ -262,10 +262,10 @@ GetRandomPositionInCell(
 
 //###################################################################
 /**Samples the cell interior*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
 GetRandomPositionOnCellSurface(
   chi_math::RandomNumberGenerator& rng,
-  const chi_montecarlon::ResidualSource3::CellGeometryData &cell_info,
+  const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info,
   const int face_mask,
   int* face_sampled)
 {
@@ -354,7 +354,7 @@ GetRandomPositionOnCellSurface(
 
 //###################################################################
 /**Obtains a field function interpolant of the flux.*/
-double chi_montecarlon::ResidualSource3::
+double chi_montecarlon::ResidualSourceA::
 GetResidualFFPhi(std::vector<double> &N_in,
                  int dofs,
                  int cell_local_id,
@@ -377,7 +377,7 @@ GetResidualFFPhi(std::vector<double> &N_in,
 
 //###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
 GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
                      int dofs,
                      int cell_local_id,
@@ -400,7 +400,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
 
 //###################################################################
 /**Gets a true random direction.*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
   RandomDirection(
     chi_math::RandomNumberGenerator& rng)
 {
@@ -418,7 +418,7 @@ chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
 
 //###################################################################
 /**Gets a cosine law random direction relative to a normal.*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSource3::
+chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
   RandomCosineLawDirection(
     chi_math::RandomNumberGenerator& rng,
     const chi_mesh::Vector3& normal)

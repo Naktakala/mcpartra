@@ -16,20 +16,30 @@ void chi_montecarlon::Solver::InitFieldFunctions()
       chi_physics_handler.fieldfunc_stack.size(),   //FF-id
       chi_physics::FieldFunctionType::FV,           //Type
       grid,                                         //Grid
-      fv_discretization,                            //Spatial Discretization
+      fv,                            //Spatial Discretization
       num_grps,                                     //Number of components
       1,                                            //Number of sets
-      g,0,                                          //Ref component, ref set
+      g, 0,                                          //Ref component, ref set
       nullptr,                                      //Dof block address
-      &phi_global);                                 //Data vector
+//      &phi_global                                   //Data vector
+      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global
+      );
+
+//    auto group_ff = new chi_physics::FieldFunction(
+//      text_name,
+//      chi_physics::FieldFunctionType::FV,
+//      fv,
+//      &uk_man_fv,
+//      0,
+//      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global
+//      );
 
     chi_physics_handler.fieldfunc_stack.push_back(group_ff);
     field_functions.push_back(group_ff);
   }
 
-  if (make_pwld)
+//  if (make_pwld)
   {
-    auto domain_ownership = pwl_discretization->OrderNodesDFEM(grid);
     for (int g=0; g<num_grps; g++)
     {
       for (int m=0; m<num_moms; m++)
@@ -43,12 +53,23 @@ void chi_montecarlon::Solver::InitFieldFunctions()
           chi_physics_handler.fieldfunc_stack.size(),   //FF-id
           chi_physics::FieldFunctionType::DFEM_PWL,     //Type
           grid,                                         //Grid
-          pwl_discretization,                           //Spatial Discretization
+          pwl,                           //Spatial Discretization
           num_grps,                                     //Number of components
           num_moms,                                     //Number of sets
-          g,m,                                          //Ref component, ref set
-          &pwl_discretization->cell_dfem_block_address,            //Dof block address
-          &phi_pwl_global);                             //Data vector
+          g, m,                                          //Ref component, ref set
+          &pwl->cell_dfem_block_address,            //Dof block address
+//          &phi_pwl_global                           //Data vector
+          &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global
+          );
+
+//        auto group_ff = new chi_physics::FieldFunction(
+//          text_name,
+//          chi_physics::FieldFunctionType::DFEM_PWL,
+//          pwl,
+//          &uk_man_fem,
+//          0,
+//          &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global
+//          );
 
         chi_physics_handler.fieldfunc_stack.push_back(group_ff);
         field_functions.push_back(group_ff);

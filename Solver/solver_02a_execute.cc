@@ -3,9 +3,6 @@
 #include <chi_log.h>
 #include <ChiTimer/chi_timer.h>
 
-#include "../Source/ResidualSource/mc_rmc_source.h"
-#include "../Source/ResidualSource/mc_rmc3_source.h"
-
 extern ChiLog& chi_log;
 extern ChiTimer chi_program_timer;
 typedef unsigned long long TULL;
@@ -14,8 +11,6 @@ typedef unsigned long long TULL;
 /**Executes the solver*/
 void chi_montecarlon::Solver::Execute()
 {
-  ExecuteRMCUncollided();
-
   chi_log.Log(LOG_0) << "Executing Montecarlo solver";
 
   chi_montecarlon::Source* src = sources.back();
@@ -79,38 +74,21 @@ void chi_montecarlon::Solver::Execute()
 
 
     RendesvouzTallies();
-    ComputeRelativeStdDev();
-    if (make_pwld) RendesvouzPWLTallies();
-
-
+    ComputeUncertainty();
 
     time = chi_program_timer.GetTime()/1000.0;
     particle_rate = ((double)nps_global)*3600.0e-6/(time-start_time);
-    chi_log.Log(LOG_0)
-      << chi_program_timer.GetTimeString()
-      << " TFC-rendesvouz: # of particles ="
-      << std::setw(14)
-      << nps_global
-      << " avg-rate = "
-      << std::setw(6) << std::setprecision(4)
-      << particle_rate << " M/hr"
-      << " Max Rel.Sigma = "
-      << std::setw(6) << std::setprecision(4) << std::scientific
-      << max_relative_error
-      << " "
-      << std::setw(6) << std::setprecision(4) << std::scientific
-      << max_relative_error2
-      << " "
-      << std::setw(6) << std::setprecision(4) << std::scientific
-      << max_relative_error3;
 
-  }
+    PrintBatchInfo(b,particle_rate);
+  }//for batch
 
   //Normalize tallies
   NormalizeTallies();
-  if (make_pwld) NormalizePWLTallies();
 
   ComputePWLDTransformations();
 
-  chi_log.Log(LOG_0) << "Done executing Montecarlo solver";
+  if (src->CheckForReExecution())
+    Execute();
+  else
+    chi_log.Log(LOG_0) << "Done executing Montecarlo solver";
 }
