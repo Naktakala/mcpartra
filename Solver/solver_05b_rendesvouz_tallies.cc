@@ -24,12 +24,12 @@ void chi_montecarlon::Solver::RendesvouzTallies()
   {
     int tally_size = tally.tally_local.size();
 
-    tally.tally_sqr_global.assign(tally_size,0.0);
+//    tally.tally_sqr_global.assign(tally_size,0.0);
 
     for (int i=0; i<tally_size; i++)
     {
       tally.tally_global[i]    += tally.tally_local[i];
-      tally.tally_sqr_global[i] = tally.tally_sqr_local[i];
+      tally.tally_sqr_global[i] += tally.tally_sqr_local[i];
     }
 
     //============================ Reset tallies

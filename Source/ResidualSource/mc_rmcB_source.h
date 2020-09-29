@@ -22,6 +22,14 @@ public:
   chi_physics::FieldFunction* resid_ff;
   bool ray_trace_phase = true;
 
+  enum class CollidedSrcMode
+  {
+    STAGGERED = 1,
+    DIRECT    = 2
+  };
+
+  CollidedSrcMode collided_source_mode = CollidedSrcMode::STAGGERED;
+
 private:
   chi_math::QuadratureGaussLegendre quadrature;
 
@@ -30,6 +38,7 @@ private:
   std::vector<SourcePatch> source_patches;
 
   std::vector<double>      source_patch_cdf;
+  double total_patch_area = 0.0;
 
   struct CellSideData
   {
@@ -78,6 +87,8 @@ public:
   double GetRMCParallelRelativeSourceWeight();
 
   bool CheckForReExecution() override;
+
+  void DevelopRMCCollidedSource();
 };
 
 

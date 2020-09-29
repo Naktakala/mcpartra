@@ -219,6 +219,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   }
   chi_log.Log(LOG_0) << "Done initializing Residual Sources";
 
-
+  ref_solver->source_normalization = R_abs_globaldomain_interior +
+                                     R_abs_globaldomain_surface;
 
 }

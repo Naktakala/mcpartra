@@ -22,6 +22,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
             int ir = fv->MapDOFLocal(&cell,&uk_man_fv,m,g);
 
             grid_tally_blocks[t].tally_global[ir] *=
+              source_normalization *
               tally_multipl_factor/nps_global/cell_fv_view->volume;
 
           }//for g
@@ -48,6 +49,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
               int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,m,g);
 
               grid_tally_blocks[t].tally_global[ir] *=
+                source_normalization *
                 tally_multipl_factor/nps_global/cell_pwl_view->IntV_shapeI[i];
 
             }//for g

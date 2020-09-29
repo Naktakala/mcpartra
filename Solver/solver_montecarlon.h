@@ -112,6 +112,23 @@ public:
     return *this;
   }
 
+  GridTallyBlock& operator*=(const double value)
+  {
+    int tally_size = tally_local.size();
+
+    for (int i=0; i<tally_size; ++i)
+    {
+      tally_local         [i] *= value;
+      tally_global        [i] *= value;
+      tally_sqr_local     [i] *= value;
+      tally_sqr_global    [i] *= value;
+      tally_sigma         [i] *= value;
+      tally_relative_sigma[i] *= value;
+    }
+
+    return *this;
+  }
+
   bool empty() {return is_empty;}
 };
 
@@ -134,10 +151,11 @@ public:
 
   enum TallyMask
   {
-    DEFAULT_FVTALLY     = 1 << 0, //0000 0001
-    DEFAULT_PWLTALLY    = 1 << 1, //0000 0010
-    UNCOLLIDED_FVTALLY  = 1 << 2, //0000 0100
-    UNCOLLIDED_PWLTALLY = 1 << 3, //0000 1000
+    DEFAULT_FVTALLY       = 1 << 0, //0000 0001
+    DEFAULT_PWLTALLY      = 1 << 1, //0000 0010
+    UNCOLLIDED_FVTALLY    = 1 << 2, //0000 0100
+    UNCOLLIDED_PWLTALLY   = 1 << 3, //0000 1000
+    MAKE_DIRECT_PARTICLES = 1 << 4, //0001 0000
   };
 
   std::map<TallyMask,int> TallyMaskIndex =
@@ -147,17 +165,14 @@ public:
      {UNCOLLIDED_PWLTALLY, 3}};
 
   std::vector<int> fv_tallies =
-    {TallyMaskIndex[DEFAULT_FVTALLY],
-     TallyMaskIndex[UNCOLLIDED_FVTALLY]};
+    {TallyMaskIndex[DEFAULT_FVTALLY]};
 
   std::vector<int> pwl_tallies =
-    {TallyMaskIndex[DEFAULT_PWLTALLY],
-     TallyMaskIndex[UNCOLLIDED_PWLTALLY]};
+    {TallyMaskIndex[DEFAULT_PWLTALLY]};
 
 private:
   chi_mesh::MeshContinuum*              grid;
   std::map<int,int>                     cell_neighbor_nonlocal_local_id;
-public:
   SpatialDiscretization_FV*             fv;
   SpatialDiscretization_PWL*            pwl;
 private:
@@ -175,8 +190,9 @@ public:
   chi_math::UnknownManager              uk_man_fv;
   chi_math::UnknownManager              uk_man_fem;
 
-private:
+public:
   std::vector<GridTallyBlock>           grid_tally_blocks;
+  double                                source_normalization = 1.0;
 
 public:
   chi_math::RandomNumberGenerator       rng0;
@@ -192,6 +208,7 @@ private:
 public:
   std::vector<double>                   cdf_phi_unc_group;
   std::vector<std::vector<double>>      cdf_phi_unc_group_cell;
+  std::vector<std::vector<double>>      IntVk_phi_unc_g;
   double                                IntVSumG_phi_unc=0.0;
   std::vector<double>                   IntV_phi_unc_g;
   double                                domain_volume = 0.0;
@@ -285,6 +302,9 @@ private:
   void ContributeTallyRMC(Particle& prtcl,
                           chi_mesh::Vector3 pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
+  Particle MakeScatteredParticle(Particle& prtcl,
+                             double tracklength,
+                             double weight);
 
   void ContributeTallyUNC(Particle& prtcl,
                           chi_mesh::Vector3 pf,

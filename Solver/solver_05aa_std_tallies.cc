@@ -21,16 +21,14 @@ void chi_montecarlon::Solver::
 
   double tally_contrib = tracklength*prtcl.w;
 
-//  phi_tally[ir]     += tally_contrib;
-//  phi_tally_sqr[ir] += tally_contrib*tally_contrib;
-
   //============================================= FV Tallies
   for (int t : fv_tallies)
   {
     if (prtcl.tally_mask & (1 << t))
     {
       grid_tally_blocks[t].tally_local[ir]     += tally_contrib;
-      grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*tally_contrib;
+      grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*
+                                                  tally_contrib;
     }//if tally applies
   }//for fv tallies
 
@@ -70,11 +68,9 @@ void chi_montecarlon::Solver::
           int ir = pwl->MapDFEMDOFLocal(cell,dof,&uk_man_fem,/*m*/0,prtcl.egrp);
           double pwl_tally_contrib = segment_length * prtcl.w * N_f[dof];
 
-//          phi_pwl_tally[ir]     += pwl_tally_contrib;
-//          phi_pwl_tally_sqr[ir] += pwl_tally_contrib*pwl_tally_contrib;
-
           grid_tally_blocks[t].tally_local[ir]     += pwl_tally_contrib;
-          grid_tally_blocks[t].tally_sqr_local[ir] += pwl_tally_contrib*pwl_tally_contrib;
+          grid_tally_blocks[t].tally_sqr_local[ir] += pwl_tally_contrib*
+                                                      pwl_tally_contrib;
         }//for dof
 
         last_segment_length += segment_length;

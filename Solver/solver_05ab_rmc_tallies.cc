@@ -70,6 +70,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   double siga = xs->sigma_ag[prtcl.egrp];
   double sigt = xs->sigma_tg[prtcl.egrp];
+  double sigs = sigt-siga;
   double Q    = 0.0;
   if (src_prop_id >= 0)
   {
@@ -101,6 +102,12 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     double retval = Q - siga*phi - omega.Dot(nabla_phi);
 
     return retval;
+  };
+
+  auto Sign = [](double a)
+  {
+    if (a<0.0) return -1.0;
+    else return 1.0;
   };
 
   //--------------------------------- Pre-fetch shape-function values
@@ -221,6 +228,32 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*tally_contrib;
   }
 
+  if (prtcl.tally_mask & TallyMask::MAKE_DIRECT_PARTICLES)
+  {
+    double q_abs = std::fabs(tracklength*avg_weight*sigs);
+
+    if (q_abs < 1.0)
+    {
+      if (rng0.Rand() < q_abs)
+        particle_source_bank.push_back(
+          MakeScatteredParticle(prtcl,tracklength,Sign(avg_weight)));
+    }
+    else if (q_abs >= 1.0)
+    {
+      int definite_amount = std::floor(q_abs);
+      double fractional_amount = q_abs - definite_amount;
+
+      for (int p=0; p< definite_amount; ++p)
+      {
+        particle_source_bank.push_back(
+          MakeScatteredParticle(prtcl,tracklength,Sign(avg_weight)));
+      }
+      if (rng0.Rand() < fractional_amount)
+        particle_source_bank.push_back(
+          MakeScatteredParticle(prtcl,tracklength,Sign(avg_weight)));
+    }
+  }
+
   if (std::isnan(tracklength))
   {
     chi_log.Log(LOG_ALLERROR)
@@ -235,4 +268,49 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   double phi_neg = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
 
   prtcl.w += phi_neg;
+}
+
+//###################################################################
+/**Makes a scattered particle.*/
+chi_montecarlon::Particle chi_montecarlon::Solver::
+  MakeScatteredParticle(Particle &prtcl,
+                        const double tracklength,
+                        const double weight)
+{
+  Particle new_particle;
+
+  //======================================== Sample position
+  new_particle.pos = prtcl.pos + rng0.Rand()*tracklength*prtcl.dir;
+
+  //======================================== Sample direction
+  double costheta = 2.0*rng0.Rand()-1.0;
+  double theta    = acos(costheta);
+  double varphi   = rng0.Rand()*2.0*M_PI;
+
+  chi_mesh::Vector3 ref_dir;
+  ref_dir.x = sin(theta)*cos(varphi);
+  ref_dir.y = sin(theta)*sin(varphi);
+  ref_dir.z = cos(theta);
+
+  new_particle.dir = ref_dir;
+
+
+  //======================================== Weight, Energy, Liveliness
+  new_particle.w = weight;
+  new_particle.egrp = prtcl.egrp;
+
+  new_particle.alive = true;
+
+  if (std::fabs(weight) < 1.0e-12)
+    new_particle.alive = false;
+
+  //======================================== Cell ownership
+  new_particle.cur_cell_global_id = prtcl.cur_cell_global_id;
+  new_particle.cur_cell_local_id  = prtcl.cur_cell_local_id;
+
+  //======================================== Methods
+  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::STANDARD;
+  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::STANDARD;
+
+  return new_particle;
 }

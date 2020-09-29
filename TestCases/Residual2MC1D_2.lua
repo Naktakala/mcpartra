@@ -47,10 +47,10 @@ chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.6)
+                              SIMPLEXS1,1,1.0,0.0)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.6)
+                              SIMPLEXS1,1,1.0,0.0)
 
 src={}
 for g=1,num_groups do
@@ -124,13 +124,13 @@ chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 fac=1
 fv_offset = 0
 fv_offset = num_groups
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*1e6)
-chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*0.5e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3/3)
+--chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 chiMonteCarlonInitialize(phys1)
@@ -148,12 +148,12 @@ chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_B,-1,fflist0[1],0.0);
 
 chiMonteCarlonSetProperty(phys2,MCProperties.NUM_UNCOLLIDED_PARTICLES,fac*1e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*0.5*1e6)
-chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
+chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
-chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/2.0)
+--chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MAKE_PWLD_SOLUTION,true)
 
 
@@ -198,7 +198,8 @@ chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+num_groups)
+--chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+num_groups)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1])
 
 chiFFInterpolationSetProperty(cline,LINE_CUSTOM_ARRAY,true_error)
 

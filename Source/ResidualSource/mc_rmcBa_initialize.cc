@@ -3,16 +3,11 @@
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
 #include <FiniteVolume/fv.h>
-#include <FiniteVolume/CellViews/fv_polyhedron.h>
-
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
-#include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
 
 #include <ChiMesh/FieldFunctionInterpolation/chi_ffinterpolation.h>
 
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
-#include "../../Solver/solver_montecarlon.h"
 
 extern ChiLog& chi_log;
 extern ChiPhysics&  chi_physics_handler;
@@ -30,6 +25,8 @@ ResidualSourceB(chi_physics::FieldFunction *in_resid_ff,
 {
   type_index = SourceTypes::RESIDUAL_TYPE_B;
   resid_ff = in_resid_ff;
+
+  collided_source_mode = CollidedSrcMode::DIRECT;
 }
 
 //###################################################################
@@ -49,7 +46,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 
   //============================================= Build surface src patches
   // The surface points
-  double total_patch_area = 0.0;
+  total_patch_area = 0.0;
   for (auto& cell : grid->local_cells)
   {
     auto fv_view = fv_sdm->MapFeView(cell.local_id);
@@ -83,6 +80,8 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     cumulative_value += std::get<3>(source_patch);
     source_patch_cdf[p++] = cumulative_value/total_patch_area;
   }
+
+  ref_solver->source_normalization = (1.0/total_patch_area);
 }
 
 //###################################################################

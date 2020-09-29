@@ -9,6 +9,9 @@ void chi_montecarlon::Solver::ComputeUncertainty()
   max_sigma = 0.0;
   max_relative_sigma = 0.0;
 
+  max_fem_sigma = 0.0;
+  max_fem_relative_sigma = 0.0;
+
 
   //============================================= FV Tallies
   double IntV_sigma = 0.0;
@@ -32,7 +35,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
             TULL divisor = (nps_global==0)? 1 : nps_global;
 
             double x_avg  = grid_tally_blocks[t].tally_global[ir]/divisor;
-            double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/n;
+            double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/divisor;
 
             double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
 
@@ -83,13 +86,13 @@ void chi_montecarlon::Solver::ComputeUncertainty()
               TULL divisor = (nps_global==0)? 1 : nps_global;
 
               double x_avg  = grid_tally_blocks[t].tally_global[ir]/divisor;
-              double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/n;
+              double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/divisor;
 
               double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
 
               grid_tally_blocks[t].tally_sigma[ir] = stddev;
 
-              max_fem_sigma = std::max(max_sigma,stddev);
+              max_fem_sigma = std::max(max_fem_sigma,stddev);
 
               if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
               {

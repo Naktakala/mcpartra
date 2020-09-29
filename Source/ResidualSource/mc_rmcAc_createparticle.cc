@@ -97,8 +97,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
     //======================================== Determine weight
     if (std::fabs(r) > 1.0e-14)
-      new_particle.w = r * (R_abs_globaldomain_interior + R_abs_globaldomain_surface) /
-                       r_abs_cellk_interior_average[cell.local_id];
+      new_particle.w = r / r_abs_cellk_interior_average[cell.local_id];
     else
     {
       new_particle.w = 0.0;
@@ -159,8 +158,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
     //======================================== Determine weight
     if (std::fabs(r) > 1.0e-14)
-      new_particle.w = r * (R_abs_globaldomain_interior + R_abs_globaldomain_surface) /
-                       rcellface.average_rstar;
+      new_particle.w = r / rcellface.average_rstar;
     else
     {
       new_particle.w = 0.0;

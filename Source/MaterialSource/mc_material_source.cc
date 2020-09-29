@@ -169,6 +169,7 @@ void chi_montecarlon::MaterialSource::
   double IntV_Q_total = 0.0;
   for (auto val : IntV_Q_g)
     IntV_Q_total += val;
+  ref_solver->source_normalization = IntV_Q_total;
 
   group_cdf.clear();
   group_cdf.resize(ref_solver->num_grps,0.0);

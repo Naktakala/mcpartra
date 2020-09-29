@@ -11,7 +11,8 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Develop the collided source.*/
-void chi_montecarlon::Solver::DevelopCollidedSource(chi_montecarlon::GridTallyBlock& input_fv_tally)
+void chi_montecarlon::Solver::
+  DevelopCollidedSource(chi_montecarlon::GridTallyBlock& input_fv_tally)
 {
   size_t num_local_cells = grid->local_cell_glob_indices.size();
 
@@ -26,7 +27,7 @@ void chi_montecarlon::Solver::DevelopCollidedSource(chi_montecarlon::GridTallyBl
   auto IntVk_phi_unc_g = cdf_phi_unc_group_cell; //[g][k] copy
 
   //============================================= Determine integrals
-  auto& tally_block = input_fv_tally;
+  auto& fv_tally_block = input_fv_tally;
   for (int g=0; g<num_grps; ++g)
   {
     for (auto& cell : grid->local_cells)
@@ -47,7 +48,7 @@ void chi_montecarlon::Solver::DevelopCollidedSource(chi_montecarlon::GridTallyBl
       int ir = fv->MapDOFLocal(&cell,&uk_man_fv,0/*m*/,g);
 
       double IntVk_phi_g_val = sigs*
-        std::fabs(tally_block.tally_global[ir] * fv_view->volume);
+        std::fabs(fv_tally_block.tally_global[ir] * fv_view->volume);
 
       IntVSumG_phi_unc      += IntVk_phi_g_val;
       IntV_phi_unc_g[g]     += IntVk_phi_g_val;
