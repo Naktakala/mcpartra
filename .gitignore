@@ -16,3 +16,4 @@ build/
 # All vtk mesh files
 *.vtu
 *.pvtu
+whitepapers/MichiganMCbook.pdf
