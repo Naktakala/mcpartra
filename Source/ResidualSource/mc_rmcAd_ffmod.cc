@@ -55,7 +55,8 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
 
 
   //======================================== Check correct ff type
-  if (resid_ff->type != chi_physics::FieldFunctionType::DFEM_PWL)
+  if (resid_ff->spatial_discretization->type !=
+      chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
   {
     chi_log.Log(LOG_ALLERROR)
       << "chi_montecarlon::ResidualSource3: "

@@ -18,16 +18,6 @@ void chi_montecarlon::Solver::InitFieldFunctions()
       uk_man_fv,                                    //Unknown manager
       0,g);                                         //Reference unknown and component
 
-
-//    auto group_ff = new chi_physics::FieldFunction(
-//      text_name,
-//      chi_physics::FieldFunctionType::FV,
-//      fv,
-//      &uk_man_fv,
-//      0,
-//      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global
-//      );
-
     chi_physics_handler.fieldfunc_stack.push_back(group_ff);
     field_functions.push_back(group_ff);
   }
@@ -44,26 +34,10 @@ void chi_montecarlon::Solver::InitFieldFunctions()
 
         auto group_ff = new chi_physics::FieldFunction(
           text_name,                                    //Text name
-          chi_physics_handler.fieldfunc_stack.size(),   //FF-id
-          chi_physics::FieldFunctionType::DFEM_PWL,     //Type
-          grid,                                         //Grid
-          pwl,                           //Spatial Discretization
-          num_grps,                                     //Number of components
-          num_moms,                                     //Number of sets
-          g, m,                                          //Ref component, ref set
-          &pwl->cell_dfem_block_address,            //Dof block address
-//          &phi_pwl_global                           //Data vector
-          &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global
-          );
-
-//        auto group_ff = new chi_physics::FieldFunction(
-//          text_name,
-//          chi_physics::FieldFunctionType::DFEM_PWL,
-//          pwl,
-//          &uk_man_fem,
-//          0,
-//          &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global
-//          );
+          pwl,                                          //Spatial Discretization
+          &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global,
+          uk_man_fem,                                   //Unknown manager
+          m,g);                                         //Reference unknown and component
 
         chi_physics_handler.fieldfunc_stack.push_back(group_ff);
         field_functions.push_back(group_ff);

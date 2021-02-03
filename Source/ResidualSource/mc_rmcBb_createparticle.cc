@@ -99,9 +99,10 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
   auto pwl_view = ref_solver->pwl->MapFeViewL(cell_local_id);
   std::vector<double> shape_values(pwl_view->dofs,0.0);
   pwl_view->ShapeValues(new_particle.pos,shape_values);
-  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
-                                                  new_particle.egrp,
-                                                  0);
+//  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
+//                                                  new_particle.egrp,
+//                                                  0);
+  auto ff_dof_vals = std::vector<double>(pwl_view->dofs,0.0);
 
   double cell_phi = 0.0;
   for (int dof=0; dof<pwl_view->dofs; dof++)

@@ -16,12 +16,23 @@ double chi_montecarlon::Solver::
   GetResidualFFPhi(std::vector<double> &N_in, int dofs, int rmap,
                    chi_montecarlon::ResidualSourceB *rsrc, int egrp)
 {
+  const auto& uk_man = rsrc->resid_ff->unknown_manager;
+  auto sdm = rsrc->resid_ff->spatial_discretization;
+
+  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+    throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
+                                " Field discretization is not of type "
+                                "PIECEWISE_LINEAR_DISCONTINUOUS.");
+
+  int G = uk_man.unknowns.front().num_components;
+  int num_uknowns = uk_man.unknowns.size();
+
   double phi = 0.0;
   for (int dof=0; dof<dofs; dof++)
   {
     int ir = rmap +
-             dof * rsrc->resid_ff->num_components * rsrc->resid_ff->num_sets +
-             rsrc->resid_ff->num_components * 0 +
+             dof * G * num_uknowns +
+             G * 0 +
              egrp;
     phi += (*rsrc->resid_ff->field_vector_local)[ir]*N_in[dof];
   }//for dof
@@ -32,15 +43,26 @@ double chi_montecarlon::Solver::
 //###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
 chi_mesh::Vector3 chi_montecarlon::Solver::
-GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in, int dofs, int rmap,
-                     chi_montecarlon::ResidualSourceB *rsrc, int egrp)
+  GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in, int dofs, int rmap,
+                       chi_montecarlon::ResidualSourceB *rsrc, int egrp)
 {
+  const auto& uk_man = rsrc->resid_ff->unknown_manager;
+  auto sdm = rsrc->resid_ff->spatial_discretization;
+
+  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+    throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
+                                " Field discretization is not of type "
+                                "PIECEWISE_LINEAR_DISCONTINUOUS.");
+
+  int G = uk_man.unknowns.front().num_components;
+  int num_uknowns = uk_man.unknowns.size();
+
   chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
   {
     int ir = rmap +
-             dof * rsrc->resid_ff->num_components * rsrc->resid_ff->num_sets +
-             rsrc->resid_ff->num_components * 0 +
+             dof * G * num_uknowns +
+             G * 0 +
              egrp;
     gradphi = gradphi + (Grad_in[dof]*(*rsrc->resid_ff->field_vector_local)[ir]);
   }//for dof
@@ -85,7 +107,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   //======================================== Get residual-source and mappings
   auto src = (chi_montecarlon::ResidualSourceB*)sources.back();
-  int rmap = (*src->resid_ff->local_cell_dof_array_address)[cell_local_ind];
+  int rmap = src->resid_ff->spatial_discretization->cell_dfem_block_address[cell_local_ind];
 
   //======================================== Contribute PWLD
   //--------------------------------- Develop segments

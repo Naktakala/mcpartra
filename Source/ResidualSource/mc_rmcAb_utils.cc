@@ -362,15 +362,23 @@ GetResidualFFPhi(std::vector<double> &N_in,
                  int cell_local_id,
                  int egrp)
 {
-  int rmap = (*resid_ff->local_cell_dof_array_address)[cell_local_id];
+  auto& cell = grid->local_cells[cell_local_id];
+
+  auto& sdm = resid_ff->spatial_discretization;
+
+  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+    throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
+                                " Invalid spatial discretization.");
+
+  auto pwl_sdm = (SpatialDiscretization_PWL*)sdm;
+
+  auto& uk_man = resid_ff->unknown_manager;
 
   double phi = 0.0;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = rmap +
-             dof * resid_ff->num_components * resid_ff->num_sets +
-             resid_ff->num_components * 0 +
-             egrp;
+    int ir = pwl_sdm->MapDFEMDOFLocal(&cell,dof,&uk_man,0,egrp);
+
     phi += (*resid_ff->field_vector_local)[ir]*N_in[dof];
   }//for dof
 
@@ -385,15 +393,23 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
                      int cell_local_id,
                      int egrp)
 {
-  int rmap = (*resid_ff->local_cell_dof_array_address)[cell_local_id];
+  auto& cell = grid->local_cells[cell_local_id];
+
+  auto& sdm = resid_ff->spatial_discretization;
+
+  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+    throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
+                                " Invalid spatial discretization.");
+
+  auto pwl_sdm = (SpatialDiscretization_PWL*)sdm;
+
+  auto& uk_man = resid_ff->unknown_manager;
 
   chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = rmap +
-             dof * resid_ff->num_components * resid_ff->num_sets +
-             resid_ff->num_components * 0 +
-             egrp;
+    int ir = pwl_sdm->MapDFEMDOFLocal(&cell,dof,&uk_man,0,egrp);
+
     gradphi = gradphi + (Grad_in[dof]*(*resid_ff->field_vector_local)[ir]);
   }//for dof
 
