@@ -28,6 +28,7 @@ void chi_montecarlon::Solver::Execute()
 
     for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
     {
+//      chi_log.Log() << "src";
       chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
 
       if (prtcl.alive) nps++;

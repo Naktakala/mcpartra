@@ -13,17 +13,11 @@ void chi_montecarlon::Solver::InitFieldFunctions()
 
     auto group_ff = new chi_physics::FieldFunction(
       text_name,                                    //Text name
-      chi_physics_handler.fieldfunc_stack.size(),   //FF-id
-      chi_physics::FieldFunctionType::FV,           //Type
-      grid,                                         //Grid
-      fv,                            //Spatial Discretization
-      num_grps,                                     //Number of components
-      1,                                            //Number of sets
-      g, 0,                                          //Ref component, ref set
-      nullptr,                                      //Dof block address
-//      &phi_global                                   //Data vector
-      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global
-      );
+      fv,                                           //Spatial Discretization
+      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_sigma,
+      uk_man_fv,                                    //Unknown manager
+      0,g);                                         //Reference unknown and component
+
 
 //    auto group_ff = new chi_physics::FieldFunction(
 //      text_name,

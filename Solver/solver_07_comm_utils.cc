@@ -35,7 +35,7 @@ void chi_montecarlon::Solver::
 
   for (auto& outb_prtcl : outbound_particle_bank)
   {
-    int loc_i = grid->cells[outb_prtcl.cur_cell_global_id]->partition_id;
+    int loc_i = grid->cells[outb_prtcl.cur_cell_global_id].partition_id;
 
     locI_outbound[loc_i].push_back(outb_prtcl);
   }

@@ -58,14 +58,13 @@ void chi_montecarlon::BoundarySource::
     int f=0;
     for (auto& face : cell.faces)
     {
-      if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
+      if (face.has_neighbor) {++f; continue;}
 
       //Determine if face will be sampled
       bool sample_face = false;
       if (ref_bndry == ALL_BOUNDRIES)
         sample_face = true;
-      else if ((ref_bndry != ALL_BOUNDRIES) and
-               (ref_bndry == abs(face.neighbor)))
+      if ((ref_bndry != ALL_BOUNDRIES) and (ref_bndry == face.neighbor_id))
         sample_face = true;
 
       if (sample_face)

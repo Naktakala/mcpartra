@@ -10,7 +10,7 @@ typedef unsigned long long TULL;
 //###################################################################
 /**Makes a contribution to tallies*/
 void chi_montecarlon::Solver::
-  ContributeTally(chi_montecarlon::Particle &prtcl, chi_mesh::Vector3 pf)
+  ContributeTally(chi_montecarlon::Particle &prtcl, const chi_mesh::Vector3& pf)
 {
   auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
   int cell_local_ind = cell->local_id;
@@ -49,7 +49,7 @@ void chi_montecarlon::Solver::
     {
       segment_lengths.clear();
       segment_lengths.push_back(tracklength);
-      chi_mesh::PopulateRaySegmentLengths(grid, cell,
+      chi_mesh::PopulateRaySegmentLengths(*grid, *cell,
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 

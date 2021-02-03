@@ -7,7 +7,7 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=60
+N=20
 L=5.0
 ds=L/N
 xmin=0.0
@@ -16,6 +16,7 @@ for i=0,N do
 end
 mesh,region0 = chiMeshCreate1DSlabMesh(nodes)
 
+chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_STYLE_XYZ)
 chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
 
 --Execute meshing
@@ -25,7 +26,7 @@ chiVolumeMesherExecute();
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
-vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L/3,1000)
+vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,0.25,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
@@ -47,16 +48,16 @@ chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.1)
+                              SIMPLEXS1,1,1.0,0.5)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.1)
+                              SIMPLEXS1,1,1.0,0.5)
 
 src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 3.0
+src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)

@@ -109,7 +109,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
   //============================== Get boundary flux
   double bndry_phi = 0.0;
-  if (ref_bndry == abs(face.neighbor) and (face.neighbor<0))
+  if ((ref_bndry == face.neighbor_id) and (not face.has_neighbor))
     bndry_phi = ref_bndry_val;
 
   new_particle.w = bndry_phi - cell_phi;

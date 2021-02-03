@@ -7,7 +7,7 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=60
+N=120
 L=5.0
 ds=L/N
 xmin=0.0
@@ -32,10 +32,21 @@ chiVolumeMesherExecute();
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
-vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,L/3,1000,-1000,1000)
+vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,0.8*L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
+
+----############################################### Set Material IDs
+vol0b = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,-1000,1000,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0b,0)
+
+vol2 = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,0.0,2*0.166666,-1000,1000)
+--vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol2,2)
+
+vol1b = chiLogicalVolumeCreate(RPP,-1+2.5,1+2.5,0.9*L,L,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1b,1)
 
 
 
@@ -43,30 +54,38 @@ chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");
+materials[3] = chiPhysicsAddMaterial("Test Material3");
 
 chiPhysicsMaterialAddProperty(materials[1],TRANSPORT_XSECTIONS)
 chiPhysicsMaterialAddProperty(materials[2],TRANSPORT_XSECTIONS)
+chiPhysicsMaterialAddProperty(materials[3],TRANSPORT_XSECTIONS)
 
 chiPhysicsMaterialAddProperty(materials[1],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
+chiPhysicsMaterialAddProperty(materials[3],ISOTROPIC_MG_SOURCE)
 
 
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,0.01,0.01)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.0)
+                              SIMPLEXS1,1,0.1*20,0.8)
+chiPhysicsMaterialSetProperty(materials[3],
+                              TRANSPORT_XSECTIONS,
+                              SIMPLEXS1,1,0.3*20,0.0)
 
 src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 3.0
+src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 3.0
+chiPhysicsMaterialSetProperty(materials[3],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 
 
@@ -85,7 +104,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,1,1)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,6,6)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)

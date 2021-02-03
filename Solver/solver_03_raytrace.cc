@@ -36,6 +36,7 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
  * or to next surface.*/
 void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
 {
+//  chi_log.Log() << "here " << prtcl.pos.PrintS() << " " << prtcl.dir.PrintS() << " " << prtcl.cur_cell_global_id;
   //======================================== Get cell
   chi_mesh::Cell* cell;
   if (prtcl.cur_cell_local_id >= 0)
@@ -45,7 +46,7 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
   }
   else
   {
-    cell = grid->cells[prtcl.cur_cell_global_id];
+    cell = &grid->cells[prtcl.cur_cell_global_id];
     prtcl.cur_cell_local_id = cell->local_id;
     prtcl.cur_cell_global_id = cell->global_id;
   }
@@ -80,8 +81,8 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
   chi_mesh::Vector3 dirf = prtcl.dir;
   int                ef = prtcl.egrp;
   chi_mesh::RayDestinationInfo ray_dest_info =
-    chi_mesh::RayTrace(grid,          //[Input] Grid
-                       cell,          //[Input] Current cell
+    chi_mesh::RayTrace(*grid,          //[Input] Grid
+                       *cell,          //[Input] Current cell
                        prtcl.pos,     //[Input] Current position
                        prtcl.dir,     //[Input] Current direction
                        d_to_surface,  //[Otput] Distance to next surface
@@ -132,7 +133,7 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
       ContributeTally(prtcl,posf);
 
     //======================= If surface is boundary
-    if (ray_dest_info.destination_face_neighbor < 0)
+    if (not cell->faces[ray_dest_info.destination_face_index].has_neighbor)
     {
       //TODO: Begin - Add reflecting boundaries
       bool reflecting = false;

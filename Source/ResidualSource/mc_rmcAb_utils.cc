@@ -24,18 +24,20 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
   chi_mesh::MeshContinuum* ref_grid,
   SpatialDiscretization_FV* ref_fv_sdm)
 {
-  for (auto cell_g_index : ref_grid->local_cell_glob_indices)
+//  for (auto cell_g_index : ref_grid->local_cell_glob_indices)
+//  {
+//    auto& cell = ref_grid->cells[cell_g_index];
+  for (auto& cell : ref_grid->local_cells)
   {
-    auto cell = ref_grid->cells[cell_g_index];
-    auto fv_view = ref_fv_sdm->MapFeView(cell->local_id);
+    auto fv_view = ref_fv_sdm->MapFeView(cell.local_id);
 
-    if (cell->Type() == chi_mesh::CellType::SLAB)
+    if (cell.Type() == chi_mesh::CellType::SLAB)
     {
       CellGeometryData cell_info;
 
       {
-        auto v0 = *ref_grid->vertices[cell->vertex_ids[0]];
-        auto v1 = *ref_grid->vertices[cell->vertex_ids[1]];
+        auto v0 = *ref_grid->vertices[cell.vertex_ids[0]];
+        auto v1 = *ref_grid->vertices[cell.vertex_ids[1]];
 
         auto v01 = v1 - v0;
 
@@ -54,8 +56,8 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
         cell_info.sides.push_back(side_data);
       }
       {
-        auto v0 = *ref_grid->vertices[cell->vertex_ids[0]];
-        auto v1 = *ref_grid->vertices[cell->vertex_ids[1]];
+        auto v0 = *ref_grid->vertices[cell.vertex_ids[0]];
+        auto v1 = *ref_grid->vertices[cell.vertex_ids[1]];
 
         auto v10 = v0 - v1;
 
@@ -76,16 +78,16 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
 
       cell_geometry_info.push_back(cell_info);
     }
-    else if (cell->Type() == chi_mesh::CellType::POLYGON)
+    else if (cell.Type() == chi_mesh::CellType::POLYGON)
     {
       CellGeometryData cell_info;
       int f=-1;
-      for (auto& face : cell->faces)
+      for (auto& face : cell.faces)
       {
         ++f;
         auto  v0 = *ref_grid->vertices[face.vertex_ids[0]];
         auto  v1 = *ref_grid->vertices[face.vertex_ids[1]];
-        auto& v2 = cell->centroid;
+        auto& v2 = cell.centroid;
 
         auto v01 = v1-v0;
         auto v02 = v2-v0;
@@ -107,23 +109,23 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
 
       cell_geometry_info.push_back(cell_info);
     }
-    else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
+    else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
     {
-      auto polyh_cell = (chi_mesh::CellPolyhedron*)cell;
+      auto& polyh_cell = (chi_mesh::CellPolyhedron&)cell;
       CellGeometryData cell_info;
 
       int f=-1;
-      for (auto& face : cell->faces)
+      for (auto& face : cell.faces)
       {
         ++f;
-        auto face_edges = polyh_cell->GetFaceEdges(f);
+        auto face_edges = polyh_cell.GetFaceEdges(f);
 
         for (auto& edge : face_edges)
         {
           auto  v0 = *ref_grid->vertices[edge[0]];
           auto  v1 = *ref_grid->vertices[edge[1]];
           auto& v2 = face.centroid;
-          auto& v3 = cell->centroid;
+          auto& v3 = cell.centroid;
 
           auto v01 = v1-v0;
           auto v02 = v2-v0;

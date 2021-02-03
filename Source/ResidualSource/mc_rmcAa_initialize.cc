@@ -145,7 +145,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
         double phi = GetResidualFFPhi(shape_values, cell_pwl_view->dofs, k, group_g);
 
         double phi_N = phi;
-        if (face.neighbor < 0)
+        if (not face.has_neighbor)
           phi_N = 0.0; //TODO: Specialize for bndries
 
         double r = (1.0/FOUR_PI)*(phi_N - phi);

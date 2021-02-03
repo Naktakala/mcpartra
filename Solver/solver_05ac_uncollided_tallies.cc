@@ -7,7 +7,7 @@ extern ChiLog& chi_log;
 /**Makes a contribution to tallies*/
 void chi_montecarlon::Solver::ContributeTallyUNC(
   chi_montecarlon::Particle &prtcl,
-  chi_mesh::Vector3 pf,
+  const chi_mesh::Vector3& pf,
   double sig_t)
 {
   auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
@@ -51,7 +51,7 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
     {
       segment_lengths.clear();
       segment_lengths.push_back(tracklength);
-      chi_mesh::PopulateRaySegmentLengths(grid, cell,
+      chi_mesh::PopulateRaySegmentLengths(*grid, *cell,
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 

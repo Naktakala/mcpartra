@@ -24,6 +24,9 @@ void chi_montecarlon::Solver::NormalizeTallies()
             grid_tally_blocks[t].tally_global[ir] *=
               source_normalization *
               tally_multipl_factor/nps_global/cell_fv_view->volume;
+            grid_tally_blocks[t].tally_sigma[ir] *=
+              source_normalization *
+              tally_multipl_factor/cell_fv_view->volume;
 
           }//for g
         }//for m

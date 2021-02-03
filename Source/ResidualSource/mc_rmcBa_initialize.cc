@@ -54,7 +54,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     int f=0;
     for (auto& face : cell.faces)
     {
-      if (not grid->IsCellBndry(face.neighbor)) {++f; continue;}
+      if (face.has_neighbor) {++f; continue;}
 
       double face_area = fv_view->face_area[f];
 

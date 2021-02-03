@@ -288,7 +288,7 @@ private:
 
   //05a
   void ContributeTally(Particle& prtcl,
-                       chi_mesh::Vector3 pf);
+                       const chi_mesh::Vector3& pf);
   double
   GetResidualFFPhi(std::vector<double>& N_in,
                    int dofs, int rmap,
@@ -300,14 +300,14 @@ private:
                        chi_montecarlon::ResidualSourceB* rsrc,
                        int egrp);
   void ContributeTallyRMC(Particle& prtcl,
-                          chi_mesh::Vector3 pf,
+                          const chi_mesh::Vector3& pf,
                           chi_mesh::RayDestinationInfo& ray_dest_info);
   Particle MakeScatteredParticle(Particle& prtcl,
                              double tracklength,
                              double weight);
 
   void ContributeTallyUNC(Particle& prtcl,
-                          chi_mesh::Vector3 pf,
+                          const chi_mesh::Vector3& pf,
                           double sig_t=0.0);
 
   //05b
