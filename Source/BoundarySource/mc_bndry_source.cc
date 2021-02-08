@@ -36,8 +36,8 @@ chi_montecarlon::BoundarySource::BoundarySource(const int in_ref_bndry) :
  * normals. For this we assemble a rotation matrix for each face
  * that needs to be sampled.*/
 void chi_montecarlon::BoundarySource::
-  Initialize(chi_mesh::MeshContinuum*    ref_grid,
-             SpatialDiscretization_FV*   ref_fv_sdm,
+  Initialize(chi_mesh::MeshContinuumPtr    ref_grid,
+             std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
              chi_montecarlon::Solver*    ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing Boundary Source";
@@ -171,7 +171,7 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
   {
     auto polyh_cell = (chi_mesh::CellPolyhedron*)(&cell);
-    auto polyh_fv_view = (PolyhedronFVView*)fv_view;
+    auto polyh_fv_view = (PolyhedronFVValues*)fv_view;
 
     auto edges = polyh_cell->GetFaceEdges(f);
 

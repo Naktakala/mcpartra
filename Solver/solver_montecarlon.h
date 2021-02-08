@@ -14,7 +14,7 @@
 
 #include <ChiMesh/Raytrace/raytracing.h>
 
-#include "ChiMath/UnknownManager/unknown_manager.h"
+#include "ChiMath/NodalVariableStructure/nodal_variable_structure.h"
 
 #include <iostream>
 #include <iomanip>
@@ -136,6 +136,9 @@ public:
 /**Monte Carlo neutron particle solver.*/
 class chi_montecarlon::Solver : public chi_physics::Solver
 {
+protected:
+  typedef std::shared_ptr<SpatialDiscretization_FV> SDMFVPtr;
+  typedef std::shared_ptr<SpatialDiscretization_PWL> SDMPWLPtr;
 public:
   enum RayTraceMethod
   {
@@ -149,6 +152,9 @@ public:
     static const int RMC_CHAR_RAY = 1;
   };
 
+  /**Bit-wise identifier to a specific tally. This allows
+   * particles to ship with a bit-wise integer that functions
+   * as 8bits*4bytes=32 flag values.*/
   enum TallyMask
   {
     DEFAULT_FVTALLY       = 1 << 0, //0000 0001
@@ -158,6 +164,7 @@ public:
     MAKE_DIRECT_PARTICLES = 1 << 4, //0001 0000
   };
 
+  /**Maps a bit-wise tally identifier to an actual index.*/
   std::map<TallyMask,int> TallyMaskIndex =
     {{DEFAULT_FVTALLY,     0},
      {DEFAULT_PWLTALLY,    1},
@@ -171,10 +178,10 @@ public:
     {TallyMaskIndex[DEFAULT_PWLTALLY]};
 
 private:
-  chi_mesh::MeshContinuum*              grid;
+  chi_mesh::MeshContinuumPtr            grid;
   std::map<int,int>                     cell_neighbor_nonlocal_local_id;
-  SpatialDiscretization_FV*             fv;
-  SpatialDiscretization_PWL*            pwl;
+  SDMFVPtr                              fv;
+  SDMPWLPtr                             pwl;
 private:
   std::vector<int>                      matid_xs_map;
   std::vector<int>                      matid_q_map;
@@ -187,8 +194,8 @@ private:
 public:
   int                                   num_grps=1; //updated during material init
   int                                   num_moms=1;
-  chi_math::UnknownManager              uk_man_fv;
-  chi_math::UnknownManager              uk_man_fem;
+  chi_math::NodalVariableStructure      dof_structure_fv;
+  chi_math::NodalVariableStructure      dof_structure_fem;
 
 public:
   std::vector<GridTallyBlock>           grid_tally_blocks;

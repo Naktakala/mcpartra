@@ -32,8 +32,8 @@ This source is an isotropic source at [0 0 0] with energy of 4 MeV.*/
 class chi_montecarlon::Source
 {
 public:
-  chi_mesh::MeshContinuum* grid;
-  SpatialDiscretization_FV*   fv_sdm;
+  chi_mesh::MeshContinuumPtr grid;
+  std::shared_ptr<SpatialDiscretization_FV> fv_sdm;
   SourceTypes type_index;
 
   chi_montecarlon::Solver* ref_solver;
@@ -42,8 +42,8 @@ public:
   //00
           Source();
   //01
-  virtual void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                          SpatialDiscretization_FV*   ref_fv_sdm,
+  virtual void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+                          std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
                           chi_montecarlon::Solver* ref_solver);
   virtual chi_montecarlon::Particle
           CreateParticle(chi_math::RandomNumberGenerator* rng);

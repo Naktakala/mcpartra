@@ -10,9 +10,10 @@ chi_montecarlon::Source::Source()
   type_index = SourceTypes::BASE_SRC;
 }
 
-void chi_montecarlon::Source::Initialize(chi_mesh::MeshContinuum* ref_grid,
-                                         SpatialDiscretization_FV*   ref_fv_sdm,
-                                         chi_montecarlon::Solver* ref_solver)
+void chi_montecarlon::Source::
+  Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+             std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
+             chi_montecarlon::Solver* ref_solver)
 {
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;

@@ -35,8 +35,8 @@ ResidualSourceB(chi_physics::FieldFunction *in_resid_ff,
  * This process involves numerous steps. One of the first steps is
  * to */
 void chi_montecarlon::ResidualSourceB::
-Initialize(chi_mesh::MeshContinuum *ref_grid,
-           SpatialDiscretization_FV *ref_fv_sdm,
+Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+           std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
            chi_montecarlon::Solver* ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing Residual Bndry Source";

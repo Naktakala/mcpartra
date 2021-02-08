@@ -47,14 +47,18 @@ private:
     int cell_local_id=-1;
     int ass_face=-1;
     double average_rstar=0.0;
+    double maximum=-1.0e32;
+    double minimum= 1.0e32;
     double area=0.0;
   };
   std::vector<RCellFace> r_abs_cellk_facef_surface_average;
 
 public:
   std::vector<double> r_abs_cellk_interior_average;
+  std::vector<double> r_cellk_interior_max;
+  std::vector<double> r_cellk_interior_min;
   std::vector<double> R_abs_cellk_interior;
-  std::vector<double> R_abs_cellk_surface;
+//  std::vector<double> R_abs_cellk_surface;
 
   double R_abs_localdomain_interior = 0.0;
   double R_abs_localdomain_surface = 0.0;
@@ -74,16 +78,17 @@ public:
   const bool sample_uniformly;
 public:
   //a
+  explicit
   ResidualSourceA(chi_physics::FieldFunction* in_resid_ff,
                   bool use_uniform_sampling=false);
 
-  void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                  SpatialDiscretization_FV*   ref_fv_sdm,
+  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
                   chi_montecarlon::Solver* ref_solver) override;
 
   //b
-  void BuildCellVolInfo(chi_mesh::MeshContinuum*  ref_grid,
-                        SpatialDiscretization_FV* ref_fv_sdm);
+  void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
+                        std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm);
 
   void PopulateMaterialData(int mat_id, int group_g,
                             MaterialData& mat_data);
@@ -118,7 +123,7 @@ public:
 
   //c
   chi_montecarlon::Particle
-  CreateParticle(chi_math::RandomNumberGenerator* rng);
+  CreateParticle(chi_math::RandomNumberGenerator* rng) override;
 
   double GetParallelRelativeSourceWeight() override;
 

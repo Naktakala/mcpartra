@@ -59,12 +59,12 @@ public:
                   bool use_uniform_sampling=false,
                   double in_bndry_val=0.0);
 
-  void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                  SpatialDiscretization_FV*   ref_fv_sdm,
+  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV>   ref_fv_sdm,
                   chi_montecarlon::Solver* ref_solver);
 
-  void BuildCellVolInfo(chi_mesh::MeshContinuum*  ref_grid,
-                        SpatialDiscretization_FV* ref_fv_sdm);
+  void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
+                        std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm);
   chi_mesh::Vector3 GetRandomPositionInCell(
     chi_math::RandomNumberGenerator* rng,
           CellSideInfo& cell_side_info);

@@ -64,13 +64,14 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
     exit(EXIT_FAILURE);
   }
 
-  auto pwl    = (SpatialDiscretization_PWL*)resid_ff->spatial_discretization;
+  auto pwl    =
+    std::dynamic_pointer_cast<SpatialDiscretization_PWL>(resid_ff->spatial_discretization);
   auto uk_man = resid_ff->unknown_manager;
 
-  auto pwl_cfem = new SpatialDiscretization_PWL(0,
+  auto pwl_cfem = SpatialDiscretization_PWL::New(0,
     chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_CONTINUOUS);
 
-  pwl_cfem->AddViewOfLocalContinuum(grid);
+  pwl_cfem->PreComputeCellSDValues(grid);
   pwl_cfem->OrderNodesCFEM(grid);
 
   auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(grid);

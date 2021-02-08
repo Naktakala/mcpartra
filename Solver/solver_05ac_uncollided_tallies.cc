@@ -13,7 +13,7 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
   auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
   int cell_local_ind = cell->local_id;
 
-  int ir = fv->MapDOFLocal(cell,&uk_man_fv,/*m*/0,prtcl.egrp);
+  int ir = fv->MapDOFLocal(cell, &dof_structure_fv,/*m*/0, prtcl.egrp);
 
   double tracklength = (pf - prtcl.pos).Norm();
 
@@ -70,7 +70,7 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
 
         for (int dof=0; dof<cell_pwl_view->dofs; dof++)
         {
-          ir = pwl->MapDFEMDOFLocal(cell,dof,&uk_man_fem,/*m*/0,prtcl.egrp);
+          ir = pwl->MapDFEMDOFLocal(cell, dof, &dof_structure_fem,/*m*/0, prtcl.egrp);
 
           double ell = segment_length;
 

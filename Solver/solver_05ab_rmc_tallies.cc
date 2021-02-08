@@ -219,7 +219,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
       double w_avg_i = (c_4+c_5+c_6+c_7+c_8*c_9)/s_L;
 
-      int ir = pwl->MapDFEMDOFLocal(cell,i,&uk_man_fem,/*m*/0,prtcl.egrp);
+      int ir = pwl->MapDFEMDOFLocal(cell, i, &dof_structure_fem,/*m*/0, prtcl.egrp);
       double pwl_tally_contrib = s_L * w_avg_i;
 
       for (int t : pwl_tallies)
@@ -238,7 +238,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   avg_weight/=tracklength;
 
   //======================================== Contribute avg tally
-  int ir = fv->MapDOFLocal(cell,&uk_man_fv,/*m*/0,prtcl.egrp);
+  int ir = fv->MapDOFLocal(cell, &dof_structure_fv,/*m*/0, prtcl.egrp);
 
   double tally_contrib = tracklength*avg_weight;
 

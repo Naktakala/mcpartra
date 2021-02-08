@@ -28,8 +28,8 @@ ResidualSourceA(chi_physics::FieldFunction *in_resid_ff,
  * This process involves numerous steps. One of the first steps is
  * to */
 void chi_montecarlon::ResidualSourceA::
-Initialize(chi_mesh::MeshContinuum *ref_grid,
-           SpatialDiscretization_FV *ref_fv_sdm,
+Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+           std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
            chi_montecarlon::Solver* ref_solver)
 {
   chi_log.Log(LOG_0) << "Initializing Residual3 Sources";
@@ -54,12 +54,16 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
   //============================================= Initialize data vectors
   //                                              (for efficiency)
   r_abs_cellk_interior_average.      clear();
+  r_cellk_interior_max.              clear();
+  r_cellk_interior_min.              clear();
   R_abs_cellk_interior.              clear();
-  R_abs_cellk_surface.               clear();
+//  R_abs_cellk_surface.               clear();
 
   r_abs_cellk_interior_average.      resize(num_local_cells, 0.0);
+  r_cellk_interior_max.              resize(num_local_cells, -1.0e32);
+  r_cellk_interior_min.              resize(num_local_cells,  1.0e32);
   R_abs_cellk_interior.              resize(num_local_cells, 0.0);
-  R_abs_cellk_surface.               resize(num_local_cells, 0.0);
+//  R_abs_cellk_surface.               resize(num_local_cells, 0.0);
 
   //============================================= Sample each cell
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -90,14 +94,24 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
     {
       auto x_i = GetRandomPositionInCell(rng, cell_geometry_info[k]);
 
+      chi_mesh::Vector3 omega = RandomDirection(rng);
+
       cell_pwl_view->ShapeValues(x_i, shape_values);
+      cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
 
       double phi = GetResidualFFPhi(shape_values, cell_pwl_view->dofs, k, group_g);
 
-      double r = (1.0/FOUR_PI)*( Q - siga*phi );
+      auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
+                                           cell_pwl_view->dofs,
+                                           cell.local_id,
+                                           0);
+
+      double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
 
       //==================================== Contribute to avg
       r_abs_cellk_interior_average[k] += std::fabs(r);
+      r_cellk_interior_max[k] = std::fmax(r_cellk_interior_max[k], std::fabs(r));
+      r_cellk_interior_min[k] = std::fmin(r_cellk_interior_min[k], r);
     }//for i
     r_abs_cellk_interior_average[k]  /= N_p;
 
@@ -135,7 +149,7 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
       rcellface.area          = A_f;
 
       double face_ave_surface_pstar=0.0;
-      int num_points = 1000;
+      int num_points = (face.has_neighbor)? 0 : 1000;
       for (int i=0; i<num_points; ++i)
       {
         auto x_i = GetRandomPositionOnCellSurface(rng, cell_geometry_info[k], f);
@@ -152,8 +166,10 @@ Initialize(chi_mesh::MeshContinuum *ref_grid,
 
         //==================================== Contribute to avg
         face_ave_surface_pstar += std::fabs(r);
+        rcellface.maximum = std::fmax(rcellface.maximum,std::fabs(r));
+        rcellface.minimum = std::fmin(rcellface.minimum,r);
       }//for i
-      face_ave_surface_pstar /= num_points;
+      face_ave_surface_pstar /= std::max(1,num_points);
 
       rcellface.average_rstar = face_ave_surface_pstar;
 

@@ -45,7 +45,7 @@ void chi_montecarlon::Solver::
       double sigt = xs->sigma_tg[0];
       double sigs = sigt-siga;
 
-      int ir = fv->MapDOFLocal(&cell,&uk_man_fv,0/*m*/,g);
+      int ir = fv->MapDOFLocal(&cell, &dof_structure_fv, 0/*m*/, g);
 
       double IntVk_phi_g_val = sigs*
         std::fabs(fv_tally_block.tally_global[ir] * fv_view->volume);

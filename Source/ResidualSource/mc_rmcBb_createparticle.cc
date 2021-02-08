@@ -59,7 +59,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
   else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
   {
     auto polyh_cell = (chi_mesh::CellPolyhedron*)cell;
-    auto polyh_fv_view = (PolyhedronFVView*)fv_view;
+    auto polyh_fv_view = (PolyhedronFVValues*)fv_view;
 
     auto edges = polyh_cell->GetFaceEdges(f);
 
@@ -248,7 +248,7 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   double source = 0.0;
   for (int dof=0; dof<pwl_view->dofs; ++dof)
   {
-    int irfem = ref_solver->pwl->MapDFEMDOFLocal(cell,dof,&ref_solver->uk_man_fem,/*m*/0,/*g*/0);
+    int irfem = ref_solver->pwl->MapDFEMDOFLocal(cell, dof, &ref_solver->dof_structure_fem,/*m*/0,/*g*/0);
     source += shape_values[dof] * unc_fem_tally[irfem];
   }
   source *= sigs;

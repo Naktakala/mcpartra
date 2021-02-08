@@ -19,8 +19,8 @@ void chi_montecarlon::Solver::InitGhostIDs()
   cells_needing_local_ids.resize(chi_mpi.process_count);
   for (auto& cell : grid->local_cells)
     for (auto& face : cell.faces)
-      if (face.has_neighbor and (not face.IsNeighborLocal(grid)))
-        cells_needing_local_ids[face.GetNeighborPartitionID(grid)].push_back(face.neighbor_id);
+      if (face.has_neighbor and (not face.IsNeighborLocal(*grid)))
+        cells_needing_local_ids[face.GetNeighborPartitionID(*grid)].push_back(face.neighbor_id);
 
 
   //======================================== Send counts and displacements

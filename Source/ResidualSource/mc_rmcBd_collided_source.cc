@@ -58,7 +58,7 @@ void chi_montecarlon::ResidualSourceB::
 
         for (int dof=0; dof<pwl_view->dofs; ++dof)
         {
-          int irfem = ref_solver->pwl->MapDFEMDOFLocal(&cell,dof,&ref_solver->uk_man_fem,/*m*/0,/*g*/0);
+          int irfem = ref_solver->pwl->MapDFEMDOFLocal(&cell, dof, &ref_solver->dof_structure_fem,/*m*/0,/*g*/0);
           sum_of_abs_point_vals +=
             std::fabs(shape_values[dof] * unc_fem_tally[irfem]);
         }//for dof

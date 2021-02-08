@@ -7,7 +7,7 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=120
+N=60
 L=5.0
 ds=L/N
 xmin=0.0
@@ -130,7 +130,6 @@ bsrc[1] = 1.0/2
 --        ZMIN,LBSBoundaryTypes.INCIDENT_ISOTROPIC,bsrc);
 
 --========== Solvers
-chiLBSSetProperty(phys0,PARTITION_METHOD,FROM_SURFACE)
 chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD3D)
 chiLBSSetProperty(phys0,SCATTERING_ORDER,0)
 

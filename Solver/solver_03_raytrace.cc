@@ -160,7 +160,7 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
       else
       {
         int f = ray_dest_info.destination_face_index;
-        int adj_cell_local_id = cell->faces[f].GetNeighborLocalID(grid);
+        int adj_cell_local_id = cell->faces[f].GetNeighborLocalID(*grid);
         prtcl.cur_cell_local_id = adj_cell_local_id;
       }
     }//not to bndry

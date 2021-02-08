@@ -18,8 +18,8 @@ void chi_montecarlon::Solver::InitTallies()
   //=================================== Unknown Manager
   for (int m=0; m<num_moms; ++m)
   {
-    uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
-    uk_man_fem.AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
+    dof_structure_fv .AddVariable(chi_math::NodalVariableType::VECTOR_N, num_grps);
+    dof_structure_fem.AddVariable(chi_math::NodalVariableType::VECTOR_N, num_grps);
     for (int g=0; g<num_grps; ++g)
     {
       auto fv_comp_name = std::string("PhiFV");
@@ -31,8 +31,8 @@ void chi_montecarlon::Solver::InitTallies()
       fem_comp_name += std::string("_m")+std::to_string(m);
       fem_comp_name += std::string("_g")+std::to_string(g);
 
-      uk_man_fv .SetUnknownComponentTextName(m, g, fv_comp_name);
-      uk_man_fem.SetUnknownComponentTextName(m, g, fem_comp_name);
+      dof_structure_fv .SetVariableComponentTextName(m, g, fv_comp_name);
+      dof_structure_fem.SetVariableComponentTextName(m, g, fem_comp_name);
     }//for g
   }//for m
 
@@ -46,11 +46,11 @@ void chi_montecarlon::Solver::InitTallies()
 
   //=================================== Initialize Finite Volume discretization
   chi_log.Log(LOG_0) << "Adding finite volume views.";
-  fv = new SpatialDiscretization_FV;
-  fv->AddViewOfLocalContinuum(grid);
+  fv = SpatialDiscretization_FV::New();
+  fv->PreComputeCellSDValues(grid);
 
   //=================================== Tally sizes
-  auto fv_tally_size = fv->GetNumLocalDOFs(grid, &uk_man_fv);
+  auto fv_tally_size = fv->GetNumLocalDOFs(grid, &dof_structure_fv);
 
   grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].Resize(fv_tally_size);
   grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_FVTALLY]].Resize(fv_tally_size);
@@ -59,12 +59,12 @@ void chi_montecarlon::Solver::InitTallies()
 
   //=================================== Initialize pwl discretization
   chi_log.Log(LOG_0) << "Adding PWL finite element views.";
-  pwl = new SpatialDiscretization_PWL;
-  pwl->AddViewOfLocalContinuum(grid);
+  pwl = SpatialDiscretization_PWL::New();
+  pwl->PreComputeCellSDValues(grid);
   pwl->OrderNodesDFEM(grid);
 
   //=================================== Initialize PWLD tallies
-  auto fem_tally_size = pwl->GetNumLocalDOFs(grid, &uk_man_fem);
+  auto fem_tally_size = pwl->GetNumLocalDOFs(grid, &dof_structure_fem);
 
   chi_log.Log(LOG_0) << "PWL #local-dofs: " << fem_tally_size;
 

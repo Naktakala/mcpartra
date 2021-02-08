@@ -21,8 +21,8 @@ extern ChiPhysics&  chi_physics_handler;
 //###################################################################
 /**Build cell volume information.*/
 void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
-  chi_mesh::MeshContinuum* ref_grid,
-  SpatialDiscretization_FV* ref_fv_sdm)
+  chi_mesh::MeshContinuumPtr ref_grid,
+  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm)
 {
 //  for (auto cell_g_index : ref_grid->local_cell_glob_indices)
 //  {
@@ -370,7 +370,7 @@ GetResidualFFPhi(std::vector<double> &N_in,
     throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
                                 " Invalid spatial discretization.");
 
-  auto pwl_sdm = (SpatialDiscretization_PWL*)sdm;
+  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWL>(sdm);
 
   auto& uk_man = resid_ff->unknown_manager;
 
@@ -401,7 +401,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
     throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
                                 " Invalid spatial discretization.");
 
-  auto pwl_sdm = (SpatialDiscretization_PWL*)sdm;
+  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWL>(sdm);
 
   auto& uk_man = resid_ff->unknown_manager;
 

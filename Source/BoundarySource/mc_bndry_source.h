@@ -22,8 +22,8 @@ private:
 public:
   BoundarySource(const int in_ref_bndry);
 
-  void Initialize(chi_mesh::MeshContinuum* ref_grid,
-                  SpatialDiscretization_FV*   ref_fv_sdm,
+  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
                   chi_montecarlon::Solver* ref_solver) override;
 
   chi_montecarlon::Particle

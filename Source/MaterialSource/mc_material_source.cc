@@ -15,9 +15,9 @@ extern ChiLog& chi_log;
 //###################################################################
 /**Initialize material source.*/
 void chi_montecarlon::MaterialSource::
-  Initialize(chi_mesh::MeshContinuum *ref_grid,
-             SpatialDiscretization_FV *ref_fv_sdm,
-             chi_montecarlon::Solver *ref_solver)
+  Initialize(chi_mesh::MeshContinuumPtr ref_grid,
+             std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
+             chi_montecarlon::Solver* ref_solver)
 {
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;

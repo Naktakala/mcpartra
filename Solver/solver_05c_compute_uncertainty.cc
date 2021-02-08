@@ -28,7 +28,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(&cell,&uk_man_fv,m,g);
+            int ir = fv->MapDOFLocal(&cell, &dof_structure_fv, m, g);
 
             TULL n = batch_sizes[current_batch];
 
@@ -79,7 +79,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
           {
             for (int g=0; g<num_grps; ++g)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell,v,&uk_man_fem,m,g);
+              int ir = pwl->MapDFEMDOFLocal(&cell, v, &dof_structure_fem, m, g);
 
               TULL n = batch_sizes[current_batch];
 

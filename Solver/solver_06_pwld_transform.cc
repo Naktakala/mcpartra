@@ -28,7 +28,7 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
 
             for (int i=0; i<cell.vertex_ids.size(); ++i)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,/*m*/0,g);
+              int ir = pwl->MapDFEMDOFLocal(&cell, i, &dof_structure_fem,/*m*/0, g);
               b[i] = raw_tally.tally_global[ir]*
                      cell_pwl_view->IntV_shapeI[i];
             }//for dof
@@ -37,7 +37,7 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
 
             for (int i=0; i<cell.vertex_ids.size(); ++i)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell,i,&uk_man_fem,/*m*/0,g);
+              int ir = pwl->MapDFEMDOFLocal(&cell, i, &dof_structure_fem,/*m*/0, g);
               out_tally.tally_global[ir] = x[i];
             }//for dof
 

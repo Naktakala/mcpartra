@@ -15,7 +15,7 @@ void chi_montecarlon::Solver::
   auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
   int cell_local_ind = cell->local_id;
 
-  int ir = fv->MapDOFLocal(cell,&uk_man_fv,/*m*/0,prtcl.egrp);
+  int ir_cell = fv->MapDOFLocal(cell, &dof_structure_fv,/*m*/0, prtcl.egrp);
 
   double tracklength = (pf - prtcl.pos).Norm();
 
@@ -26,8 +26,8 @@ void chi_montecarlon::Solver::
   {
     if (prtcl.tally_mask & (1 << t))
     {
-      grid_tally_blocks[t].tally_local[ir]     += tally_contrib;
-      grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*
+      grid_tally_blocks[t].tally_local[ir_cell]     += tally_contrib;
+      grid_tally_blocks[t].tally_sqr_local[ir_cell] += tally_contrib*
                                                   tally_contrib;
     }//if tally applies
   }//for fv tallies
@@ -65,7 +65,7 @@ void chi_montecarlon::Solver::
 
         for (int dof=0; dof<cell_pwl_view->dofs; dof++)
         {
-          int ir = pwl->MapDFEMDOFLocal(cell,dof,&uk_man_fem,/*m*/0,prtcl.egrp);
+          int ir = pwl->MapDFEMDOFLocal(cell, dof, &dof_structure_fem,/*m*/0, prtcl.egrp);
           double pwl_tally_contrib = segment_length * prtcl.w * N_f[dof];
 
           grid_tally_blocks[t].tally_local[ir]     += pwl_tally_contrib;

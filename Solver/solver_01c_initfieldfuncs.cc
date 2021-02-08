@@ -15,8 +15,8 @@ void chi_montecarlon::Solver::InitFieldFunctions()
       text_name,                                    //Text name
       fv,                                           //Spatial Discretization
       &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_sigma,
-      uk_man_fv,                                    //Unknown manager
-      0,g);                                         //Reference unknown and component
+      dof_structure_fv,                                    //Unknown manager
+      0, g);                                         //Reference unknown and component
 
     chi_physics_handler.fieldfunc_stack.push_back(group_ff);
     field_functions.push_back(group_ff);
@@ -36,8 +36,8 @@ void chi_montecarlon::Solver::InitFieldFunctions()
           text_name,                                    //Text name
           pwl,                                          //Spatial Discretization
           &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global,
-          uk_man_fem,                                   //Unknown manager
-          m,g);                                         //Reference unknown and component
+          dof_structure_fem,                            //Nodal variable structure
+          m, g);                                         //Reference variable and component
 
         chi_physics_handler.fieldfunc_stack.push_back(group_ff);
         field_functions.push_back(group_ff);
