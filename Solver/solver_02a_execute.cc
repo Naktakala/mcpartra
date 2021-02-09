@@ -88,6 +88,36 @@ void chi_montecarlon::Solver::Execute()
 
   ComputePWLDTransformations();
 
+  //============================================= Print custom tallies TFC
+  int cust_counter = -1;
+  for (auto& custom_tally : custom_tallies)
+  {
+    std::stringstream outstr;
+    outstr << "Custom tally " << ++cust_counter << " TFC:\n";
+
+    int comp_counter = -1;
+    for (int m=0; m<num_moms; ++m)
+      for (int g=0; g<num_grps; ++g)
+      {
+        outstr << "Component " << ++comp_counter << ":\n";
+
+        auto ir = dof_structure_fv.MapVariable(m,g);
+
+        for (auto& tfc : custom_tally.tally_fluctation_chart)
+        {
+          outstr
+            << std::setw(10) << std::setprecision(4) << std::scientific
+            << tfc.average[ir]
+            << " "
+            << std::setw(10) << std::setprecision(4) << std::scientific
+            << tfc.sigma[ir] << "\n";
+        }
+      }//for g
+    outstr << "\n";
+
+    chi_log.Log() << outstr.str();
+  }
+
   if (src->CheckForReExecution())
     Execute();
   else

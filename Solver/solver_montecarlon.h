@@ -38,17 +38,17 @@ namespace chi_montecarlon
     NUM_UNCOLLIDED_PARTICLES    = 11
   };
 
-  struct GridTallyBlock;
+  class GridTallyBlock;
+  class CustomVolumeTally;
 }
 
 //######################################################### Tally struct
 /**Tally block.*/
-struct chi_montecarlon::GridTallyBlock
+class chi_montecarlon::GridTallyBlock
 {
 private:
   bool is_empty = true;
 public:
-  //FV tallies
   std::vector<double> tally_local;
   std::vector<double> tally_global;
   std::vector<double> tally_sqr_local;
@@ -132,6 +132,36 @@ public:
   bool empty() {return is_empty;}
 };
 
+//#########################################################
+/**Custom tally Structure.*/
+class chi_montecarlon::CustomVolumeTally
+{
+public:
+  struct TallyFluctuationChart
+  {
+    std::vector<double> average;
+    std::vector<double> sigma;
+  };
+  typedef TallyFluctuationChart TFC;
+public:
+  GridTallyBlock        grid_tally;
+  std::vector<bool>     local_cell_tally_mask; ///< Indicates whether a local cell is part of tally
+  double                tally_volume=0.0;
+  bool                  initialized=false;
+  std::vector<TFC>      tally_fluctation_chart;
+
+  explicit
+  CustomVolumeTally(std::vector<bool>& in_masking) :
+    local_cell_tally_mask(in_masking) {}
+
+  void Initialize(size_t tally_size, double in_volume)
+  {
+    grid_tally.Resize(tally_size);
+    tally_volume = in_volume;
+    initialized = true;
+  }
+};
+
 //######################################################### Class def
 /**Monte Carlo neutron particle solver.*/
 class chi_montecarlon::Solver : public chi_physics::Solver
@@ -199,6 +229,7 @@ public:
 
 public:
   std::vector<GridTallyBlock>           grid_tally_blocks;
+  std::vector<CustomVolumeTally>        custom_tallies;
   double                                source_normalization = 1.0;
 
 public:
@@ -337,9 +368,12 @@ private:
   //08
   void DevelopCollidedSource(chi_montecarlon::GridTallyBlock& input_fv_tally);
 
+  //General utils
+public:
+  size_t AddCustomVolumeTally(chi_mesh::LogicalVolume& logical_volume);
+
   friend class chi_montecarlon::ResidualSourceB;
   friend class chi_montecarlon::ResidualSourceA;
-
 
 };
 

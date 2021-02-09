@@ -21,17 +21,6 @@ void chi_montecarlon::Solver::
 
   double tally_contrib = tracklength*prtcl.w;
 
-  //============================================= FV Tallies
-  for (int t : fv_tallies)
-  {
-    if (prtcl.tally_mask & (1 << t))
-    {
-      grid_tally_blocks[t].tally_local[ir_cell]     += tally_contrib;
-      grid_tally_blocks[t].tally_sqr_local[ir_cell] += tally_contrib*
-                                                  tally_contrib;
-    }//if tally applies
-  }//for fv tallies
-
   if (std::isnan(tracklength))
   {
     chi_log.Log(LOG_ALLERROR)
@@ -40,7 +29,28 @@ void chi_montecarlon::Solver::
       << " posf " << pf.PrintS();
     exit(EXIT_FAILURE);
   }
+  //============================================= Custom tallies
+  auto ir_ctally = dof_structure_fv.MapVariable(/*m*/0,/*g*/0);
+  for (auto& tally : custom_tallies)
+  {
+    if (tally.local_cell_tally_mask[cell->local_id])
+    {
+      tally.grid_tally.tally_local[ir_ctally]     += tally_contrib;
+      tally.grid_tally.tally_sqr_local[ir_ctally] += tally_contrib*
+                                                     tally_contrib;
+    }
+  }
 
+  //============================================= FV Tallies
+  for (int t : fv_tallies)
+  {
+    if (prtcl.tally_mask & (1 << t))
+    {
+      grid_tally_blocks[t].tally_local[ir_cell]     += tally_contrib;
+      grid_tally_blocks[t].tally_sqr_local[ir_cell] += tally_contrib*
+                                                       tally_contrib;
+    }//if tally applies
+  }//for fv tallies
 
   //============================================= PWL Tallies
   for (int t : pwl_tallies)

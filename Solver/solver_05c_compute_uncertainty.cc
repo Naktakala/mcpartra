@@ -30,8 +30,6 @@ void chi_montecarlon::Solver::ComputeUncertainty()
           {
             int ir = fv->MapDOFLocal(&cell, &dof_structure_fv, m, g);
 
-            TULL n = batch_sizes[current_batch];
-
             TULL divisor = (nps_global==0)? 1 : nps_global;
 
             double x_avg  = grid_tally_blocks[t].tally_global[ir]/divisor;
@@ -52,8 +50,8 @@ void chi_montecarlon::Solver::ComputeUncertainty()
               grid_tally_blocks[t].tally_relative_sigma[ir] = 0.0;
 
             IntV_sigma +=
-              grid_tally_blocks[t].tally_sigma[ir]*
-              cell_fv_view->volume;
+              grid_tally_blocks[t].tally_sigma[ir];
+
             Vtot += cell_fv_view->volume;
           }//for g
         }//for m
@@ -80,8 +78,6 @@ void chi_montecarlon::Solver::ComputeUncertainty()
             for (int g=0; g<num_grps; ++g)
             {
               int ir = pwl->MapDFEMDOFLocal(&cell, v, &dof_structure_fem, m, g);
-
-              TULL n = batch_sizes[current_batch];
 
               TULL divisor = (nps_global==0)? 1 : nps_global;
 
@@ -114,4 +110,54 @@ void chi_montecarlon::Solver::ComputeUncertainty()
     }//if tally active
   }//for tallies
   avg_fem_sigma = IntV_fem_sigma / Vtot_fem;
+
+  //============================================= Custom tallies
+  for (auto& custom_tally : custom_tallies)
+  {
+    auto& grid_tally = custom_tally.grid_tally;
+
+    CustomVolumeTally::TallyFluctuationChart new_chart;
+    auto chart_size = grid_tally.tally_local.size();
+
+    new_chart.average.reserve(chart_size);
+    new_chart.sigma  .reserve(chart_size);
+
+    for (int m=0; m<num_moms; ++m)
+    {
+      for (int g=0; g<num_grps; ++g)
+      {
+        auto ir = dof_structure_fv.MapVariable(m,g);
+
+        TULL divisor = (nps_global==0)? 1 : nps_global;
+
+        double x_avg  = grid_tally.tally_global[ir]/divisor;
+        double x2_avg = grid_tally.tally_sqr_global[ir]/divisor;
+
+        double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
+
+        grid_tally.tally_sigma[ir] = stddev;
+
+        if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
+          grid_tally.tally_relative_sigma[ir] = stddev/x_avg;
+        else
+          grid_tally.tally_relative_sigma[ir] = 0.0;
+
+        double normalized_avg = x_avg*
+                                source_normalization*
+                                tally_multipl_factor/
+                                custom_tally.tally_volume;
+
+        double normalized_std = stddev*
+                                source_normalization*
+                                tally_multipl_factor/
+                                custom_tally.tally_volume;
+
+        new_chart.average.push_back(normalized_avg);
+        new_chart.sigma  .push_back(normalized_std);
+
+      }//for g
+    }//for m
+
+    custom_tally.tally_fluctation_chart.push_back(new_chart);
+  }
 }

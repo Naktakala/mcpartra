@@ -23,10 +23,14 @@ void chi_montecarlon::Solver::NormalizeTallies()
 
             grid_tally_blocks[t].tally_global[ir] *=
               source_normalization *
-              tally_multipl_factor/nps_global/cell_fv_view->volume;
+              tally_multipl_factor /
+                (double)nps_global /
+              cell_fv_view->volume;
+
             grid_tally_blocks[t].tally_sigma[ir] *=
               source_normalization *
-              tally_multipl_factor/cell_fv_view->volume;
+              tally_multipl_factor /
+              cell_fv_view->volume;
 
           }//for g
         }//for m
@@ -53,7 +57,9 @@ void chi_montecarlon::Solver::NormalizeTallies()
 
               grid_tally_blocks[t].tally_global[ir] *=
                 source_normalization *
-                tally_multipl_factor/nps_global/cell_pwl_view->IntV_shapeI[i];
+                tally_multipl_factor /
+                (double)nps_global /
+                cell_pwl_view->IntV_shapeI[i];
 
             }//for g
           }//for m
@@ -61,4 +67,33 @@ void chi_montecarlon::Solver::NormalizeTallies()
       }//for local cell
     }//if tally active
   }//for tallies
+
+  //============================================= Custom Tallies
+  for (auto& custom_tally : custom_tallies)
+  {
+    auto& grid_tally = custom_tally.grid_tally;
+
+    for (int m=0; m<num_moms; ++m)
+    {
+      for (int g=0; g<num_grps; ++g)
+      {
+        auto ir = dof_structure_fv.MapVariable(m,g);
+
+        grid_tally.tally_global[ir] *=
+          source_normalization *
+          tally_multipl_factor /
+          (double)nps_global /
+          custom_tally.tally_volume;
+
+        grid_tally.tally_sigma[ir] *=
+          source_normalization *
+          tally_multipl_factor /
+          custom_tally.tally_volume;
+
+      }//for g
+    }//for m
+
+  }
+
+
 }

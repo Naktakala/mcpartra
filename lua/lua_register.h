@@ -25,3 +25,5 @@ RegisterNamespace(MCProperties);
   AddNamedConstantToNamespace(MAKE_PWLD_SOLUTION,          9,MCProperties);
   AddNamedConstantToNamespace(UNCOLLIDED_ONLY,            10,MCProperties);
   AddNamedConstantToNamespace(NUM_UNCOLLIDED_PARTICLES,   11,MCProperties);
+
+RegisterFunction(chiMonteCarlonAddCustomVolumeTally);

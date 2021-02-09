@@ -71,6 +71,26 @@ void chi_montecarlon::Solver::InitTallies()
   grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].Resize(fem_tally_size);
   grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_PWLTALLY]].Resize(fem_tally_size);
 
+  //=================================== Initialize custom tallies
+  auto fv_dof_struct_size = dof_structure_fv.GetTotalVariableStructureSize();
+  for (auto& custom_tally : custom_tallies)
+  {
+    double local_volume = 0.0;
+    for (auto& cell : grid->local_cells)
+      if (custom_tally.local_cell_tally_mask[cell.local_id])
+        local_volume += fv->MapFeView(cell.local_id)->volume;
+
+    double global_volume = 0.0;
+    MPI_Allreduce(&local_volume,  //sendbuf
+                  &global_volume, //recvbuf
+                  1,              //count
+                  MPI_DOUBLE,     //datatype
+                  MPI_SUM,        //operation
+                  MPI_COMM_WORLD);//communicator
+
+    custom_tally.Initialize(fv_dof_struct_size,global_volume);
+  }
+
   chi_log.Log(LOG_0) << "Done initializing tallies.";
   MPI_Barrier(MPI_COMM_WORLD);
 }

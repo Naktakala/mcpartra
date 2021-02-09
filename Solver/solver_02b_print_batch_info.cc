@@ -16,7 +16,7 @@ void chi_montecarlon::Solver::PrintBatchInfo(int b, double particle_rate)
   if (b==0 or ((b+1)%10)==0)
     chi_log.Log(LOG_0)
       << "\n"
-      << "                   # of particles  prtcl-rate max-sigma  max-sigma  avg-sigma  max-fem-sigma \n"
+      << "                   # of particles  prtcl-rate max-sigma  max-sigma  avg-sigma  max-fem-si \n"
       << "                                    [M/hr]    absolute   relative   absolute   absolute";
 //    << "00:01:17 Batch  10       1000000      57.78   3.6438e-04 1.0356e-01 6.5527e-05";
 
@@ -45,11 +45,5 @@ void chi_montecarlon::Solver::PrintBatchInfo(int b, double particle_rate)
     << avg_sigma*source_normalization*correction
     << " "
     << std::setw(10) << std::setprecision(4) << std::scientific
-    << max_fem_sigma*source_normalization*correction
-    << " "
-    << std::setw(10) << std::setprecision(4) << std::scientific
-    << grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_sigma[59]*source_normalization*correction
-    << " "
-    << std::setw(10) << std::setprecision(4) << std::scientific
-    << grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_sigma[29]*source_normalization*correction;
+    << max_fem_sigma*source_normalization*correction;
 }
