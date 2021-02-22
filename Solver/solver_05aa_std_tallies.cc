@@ -12,10 +12,10 @@ typedef unsigned long long TULL;
 void chi_montecarlon::Solver::
   ContributeTally(chi_montecarlon::Particle &prtcl, const chi_mesh::Vector3& pf)
 {
-  auto cell = &grid->local_cells[prtcl.cur_cell_local_id];
-  int cell_local_ind = cell->local_id;
+  auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
+  int cell_local_ind = cell.local_id;
 
-  int ir_cell = fv->MapDOFLocal(cell, &dof_structure_fv,/*m*/0, prtcl.egrp);
+  int ir_cell = fv->MapDOFLocal(cell, uk_man_fv,/*m*/0, prtcl.egrp);
 
   double tracklength = (pf - prtcl.pos).Norm();
 
@@ -30,10 +30,10 @@ void chi_montecarlon::Solver::
     exit(EXIT_FAILURE);
   }
   //============================================= Custom tallies
-  auto ir_ctally = dof_structure_fv.MapVariable(/*m*/0,/*g*/0);
+  auto ir_ctally = uk_man_fv.MapUnknown(/*m*/0,/*g*/0);
   for (auto& tally : custom_tallies)
   {
-    if (tally.local_cell_tally_mask[cell->local_id])
+    if (tally.local_cell_tally_mask[cell.local_id])
     {
       tally.grid_tally.tally_local[ir_ctally]     += tally_contrib;
       tally.grid_tally.tally_sqr_local[ir_ctally] += tally_contrib*
@@ -59,11 +59,11 @@ void chi_montecarlon::Solver::
     {
       segment_lengths.clear();
       segment_lengths.push_back(tracklength);
-      chi_mesh::PopulateRaySegmentLengths(*grid, *cell,
+      chi_mesh::PopulateRaySegmentLengths(*grid, cell,
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 
-      auto cell_pwl_view = pwl->MapFeViewL(cell_local_ind);
+      auto& cell_pwl_view = pwl->GetCellFEView(cell_local_ind);
 
       double last_segment_length = 0.0;
       for (auto segment_length : segment_lengths)
@@ -71,11 +71,11 @@ void chi_montecarlon::Solver::
         double d = last_segment_length + 0.5*segment_length;
         auto p = prtcl.pos + prtcl.dir*d;
 
-        cell_pwl_view->ShapeValues(p, N_f);
+        cell_pwl_view.ShapeValues(p, N_f);
 
-        for (int dof=0; dof<cell_pwl_view->dofs; dof++)
+        for (int dof=0; dof<cell_pwl_view.num_nodes; dof++)
         {
-          int ir = pwl->MapDFEMDOFLocal(cell, dof, &dof_structure_fem,/*m*/0, prtcl.egrp);
+          int ir = pwl->MapDOFLocal(cell, dof, uk_man_pwld,/*m*/0, prtcl.egrp);
           double pwl_tally_contrib = segment_length * prtcl.w * N_f[dof];
 
           grid_tally_blocks[t].tally_local[ir]     += pwl_tally_contrib;

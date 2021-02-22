@@ -200,8 +200,28 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       rng->Rand()) - domain_cdf.begin();
 
     auto& cell = ref_solver->grid->local_cells[cell_local_id];
-    auto cell_pwl_view =
-      ref_solver->pwl->MapFeViewL(cell_local_id);
+    auto& cell_pwl_view =
+      ref_solver->pwl->GetCellFEView(cell_local_id);
+
+    //======================================== Sample energy group
+    int e_group = 0;
+    new_particle.egrp = e_group;
+
+    //======================================== Get material properties
+    int  mat_id         = cell.material_id;
+    int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
+    int  src_prop_id    = ref_solver->matid_q_map[mat_id];
+    auto material = chi_physics_handler.material_stack[mat_id];
+    auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
+
+    double siga = xs->sigma_ag[e_group];
+    double Q    = 0.0;
+    if (src_prop_id >= 0)
+    {
+      auto prop = material->properties[src_prop_id];
+      auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
+      Q = q_prop->source_value_g[e_group];
+    }
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -209,26 +229,6 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     {
       particle_rejected = false;
       new_particle.alive = true;
-
-      //======================================== Sample energy group
-      int e_group = 0;
-      new_particle.egrp = e_group;
-
-      //======================================== Get material properties
-      int  mat_id         = cell.material_id;
-      int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
-      int  src_prop_id    = ref_solver->matid_q_map[mat_id];
-      auto material = chi_physics_handler.material_stack[mat_id];
-      auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
-
-      double siga = xs->sigma_ag[e_group];
-      double Q    = 0.0;
-      if (src_prop_id >= 0)
-      {
-        auto prop = material->properties[src_prop_id];
-        auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
-        Q = q_prop->source_value_g[e_group];
-      }
 
       //==================================== Sample position
       chi_mesh::Vector3 pos =
@@ -241,16 +241,16 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       new_particle.dir = omega;
 
       //==================================== Populate shape values
-      cell_pwl_view->ShapeValues(pos, shape_values);
-      cell_pwl_view->GradShapeValues(pos,grad_shape_values);
+      cell_pwl_view.ShapeValues(pos, shape_values);
+      cell_pwl_view.GradShapeValues(pos,grad_shape_values);
 
       //==================================== Get Residual
       double phi = GetResidualFFPhi(shape_values,
-                                    cell_pwl_view->dofs,
+                                    cell_pwl_view.num_nodes,
                                     cell.local_id,
                                     e_group);
       auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
-                                           cell_pwl_view->dofs,
+                                           cell_pwl_view.num_nodes,
                                            cell.local_id,
                                            e_group);
 
@@ -285,8 +285,8 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     auto& rcellface = r_abs_cellk_facef_surface_average[cf];
 
     auto& cell = ref_solver->grid->local_cells[rcellface.cell_local_id];
-    auto cell_pwl_view =
-      ref_solver->pwl->MapFeViewL(rcellface.cell_local_id);
+    auto& cell_pwl_view =
+      ref_solver->pwl->GetCellFEView(rcellface.cell_local_id);
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -316,11 +316,11 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       new_particle.dir = omega;
 
       //==================================== Populate shape values
-      cell_pwl_view->ShapeValues(pos, shape_values);
+      cell_pwl_view.ShapeValues(pos, shape_values);
 
       //==================================== Get Residual
       double phi_P = GetResidualFFPhi(shape_values,
-                                      cell_pwl_view->dofs,
+                                      cell_pwl_view.num_nodes,
                                       cell.local_id,
                                       e_group);
 

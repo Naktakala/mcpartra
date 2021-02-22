@@ -7,6 +7,8 @@ extern ChiLog& chi_log;
 extern ChiTimer chi_program_timer;
 typedef unsigned long long TULL;
 
+#include "../Source/ResidualSource/mc_rmcA_source.h"
+
 //#########################################################
 /**Executes the solver*/
 void chi_montecarlon::Solver::Execute()
@@ -88,6 +90,12 @@ void chi_montecarlon::Solver::Execute()
 
   ComputePWLDTransformations();
 
+  double correction=1.0;
+  {
+    if (typeid(*sources.back()) == typeid(chi_montecarlon::ResidualSourceA))
+      correction = 1/3.0;
+  }
+
   //============================================= Print custom tallies TFC
   int cust_counter = -1;
   for (auto& custom_tally : custom_tallies)
@@ -101,16 +109,16 @@ void chi_montecarlon::Solver::Execute()
       {
         outstr << "Component " << ++comp_counter << ":\n";
 
-        auto ir = dof_structure_fv.MapVariable(m,g);
+        auto ir = uk_man_fv.MapUnknown(m, g);
 
         for (auto& tfc : custom_tally.tally_fluctation_chart)
         {
           outstr
             << std::setw(10) << std::setprecision(4) << std::scientific
-            << tfc.average[ir]
+            << tfc.average[ir]*correction
             << " "
             << std::setw(10) << std::setprecision(4) << std::scientific
-            << tfc.sigma[ir] << "\n";
+            << tfc.sigma[ir]*correction << "\n";
         }
       }//for g
     outstr << "\n";

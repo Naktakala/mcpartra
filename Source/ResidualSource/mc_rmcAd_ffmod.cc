@@ -1,6 +1,7 @@
 #include "mc_rmcA_source.h"
 
-#include "ChiMath/SpatialDiscretization/PiecewiseLinear/pwl.h"
+#include "FiniteElement/PiecewiseLinear/pwl.h"
+#include "FiniteElement/PiecewiseLinear/pwlc.h"
 #include "ChiMath/PETScUtils/petsc_utils.h"
 
 #include "chi_log.h"
@@ -68,14 +69,11 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
     std::dynamic_pointer_cast<SpatialDiscretization_PWL>(resid_ff->spatial_discretization);
   auto uk_man = resid_ff->unknown_manager;
 
-  auto pwl_cfem = SpatialDiscretization_PWL::New(0,
-    chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_CONTINUOUS);
+  auto pwl_cfem = SpatialDiscretization_PWLC::New(grid,
+                    chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
 
-  pwl_cfem->PreComputeCellSDValues(grid);
-  pwl_cfem->OrderNodesCFEM(grid);
-
-  auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(grid);
-  auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(grid);
+  auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(grid,uk_man);
+  auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(grid,uk_man);
 
   Vec x = chi_math::PETScUtils::CreateVector(cfem_num_local_dofs,
                                              cfem_num_globl_dofs);
@@ -90,8 +88,8 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
     for (int vid : cell.vertex_ids)
     {
       ++i;
-      int ir_dfem = pwl->MapDFEMDOFLocal(&cell,i,0,1);
-      int ir_cfem = pwl_cfem->MapCFEMDOF(vid);
+      int ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
+      int ir_cfem = pwl_cfem->MapDOF(vid);
 
       global_cfem_dofs.push_back(ir_cfem);
 
@@ -120,7 +118,7 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
     {
       ++i;
       ++ic;
-      int ir_dfem = pwl->MapDFEMDOFLocal(&cell,i,0,1);
+      int ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
 
       (*resid_ff->field_vector_local)[ir_dfem] = local_data[ic];
     }

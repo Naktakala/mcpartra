@@ -158,11 +158,11 @@ chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
 -- chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,3.0*L*L/3.0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
---tvol0 = chiLogicalVolumeCreate(RPP,2.3333,2.6666,4.16666,4.33333,-1000,1000)
---tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.6666,4.16666,4.33333,-1000,1000)
+tvol0 = chiLogicalVolumeCreate(RPP,2.3333,2.6666,4.16666,4.33333,-1000,1000)
+tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
-tvol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
+--tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
+--tvol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
@@ -180,9 +180,9 @@ chiSolverAddRegion(phys2,region0)
 chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_A,fflist0[1]);
 
 
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*800e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*100e6*10)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
-chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
+chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3*10)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
@@ -251,7 +251,7 @@ chiFFInterpolationExecute(slice2)
 chiFFInterpolationExportPython(slice2)
 
 ----############################################### Show plots
-if (chi_location_id == 0) then
+if ((chi_location_id == 0) and (with_plot~=nil)) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
     local handle = io.popen("python3 ZPFFI20.py")

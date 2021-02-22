@@ -1,20 +1,20 @@
-#ifndef _solver_montecarlon
-#define _solver_montecarlon
+#ifndef SOLVER_MONTECARLON_H
+#define SOLVER_MONTECARLON_H
 
 #include"../chi_montecarlon.h"
 #include "ChiMath/RandomNumberGeneration/random_number_generator.h"
 #include "../chi_montecarlon_particle.h"
 #include"ChiPhysics/SolverBase/chi_solver.h"
 #include "../Source/mc_base_source.h"
-#include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
-#include <FiniteVolume/fv.h>
-#include <PiecewiseLinear/pwl.h>
-#include <ChiMath/chi_math.h>
+#include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
+#include "ChiPhysics/PhysicsMaterial/property10_transportxsections.h"
+#include "FiniteVolume/fv.h"
+#include "FiniteElement/PiecewiseLinear/pwl.h"
+#include "ChiMath/chi_math.h"
 
-#include <ChiMesh/Raytrace/raytracing.h>
+#include "ChiMesh/Raytrace/raytracing.h"
 
-#include "ChiMath/NodalVariableStructure/nodal_variable_structure.h"
+#include "ChiMath/UnknownManager/unknown_manager.h"
 
 #include <iostream>
 #include <iomanip>
@@ -224,8 +224,8 @@ private:
 public:
   int                                   num_grps=1; //updated during material init
   int                                   num_moms=1;
-  chi_math::NodalVariableStructure      dof_structure_fv;
-  chi_math::NodalVariableStructure      dof_structure_fem;
+  chi_math::UnknownManager              uk_man_fv;
+  chi_math::UnknownManager              uk_man_pwld;
 
 public:
   std::vector<GridTallyBlock>           grid_tally_blocks;

@@ -19,7 +19,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(&cell, &dof_structure_fv, m, g);
+            int ir = fv->MapDOFLocal(cell, uk_man_fv, m, g);
 
             grid_tally_blocks[t].tally_global[ir] *=
               source_normalization *
@@ -45,7 +45,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
     {
       for (auto& cell : grid->local_cells)
       {
-        auto cell_pwl_view   = pwl->MapFeViewL(cell.local_id);
+        auto& cell_pwl_view   = pwl->GetUnitIntegrals(cell);
 
         for (int i=0; i<cell.vertex_ids.size(); ++i)
         {
@@ -53,13 +53,13 @@ void chi_montecarlon::Solver::NormalizeTallies()
           {
             for (int g=0; g<num_grps; ++g)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell, i, &dof_structure_fem, m, g);
+              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
 
               grid_tally_blocks[t].tally_global[ir] *=
                 source_normalization *
                 tally_multipl_factor /
                 (double)nps_global /
-                cell_pwl_view->IntV_shapeI[i];
+                cell_pwl_view.IntV_shapeI[i];
 
             }//for g
           }//for m
@@ -77,7 +77,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
     {
       for (int g=0; g<num_grps; ++g)
       {
-        auto ir = dof_structure_fv.MapVariable(m,g);
+        auto ir = uk_man_fv.MapUnknown(m, g);
 
         grid_tally.tally_global[ir] *=
           source_normalization *

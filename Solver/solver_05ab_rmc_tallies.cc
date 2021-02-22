@@ -79,12 +79,12 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   chi_mesh::RayDestinationInfo& ray_dest_info)
 {
   //======================================== Get cell information
-  auto cell           = &grid->local_cells[prtcl.cur_cell_local_id];
-  int  cell_local_ind = cell->local_id;
-  auto cell_pwl_view  = pwl->MapFeViewL(cell_local_ind);
+  auto& cell           = grid->local_cells[prtcl.cur_cell_local_id];
+  int  cell_local_ind = cell.local_id;
+  auto& cell_pwl_view  = pwl->GetCellFEView(cell_local_ind);
 
   //======================================== Get material properties
-  int  mat_id         = cell->material_id;
+  int  mat_id         = cell.material_id;
   int  xs_prop_id     = matid_xs_map[mat_id];
   int  src_prop_id    = matid_q_map[mat_id];
   auto material = chi_physics_handler.material_stack[mat_id];
@@ -107,13 +107,13 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
   //======================================== Get residual-source and mappings
   auto src = (chi_montecarlon::ResidualSourceB*)sources.back();
-  int rmap = src->resid_ff->spatial_discretization->cell_dfem_block_address[cell_local_ind];
+  int rmap = 0;//src->resid_ff->spatial_discretization->cell_local_block_address[cell_local_ind];
 
   //======================================== Contribute PWLD
   //--------------------------------- Develop segments
   segment_lengths.clear();
   segment_lengths.push_back(tracklength);
-  chi_mesh::PopulateRaySegmentLengths(*grid, *cell,
+  chi_mesh::PopulateRaySegmentLengths(*grid, cell,
                                       segment_lengths,
                                       prtcl.pos, pf,prtcl.dir);
 
@@ -136,12 +136,12 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   chi_mesh::Vector3 p_i = prtcl.pos;
   chi_mesh::Vector3 p_f = prtcl.pos;
 
-  cell_pwl_view->ShapeValues(p_i, N_f);
-  cell_pwl_view->GradShapeValues(p_i,Grad);
+  cell_pwl_view.ShapeValues(p_i, N_f);
+  cell_pwl_view.GradShapeValues(p_i,Grad);
 
   //--------------------------------- Compute q_i
-  double phi_i = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
-  auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view->dofs,rmap,src,prtcl.egrp);
+  double phi_i = GetResidualFFPhi(N_f, cell_pwl_view.num_nodes, rmap, src, prtcl.egrp);
+  auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view.num_nodes,rmap,src,prtcl.egrp);
 
   if (prtcl.pre_cell_global_id >= 0)
     prtcl.w -= phi_i;
@@ -163,14 +163,14 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     p_f = p_i + prtcl.dir*s_L;
 
     //Grab shape function values at segment end
-    cell_pwl_view->ShapeValues(p_f, N_f);
-    cell_pwl_view->GradShapeValues(p_f,Grad);
+    cell_pwl_view.ShapeValues(p_f, N_f);
+    cell_pwl_view.GradShapeValues(p_f,Grad);
 
     //Grab phi and grad-phi from residual's
     //reference field function
-    double phi_f = GetResidualFFPhi(N_f, cell_pwl_view->dofs,
+    double phi_f = GetResidualFFPhi(N_f,cell_pwl_view.num_nodes,
                                     rmap, src, prtcl.egrp);
-    auto gradphi_f = GetResidualFFGradPhi(Grad,cell_pwl_view->dofs,
+    auto gradphi_f = GetResidualFFGradPhi(Grad,cell_pwl_view.num_nodes,
                                           rmap,src,prtcl.egrp);
 
     //Compute residual source at f
@@ -206,7 +206,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
     //========================== Contribute to tally and compute average
     double w_avg = 0.0;
-    for (int i=0; i < cell_pwl_view->dofs; ++i)
+    for (int i=0; i <cell_pwl_view.num_nodes; ++i)
     {
       double c_3 = (N_f[i] - N_i[i]) / s_L;
 
@@ -219,7 +219,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
       double w_avg_i = (c_4+c_5+c_6+c_7+c_8*c_9)/s_L;
 
-      int ir = pwl->MapDFEMDOFLocal(cell, i, &dof_structure_fem,/*m*/0, prtcl.egrp);
+      int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, prtcl.egrp);
       double pwl_tally_contrib = s_L * w_avg_i;
 
       for (int t : pwl_tallies)
@@ -238,7 +238,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   avg_weight/=tracklength;
 
   //======================================== Contribute avg tally
-  int ir = fv->MapDOFLocal(cell, &dof_structure_fv,/*m*/0, prtcl.egrp);
+  int ir = fv->MapDOFLocal(cell, uk_man_fv,/*m*/0, prtcl.egrp);
 
   double tally_contrib = tracklength*avg_weight;
 
@@ -286,8 +286,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   }
 
   //======================================== Adjust weight for face jump
-  cell_pwl_view->ShapeValues(pf, N_f);
-  double phi_neg = GetResidualFFPhi(N_f, cell_pwl_view->dofs, rmap, src, prtcl.egrp);
+  cell_pwl_view.ShapeValues(pf, N_f);
+  double phi_neg = GetResidualFFPhi(N_f,cell_pwl_view.num_nodes, rmap, src, prtcl.egrp);
 
   prtcl.w += phi_neg;
 }

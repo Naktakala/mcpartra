@@ -8,11 +8,11 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
   {
     for (auto& cell : grid->local_cells)
     {
-      auto cell_pwl_view = pwl->MapFeViewL(cell.local_id);
+      auto& cell_pwl_view = pwl->GetUnitIntegrals(cell);
 
-      MatDbl A(cell_pwl_view->IntV_shapeI_shapeJ);
+      MatDbl A(cell_pwl_view.IntV_shapeI_shapeJ);
       MatDbl Ainv = chi_math::Inverse(A);
-      VecDbl b(cell_pwl_view->dofs,0.0);
+      VecDbl b(cell_pwl_view.num_nodes,0.0);
 
 //      for (int t : pwl_tallies)
       auto& raw_tally = grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]];
@@ -28,16 +28,16 @@ void chi_montecarlon::Solver::ComputePWLDTransformations()
 
             for (int i=0; i<cell.vertex_ids.size(); ++i)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell, i, &dof_structure_fem,/*m*/0, g);
+              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, g);
               b[i] = raw_tally.tally_global[ir]*
-                     cell_pwl_view->IntV_shapeI[i];
+                     cell_pwl_view.IntV_shapeI[i];
             }//for dof
 
             VecDbl x = chi_math::MatMul(Ainv,b);
 
             for (int i=0; i<cell.vertex_ids.size(); ++i)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell, i, &dof_structure_fem,/*m*/0, g);
+              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, g);
               out_tally.tally_global[ir] = x[i];
             }//for dof
 

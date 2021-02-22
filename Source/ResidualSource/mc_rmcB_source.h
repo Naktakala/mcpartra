@@ -31,7 +31,7 @@ public:
   CollidedSrcMode collided_source_mode = CollidedSrcMode::STAGGERED;
 
 private:
-  chi_math::QuadratureGaussLegendre quadrature;
+//  chi_math::QuadratureGaussLegendre quadrature;
 
   //cell_g_index, face_num, RotationMatrix, Area
   typedef std::tuple<int,int,chi_mesh::Matrix3x3,double> SourcePatch;

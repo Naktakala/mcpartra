@@ -96,16 +96,16 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Determine weight
   // Interpolate phi
-  auto pwl_view = ref_solver->pwl->MapFeViewL(cell_local_id);
-  std::vector<double> shape_values(pwl_view->dofs,0.0);
-  pwl_view->ShapeValues(new_particle.pos,shape_values);
+  auto& pwl_view = ref_solver->pwl->GetCellFEView(cell_local_id);
+  std::vector<double> shape_values(pwl_view.num_nodes,0.0);
+  pwl_view.ShapeValues(new_particle.pos,shape_values);
 //  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
 //                                                  new_particle.egrp,
 //                                                  0);
-  auto ff_dof_vals = std::vector<double>(pwl_view->dofs,0.0);
+  auto ff_dof_vals = std::vector<double>(pwl_view.num_nodes,0.0);
 
   double cell_phi = 0.0;
-  for (int dof=0; dof<pwl_view->dofs; dof++)
+  for (int dof=0; dof<pwl_view.num_nodes; dof++)
     cell_phi += ff_dof_vals[dof]*shape_values[dof];
 
   //============================== Get boundary flux
@@ -212,11 +212,11 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Randomly Sample Cell
   int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
-  auto cell = &ref_solver->grid->local_cells[lc];
-  auto pwl_view = ref_solver->pwl->MapFeViewL(lc);
+  auto& cell = ref_solver->grid->local_cells[lc];
+  auto& pwl_view = ref_solver->pwl->GetCellFEView(lc);
   auto fv_view = ref_solver->fv->MapFeView(lc);
 
-  int mat_id = cell->material_id;
+  int mat_id = cell.material_id;
   int xs_id = ref_solver->matid_xs_map[mat_id];
 
   chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
@@ -243,12 +243,12 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Sample uncollided
   std::vector<double> shape_values;
-  pwl_view->ShapeValues(new_particle.pos,shape_values);
+  pwl_view.ShapeValues(new_particle.pos,shape_values);
 
   double source = 0.0;
-  for (int dof=0; dof<pwl_view->dofs; ++dof)
+  for (int dof=0; dof<pwl_view.num_nodes; ++dof)
   {
-    int irfem = ref_solver->pwl->MapDFEMDOFLocal(cell, dof, &ref_solver->dof_structure_fem,/*m*/0,/*g*/0);
+    int irfem = ref_solver->pwl->MapDOFLocal(cell, dof, ref_solver->uk_man_pwld,/*m*/0,/*g*/0);
     source += shape_values[dof] * unc_fem_tally[irfem];
   }
   source *= sigs;
@@ -264,7 +264,7 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
     new_particle.alive = false;
 
   new_particle.cur_cell_global_id = cell_glob_index;
-  new_particle.cur_cell_local_id  = cell->local_id;
+  new_particle.cur_cell_local_id  = cell.local_id;
 
   new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::STANDARD;
   new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::STANDARD;

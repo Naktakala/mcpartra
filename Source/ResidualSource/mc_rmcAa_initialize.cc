@@ -77,7 +77,7 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
   for (auto& cell : ref_solver->grid->local_cells)
   {
     const int k = cell.local_id;
-    auto cell_pwl_view = pwl->MapFeViewL(cell.local_id);
+    auto& cell_pwl_view = pwl->GetCellFEView(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
 
     int group_g = 0;
@@ -96,13 +96,13 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
 
       chi_mesh::Vector3 omega = RandomDirection(rng);
 
-      cell_pwl_view->ShapeValues(x_i, shape_values);
-      cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
+      cell_pwl_view.ShapeValues(x_i, shape_values);
+      cell_pwl_view.GradShapeValues(x_i,grad_shape_values);
 
-      double phi = GetResidualFFPhi(shape_values, cell_pwl_view->dofs, k, group_g);
+      double phi = GetResidualFFPhi(shape_values, cell_pwl_view.num_nodes, k, group_g);
 
       auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
-                                           cell_pwl_view->dofs,
+                                           cell_pwl_view.num_nodes,
                                            cell.local_id,
                                            0);
 
@@ -131,7 +131,7 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
   for (auto& cell : ref_solver->grid->local_cells)
   {
     const int k = cell.local_id;
-    auto cell_pwl_view = pwl->MapFeViewL(cell.local_id);
+    auto& cell_pwl_view = pwl->GetCellFEView(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
 
     int group_g = 0;
@@ -154,9 +154,9 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
       {
         auto x_i = GetRandomPositionOnCellSurface(rng, cell_geometry_info[k], f);
 
-        cell_pwl_view->ShapeValues(x_i, shape_values);
+        cell_pwl_view.ShapeValues(x_i, shape_values);
 
-        double phi = GetResidualFFPhi(shape_values, cell_pwl_view->dofs, k, group_g);
+        double phi = GetResidualFFPhi(shape_values, cell_pwl_view.num_nodes, k, group_g);
 
         double phi_N = phi;
         if (not face.has_neighbor)

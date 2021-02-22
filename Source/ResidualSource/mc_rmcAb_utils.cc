@@ -377,7 +377,7 @@ GetResidualFFPhi(std::vector<double> &N_in,
   double phi = 0.0;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = pwl_sdm->MapDFEMDOFLocal(&cell,dof,&uk_man,0,egrp);
+    int ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
     phi += (*resid_ff->field_vector_local)[ir]*N_in[dof];
   }//for dof
@@ -408,7 +408,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
   chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = pwl_sdm->MapDFEMDOFLocal(&cell,dof,&uk_man,0,egrp);
+    int ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
     gradphi = gradphi + (Grad_in[dof]*(*resid_ff->field_vector_local)[ir]);
   }//for dof

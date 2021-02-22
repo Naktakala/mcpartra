@@ -28,7 +28,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(&cell, &dof_structure_fv, m, g);
+            int ir = fv->MapDOFLocal(cell, uk_man_fv, m, g);
 
             TULL divisor = (nps_global==0)? 1 : nps_global;
 
@@ -69,7 +69,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
     {
       for (auto& cell : grid->local_cells)
       {
-        auto cell_fe_view = pwl->MapFeViewL(cell.local_id);
+        auto& cell_fe_view = pwl->GetUnitIntegrals(cell);
 
         for (int v=0; v<cell.vertex_ids.size(); ++v)
         {
@@ -77,7 +77,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
           {
             for (int g=0; g<num_grps; ++g)
             {
-              int ir = pwl->MapDFEMDOFLocal(&cell, v, &dof_structure_fem, m, g);
+              int ir = pwl->MapDOFLocal(cell, v, uk_man_pwld, m, g);
 
               TULL divisor = (nps_global==0)? 1 : nps_global;
 
@@ -100,8 +100,8 @@ void chi_montecarlon::Solver::ComputeUncertainty()
 
               IntV_fem_sigma +=
                 grid_tally_blocks[t].tally_sigma[ir]*
-                  cell_fe_view->IntV_shapeI[v];
-              Vtot_fem += cell_fe_view->IntV_shapeI[v];
+                  cell_fe_view.IntV_shapeI[v];
+              Vtot_fem += cell_fe_view.IntV_shapeI[v];
 
             }//for g
           }//for m
@@ -126,7 +126,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
     {
       for (int g=0; g<num_grps; ++g)
       {
-        auto ir = dof_structure_fv.MapVariable(m,g);
+        auto ir = uk_man_fv.MapUnknown(m, g);
 
         TULL divisor = (nps_global==0)? 1 : nps_global;
 
