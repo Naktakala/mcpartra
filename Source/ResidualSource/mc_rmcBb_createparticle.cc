@@ -5,8 +5,8 @@
 #include <FiniteVolume/fv.h>
 #include <FiniteVolume/CellViews/fv_polyhedron.h>
 
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
-#include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
+#include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
+#include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
 
 #include <chi_log.h>
 extern ChiLog& chi_log;
@@ -96,16 +96,16 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Determine weight
   // Interpolate phi
-  auto& pwl_view = ref_solver->pwl->GetCellFEView(cell_local_id);
-  std::vector<double> shape_values(pwl_view.num_nodes,0.0);
-  pwl_view.ShapeValues(new_particle.pos,shape_values);
+  auto pwl_view = ref_solver->pwl->GetCellMappingFE(cell_local_id);
+  std::vector<double> shape_values(pwl_view->num_nodes,0.0);
+  pwl_view->ShapeValues(new_particle.pos,shape_values);
 //  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
 //                                                  new_particle.egrp,
 //                                                  0);
-  auto ff_dof_vals = std::vector<double>(pwl_view.num_nodes,0.0);
+  auto ff_dof_vals = std::vector<double>(pwl_view->num_nodes,0.0);
 
   double cell_phi = 0.0;
-  for (int dof=0; dof<pwl_view.num_nodes; dof++)
+  for (int dof=0; dof<pwl_view->num_nodes; dof++)
     cell_phi += ff_dof_vals[dof]*shape_values[dof];
 
   //============================== Get boundary flux
@@ -213,14 +213,15 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   //======================================== Randomly Sample Cell
   int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
   auto& cell = ref_solver->grid->local_cells[lc];
-  auto& pwl_view = ref_solver->pwl->GetCellFEView(lc);
+  auto pwl_view = ref_solver->pwl->GetCellMappingFE(lc);
   auto fv_view = ref_solver->fv->MapFeView(lc);
 
   int mat_id = cell.material_id;
   int xs_id = ref_solver->matid_xs_map[mat_id];
 
-  chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
-  auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
+  auto mat = chi_physics_handler.material_stack[mat_id];
+  auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
+    mat->properties[xs_id]);
 
   double siga = xs->sigma_ag[0];
   double sigt = xs->sigma_tg[0];
@@ -243,10 +244,10 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Sample uncollided
   std::vector<double> shape_values;
-  pwl_view.ShapeValues(new_particle.pos,shape_values);
+  pwl_view->ShapeValues(new_particle.pos,shape_values);
 
   double source = 0.0;
-  for (int dof=0; dof<pwl_view.num_nodes; ++dof)
+  for (int dof=0; dof<pwl_view->num_nodes; ++dof)
   {
     int irfem = ref_solver->pwl->MapDOFLocal(cell, dof, ref_solver->uk_man_pwld,/*m*/0,/*g*/0);
     source += shape_values[dof] * unc_fem_tally[irfem];

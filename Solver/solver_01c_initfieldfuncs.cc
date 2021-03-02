@@ -11,7 +11,7 @@ void chi_montecarlon::Solver::InitFieldFunctions()
   {
     std::string text_name = std::string("Flux_g") + std::to_string(g);
 
-    auto group_ff = new chi_physics::FieldFunction(
+    auto group_ff = std::make_shared<chi_physics::FieldFunction>(
       text_name,                                    //Text name
       fv,                                           //Spatial Discretization
       &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_sigma,
@@ -32,7 +32,7 @@ void chi_montecarlon::Solver::InitFieldFunctions()
                                 std::to_string(g) +
                                 std::string("_m") + std::to_string(m);
 
-        auto group_ff = new chi_physics::FieldFunction(
+        auto group_ff = std::make_shared<chi_physics::FieldFunction>(
           text_name,                                    //Text name
           pwl,                                          //Spatial Discretization
           &grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].tally_global,

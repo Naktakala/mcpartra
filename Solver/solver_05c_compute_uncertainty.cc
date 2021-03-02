@@ -100,8 +100,8 @@ void chi_montecarlon::Solver::ComputeUncertainty()
 
               IntV_fem_sigma +=
                 grid_tally_blocks[t].tally_sigma[ir]*
-                  cell_fe_view.IntV_shapeI[v];
-              Vtot_fem += cell_fe_view.IntV_shapeI[v];
+                  cell_fe_view.IntV_shapeI(v);
+              Vtot_fem += cell_fe_view.IntV_shapeI(v);
 
             }//for g
           }//for m

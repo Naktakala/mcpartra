@@ -1,13 +1,14 @@
 #include "solver_montecarlon.h"
 #include "../Source/ResidualSource/mc_rmcB_source.h"
 
-#include <ChiMesh/Raytrace/raytracing.h>
-#include "ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h"
+#include "ChiMesh/Raytrace/raytracing.h"
+#include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
+#include "ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h"
 
-#include <chi_log.h>
+#include "chi_log.h"
 extern ChiLog& chi_log;
 
-#include <ChiPhysics/chi_physics.h>
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
@@ -81,14 +82,15 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   //======================================== Get cell information
   auto& cell           = grid->local_cells[prtcl.cur_cell_local_id];
   int  cell_local_ind = cell.local_id;
-  auto& cell_pwl_view  = pwl->GetCellFEView(cell_local_ind);
+  auto cell_pwl_view  = pwl->GetCellMappingFE(cell_local_ind);
 
   //======================================== Get material properties
   int  mat_id         = cell.material_id;
   int  xs_prop_id     = matid_xs_map[mat_id];
   int  src_prop_id    = matid_q_map[mat_id];
   auto material = chi_physics_handler.material_stack[mat_id];
-  auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
+  auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
+    material->properties[xs_prop_id]);
 
   double siga = xs->sigma_ag[prtcl.egrp];
   double sigt = xs->sigma_tg[prtcl.egrp];
@@ -97,7 +99,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   if (src_prop_id >= 0)
   {
     auto prop = material->properties[src_prop_id];
-    auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
+    auto q_prop = std::static_pointer_cast<chi_physics::IsotropicMultiGrpSource>(prop);
     Q = q_prop->source_value_g[prtcl.egrp];
   }
 
@@ -136,12 +138,12 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   chi_mesh::Vector3 p_i = prtcl.pos;
   chi_mesh::Vector3 p_f = prtcl.pos;
 
-  cell_pwl_view.ShapeValues(p_i, N_f);
-  cell_pwl_view.GradShapeValues(p_i,Grad);
+  cell_pwl_view->ShapeValues(p_i, N_f);
+  cell_pwl_view->GradShapeValues(p_i,Grad);
 
   //--------------------------------- Compute q_i
-  double phi_i = GetResidualFFPhi(N_f, cell_pwl_view.num_nodes, rmap, src, prtcl.egrp);
-  auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view.num_nodes,rmap,src,prtcl.egrp);
+  double phi_i = GetResidualFFPhi(N_f, cell_pwl_view->num_nodes, rmap, src, prtcl.egrp);
+  auto gradphi_i = GetResidualFFGradPhi(Grad,cell_pwl_view->num_nodes,rmap,src,prtcl.egrp);
 
   if (prtcl.pre_cell_global_id >= 0)
     prtcl.w -= phi_i;
@@ -163,14 +165,14 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
     p_f = p_i + prtcl.dir*s_L;
 
     //Grab shape function values at segment end
-    cell_pwl_view.ShapeValues(p_f, N_f);
-    cell_pwl_view.GradShapeValues(p_f,Grad);
+    cell_pwl_view->ShapeValues(p_f, N_f);
+    cell_pwl_view->GradShapeValues(p_f,Grad);
 
     //Grab phi and grad-phi from residual's
     //reference field function
-    double phi_f = GetResidualFFPhi(N_f,cell_pwl_view.num_nodes,
+    double phi_f = GetResidualFFPhi(N_f,cell_pwl_view->num_nodes,
                                     rmap, src, prtcl.egrp);
-    auto gradphi_f = GetResidualFFGradPhi(Grad,cell_pwl_view.num_nodes,
+    auto gradphi_f = GetResidualFFGradPhi(Grad,cell_pwl_view->num_nodes,
                                           rmap,src,prtcl.egrp);
 
     //Compute residual source at f
@@ -206,7 +208,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
     //========================== Contribute to tally and compute average
     double w_avg = 0.0;
-    for (int i=0; i <cell_pwl_view.num_nodes; ++i)
+    for (int i=0; i <cell_pwl_view->num_nodes; ++i)
     {
       double c_3 = (N_f[i] - N_i[i]) / s_L;
 
@@ -286,8 +288,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   }
 
   //======================================== Adjust weight for face jump
-  cell_pwl_view.ShapeValues(pf, N_f);
-  double phi_neg = GetResidualFFPhi(N_f,cell_pwl_view.num_nodes, rmap, src, prtcl.egrp);
+  cell_pwl_view->ShapeValues(pf, N_f);
+  double phi_neg = GetResidualFFPhi(N_f,cell_pwl_view->num_nodes, rmap, src, prtcl.egrp);
 
   prtcl.w += phi_neg;
 }

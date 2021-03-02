@@ -1,10 +1,10 @@
 #include"solver_montecarlon.h"
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
+#include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 
-#include <ChiLog/chi_log.h>
+#include "ChiLog/chi_log.h"
 extern ChiLog& chi_log;
 
-#include <ChiPhysics/chi_physics.h>
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
@@ -25,7 +25,7 @@ void chi_montecarlon::Solver::InitMaterials()
   matid_q_map.resize(num_mat,-1);
   for (int m=0; m<num_mat; m++)
   {
-    chi_physics::Material* cur_mat = chi_physics_handler.material_stack[m];
+    auto cur_mat = chi_physics_handler.material_stack[m];
 
     //======================= Only first xs will be used
     size_t num_props = cur_mat->properties.size();
@@ -35,7 +35,8 @@ void chi_montecarlon::Solver::InitMaterials()
           chi_physics::PropertyType::TRANSPORT_XSECTIONS)
       {
         auto transp_xs =
-          (chi_physics::TransportCrossSections*)cur_mat->properties[p];
+          std::static_pointer_cast<chi_physics::TransportCrossSections>(
+            cur_mat->properties[p]);
 
         transp_xs->ComputeDiffusionParameters();
         transp_xs->ComputeDiscreteScattering(scattering_order);

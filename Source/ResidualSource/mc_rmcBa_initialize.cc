@@ -17,7 +17,7 @@ extern ChiPhysics&  chi_physics_handler;
 //###################################################################
 /**Constructor for residual source.*/
 chi_montecarlon::ResidualSourceB::
-ResidualSourceB(chi_physics::FieldFunction *in_resid_ff,
+ResidualSourceB(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
                 bool use_uniform_sampling,
                 double in_bndry_val) :
   ref_bndry_val(in_bndry_val),

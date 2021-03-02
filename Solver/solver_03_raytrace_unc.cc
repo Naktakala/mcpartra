@@ -1,12 +1,12 @@
 #include "solver_montecarlon.h"
 
-#include <ChiMesh/Raytrace/raytracing.h>
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
+#include "ChiMesh/Raytrace/raytracing.h"
+#include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 
-#include <chi_log.h>
+#include "chi_log.h"
 extern ChiLog& chi_log;
 
-#include <ChiPhysics/chi_physics.h>
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 #include<cmath>
@@ -46,7 +46,8 @@ void chi_montecarlon::Solver::RaytraceUNC(Particle& prtcl)
 
   auto mat = chi_physics_handler.material_stack[mat_id];
 
-  auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
+  auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
+    mat->properties[xs_id]);
 
   double sigt = xs->sigma_tg[prtcl.egrp];
 

@@ -19,7 +19,7 @@ public:
   int ref_bndry=-1;
   double ref_bndry_val = 0.0;
 
-  chi_physics::FieldFunction* resid_ff;
+  std::shared_ptr<chi_physics::FieldFunction> resid_ff;
   bool ray_trace_phase = true;
 
   enum class CollidedSrcMode
@@ -55,7 +55,7 @@ private:
   chi_montecarlon::GridTallyBlock uncollided_pwl_tally;
 
 public:
-  ResidualSourceB(chi_physics::FieldFunction* in_resid_ff,
+  ResidualSourceB(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
                   bool use_uniform_sampling=false,
                   double in_bndry_val=0.0);
 

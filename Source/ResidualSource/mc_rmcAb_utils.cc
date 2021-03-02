@@ -4,8 +4,8 @@
 
 #include <FiniteVolume/fv.h>
 
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
-#include <ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h>
+#include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
+#include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
 
 #include <ChiMath/Statistics/cdfsampler.h>
 
@@ -184,14 +184,16 @@ void chi_montecarlon::ResidualSourceA::
   int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
   int  src_prop_id    = ref_solver->matid_q_map[mat_id];
   auto material = chi_physics_handler.material_stack[mat_id];
-  auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
+  auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
+    material->properties[xs_prop_id]);
 
   double siga = xs->sigma_ag[group_g];
   double Q    = 0.0;
   if (src_prop_id >= 0)
   {
     auto prop = material->properties[src_prop_id];
-    auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
+    auto q_prop =
+      std::static_pointer_cast<chi_physics::IsotropicMultiGrpSource>(prop);
     Q = q_prop->source_value_g[group_g];
   }
 
@@ -370,7 +372,7 @@ GetResidualFFPhi(std::vector<double> &N_in,
     throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
                                 " Invalid spatial discretization.");
 
-  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWL>(sdm);
+  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(sdm);
 
   auto& uk_man = resid_ff->unknown_manager;
 
@@ -401,7 +403,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
     throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
                                 " Invalid spatial discretization.");
 
-  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWL>(sdm);
+  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(sdm);
 
   auto& uk_man = resid_ff->unknown_manager;
 

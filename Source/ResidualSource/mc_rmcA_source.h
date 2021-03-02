@@ -12,7 +12,7 @@
 class chi_montecarlon::ResidualSourceA : public chi_montecarlon::Source
 {
 public:
-  chi_physics::FieldFunction* resid_ff;
+  std::shared_ptr<chi_physics::FieldFunction> resid_ff;
 private:
   /**Simplified material structure that can be passed around.*/
   struct MaterialData
@@ -79,7 +79,7 @@ public:
 public:
   //a
   explicit
-  ResidualSourceA(chi_physics::FieldFunction* in_resid_ff,
+  ResidualSourceA(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
                   bool use_uniform_sampling=false);
 
   void Initialize(chi_mesh::MeshContinuumPtr ref_grid,

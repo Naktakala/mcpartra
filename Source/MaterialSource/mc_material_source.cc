@@ -2,7 +2,7 @@
 
 #include "../../Solver/solver_montecarlon.h"
 
-#include "ChiPhysics/PhysicsMaterial/property11_isotropic_mg_src.h"
+#include "ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h"
 
 #include "ChiMesh/Cell/cell_polyhedron.h"
 
@@ -47,11 +47,12 @@ void chi_montecarlon::MaterialSource::
 
     auto mat = chi_physics_handler.material_stack[cell->material_id];
 
-    for (auto prop : mat->properties)
+    for (auto& prop : mat->properties)
     {
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
       {
-        auto src = (chi_physics::IsotropicMultiGrpSource*)prop;
+        auto src =
+          std::static_pointer_cast<chi_physics::IsotropicMultiGrpSource>(prop);
         for (size_t g=0; g<src->source_value_g.size(); ++g)
         {
           IntV_Q_g[g] += fv_view->volume*src->source_value_g[g];

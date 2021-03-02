@@ -55,9 +55,9 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 
-      auto& cell_pwl_view = pwl->GetCellFEView(cell_local_ind);
+      auto cell_pwl_view = pwl->GetCellMappingFE(cell_local_ind);
 
-      cell_pwl_view.ShapeValues(prtcl.pos, N_i);
+      cell_pwl_view->ShapeValues(prtcl.pos, N_i);
 
       double last_segment_length = 0.0;
       for (auto segment_length : segment_lengths)
@@ -66,9 +66,9 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
         last_segment_length += segment_length;
         auto p = prtcl.pos + prtcl.dir*d;
 
-        cell_pwl_view.ShapeValues(p, N_f);
+        cell_pwl_view->ShapeValues(p, N_f);
 
-        for (int dof=0; dof<cell_pwl_view.num_nodes; dof++)
+        for (int dof=0; dof<cell_pwl_view->num_nodes; dof++)
         {
           ir = pwl->MapDOFLocal(cell, dof, uk_man_pwld,/*m*/0, prtcl.egrp);
 

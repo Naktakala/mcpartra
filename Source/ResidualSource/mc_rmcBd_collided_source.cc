@@ -33,14 +33,15 @@ void chi_montecarlon::ResidualSourceB::
     for (auto& cell : grid->local_cells)
     {
       auto fv_view  = ref_solver->fv->MapFeView(cell.local_id);
-      auto& pwl_view =  ref_solver->pwl->GetCellFEView(cell.local_id);
+      auto pwl_view =  ref_solver->pwl->GetCellMappingFE(cell.local_id);
       int k = cell.local_id;
 
       int mat_id = cell.material_id;
       int xs_id = ref_solver->matid_xs_map[mat_id];
 
-      chi_physics::Material* mat = chi_physics_handler.material_stack[mat_id];
-      auto xs = (chi_physics::TransportCrossSections*)mat->properties[xs_id];
+      auto mat = chi_physics_handler.material_stack[mat_id];
+      auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
+        mat->properties[xs_id]);
 
       double siga = xs->sigma_ag[0];
       double sigt = xs->sigma_tg[0];
@@ -54,9 +55,9 @@ void chi_montecarlon::ResidualSourceB::
       {
         auto position = GetRandomPositionInCell(&ref_solver->rng0, cell_vol_info[k]);
 
-        pwl_view.ShapeValues(position,shape_values);
+        pwl_view->ShapeValues(position,shape_values);
 
-        for (int dof=0; dof<pwl_view.num_nodes; ++dof)
+        for (int dof=0; dof<pwl_view->num_nodes; ++dof)
         {
           int irfem = ref_solver->pwl->MapDOFLocal(cell, dof, ref_solver->uk_man_pwld,/*m*/0,/*g*/0);
           sum_of_abs_point_vals +=

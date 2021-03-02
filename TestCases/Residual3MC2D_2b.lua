@@ -180,9 +180,9 @@ chiSolverAddRegion(phys2,region0)
 chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_A,fflist0[1]);
 
 
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*100e6*10)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*100e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
-chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3*10)
+chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)

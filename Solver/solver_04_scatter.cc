@@ -1,11 +1,11 @@
 #include "solver_montecarlon.h"
 
-#include <ChiMesh/Cell/cell.h>
-#include <ChiPhysics/chi_physics.h>
-#include <ChiPhysics/PhysicsMaterial/chi_physicsmaterial.h>
-#include <ChiPhysics/PhysicsMaterial/property10_transportxsections.h>
+#include "ChiMesh/Cell/cell.h"
+#include "ChiPhysics/chi_physics.h"
+#include "ChiPhysics/PhysicsMaterial/chi_physicsmaterial.h"
+#include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 
-#include <chi_log.h>
+#include "chi_log.h"
 
 extern ChiPhysics&  chi_physics_handler;
 extern ChiLog& chi_log;
@@ -19,7 +19,7 @@ extern ChiLog& chi_log;
 std::pair<int,chi_mesh::Vector3>
 chi_montecarlon::Solver::
 ProcessScattering(chi_montecarlon::Particle &prtcl,
-                  chi_physics::TransportCrossSections *xs)
+                  std::shared_ptr<chi_physics::TransportCrossSections> xs)
 {
   //=================================== Sample energy
   int g      = prtcl.egrp;

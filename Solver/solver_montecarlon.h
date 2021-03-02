@@ -7,7 +7,7 @@
 #include"ChiPhysics/SolverBase/chi_solver.h"
 #include "../Source/mc_base_source.h"
 #include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
-#include "ChiPhysics/PhysicsMaterial/property10_transportxsections.h"
+#include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 #include "FiniteVolume/fv.h"
 #include "FiniteElement/PiecewiseLinear/pwl.h"
 #include "ChiMath/chi_math.h"
@@ -168,7 +168,7 @@ class chi_montecarlon::Solver : public chi_physics::Solver
 {
 protected:
   typedef std::shared_ptr<SpatialDiscretization_FV> SDMFVPtr;
-  typedef std::shared_ptr<SpatialDiscretization_PWL> SDMPWLPtr;
+  typedef std::shared_ptr<SpatialDiscretization_PWLD> SDMPWLPtr;
 public:
   enum RayTraceMethod
   {
@@ -321,7 +321,7 @@ private:
   //04
   std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
-                    chi_physics::TransportCrossSections* xs);
+                    std::shared_ptr<chi_physics::TransportCrossSections> xs);
   void ProcessImportanceChange(Particle& prtcl);
 
   //05a

@@ -59,7 +59,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
                 source_normalization *
                 tally_multipl_factor /
                 (double)nps_global /
-                cell_pwl_view.IntV_shapeI[i];
+                cell_pwl_view.IntV_shapeI(i);
 
             }//for g
           }//for m

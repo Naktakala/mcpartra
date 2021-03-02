@@ -63,7 +63,7 @@ void chi_montecarlon::Solver::
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 
-      auto& cell_pwl_view = pwl->GetCellFEView(cell_local_ind);
+      auto cell_pwl_view = pwl->GetCellMappingFE(cell_local_ind);
 
       double last_segment_length = 0.0;
       for (auto segment_length : segment_lengths)
@@ -71,9 +71,9 @@ void chi_montecarlon::Solver::
         double d = last_segment_length + 0.5*segment_length;
         auto p = prtcl.pos + prtcl.dir*d;
 
-        cell_pwl_view.ShapeValues(p, N_f);
+        cell_pwl_view->ShapeValues(p, N_f);
 
-        for (int dof=0; dof<cell_pwl_view.num_nodes; dof++)
+        for (int dof=0; dof<cell_pwl_view->num_nodes; dof++)
         {
           int ir = pwl->MapDOFLocal(cell, dof, uk_man_pwld,/*m*/0, prtcl.egrp);
           double pwl_tally_contrib = segment_length * prtcl.w * N_f[dof];

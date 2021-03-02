@@ -66,7 +66,7 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
   }
 
   auto pwl    =
-    std::dynamic_pointer_cast<SpatialDiscretization_PWL>(resid_ff->spatial_discretization);
+    std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(resid_ff->spatial_discretization);
   auto uk_man = resid_ff->unknown_manager;
 
   auto pwl_cfem = SpatialDiscretization_PWLC::New(grid,
@@ -89,7 +89,7 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
     {
       ++i;
       int ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
-      int ir_cfem = pwl_cfem->MapDOF(vid);
+      int ir_cfem = pwl_cfem->MapDOF(cell,i);
 
       global_cfem_dofs.push_back(ir_cfem);
 

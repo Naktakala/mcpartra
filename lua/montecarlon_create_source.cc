@@ -116,7 +116,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     int ff_handle = lua_tonumber(L,3);
     size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
 
-    chi_physics::FieldFunction* ff;
+    std::shared_ptr<chi_physics::FieldFunction> ff;
     try {
       ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
     }
@@ -162,7 +162,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
 
     double bndry_value = lua_tonumber(L,5);
 
-    chi_physics::FieldFunction* ff;
+    std::shared_ptr<chi_physics::FieldFunction> ff;
     try {
       ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
     }
