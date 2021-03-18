@@ -49,7 +49,7 @@ void chi_montecarlon::Solver::InitTallies()
   fv = SpatialDiscretization_FV::New(grid);
 
   //=================================== Tally sizes
-  auto fv_tally_size = fv->GetNumLocalDOFs(grid, uk_man_fv);
+  auto fv_tally_size = fv->GetNumLocalDOFs(uk_man_fv);
 
   grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].Resize(fv_tally_size);
   grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_FVTALLY]].Resize(fv_tally_size);
@@ -64,7 +64,7 @@ void chi_montecarlon::Solver::InitTallies()
 
 
   //=================================== Initialize PWLD tallies
-  auto fem_tally_size = pwl->GetNumLocalDOFs(grid, uk_man_pwld);
+  auto fem_tally_size = pwl->GetNumLocalDOFs(uk_man_pwld);
 
   chi_log.Log(LOG_0) << "PWL #local-dofs: " << fem_tally_size;
 

@@ -72,8 +72,8 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
   auto pwl_cfem = SpatialDiscretization_PWLC::New(grid,
                     chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
 
-  auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(grid,uk_man);
-  auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(grid,uk_man);
+  auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(uk_man);
+  auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(uk_man);
 
   Vec x = chi_math::PETScUtils::CreateVector(cfem_num_local_dofs,
                                              cfem_num_globl_dofs);

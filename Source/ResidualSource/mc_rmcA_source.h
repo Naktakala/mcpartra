@@ -58,7 +58,6 @@ public:
   std::vector<double> r_cellk_interior_max;
   std::vector<double> r_cellk_interior_min;
   std::vector<double> R_abs_cellk_interior;
-//  std::vector<double> R_abs_cellk_surface;
 
   double R_abs_localdomain_interior = 0.0;
   double R_abs_localdomain_surface = 0.0;

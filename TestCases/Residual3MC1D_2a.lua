@@ -14,7 +14,7 @@ xmin=0.0
 for i=0,N do
     nodes[i+1] = xmin + i*ds
 end
-mesh,region0 = chiMeshCreate1DSlabMesh(nodes)
+mesh,region0 = chiMeshCreateUnpartitioned1DOrthoMesh(nodes)
 
 chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_STYLE_XYZ)
 chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
@@ -116,8 +116,7 @@ bsrc[1] = 1.0/2
 --        ZMIN,LBSBoundaryTypes.INCIDENT_ISOTROPIC,bsrc);
 
 --========== Solvers
-chiLBSSetProperty(phys0,PARTITION_METHOD,FROM_SURFACE)
-chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD3D)
+chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD)
 chiLBSSetProperty(phys0,SCATTERING_ORDER,0)
 
 chiLBSInitialize(phys0)
@@ -147,6 +146,9 @@ chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
 --chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3.0/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/N,1000)
+chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+
 chiMonteCarlonInitialize(phys1)
 chiMonteCarlonExecute(phys1)
 
@@ -169,6 +171,9 @@ chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MAKE_PWLD_SOLUTION,true)
+
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/N,1000)
+chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
 
 
 chiMonteCarlonInitialize(phys2)

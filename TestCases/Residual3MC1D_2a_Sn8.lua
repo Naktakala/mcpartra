@@ -7,8 +7,8 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=20
-L=5.0
+N=60
+L=10.0
 ds=L/N
 xmin=0.0
 for i=0,N do
@@ -26,8 +26,11 @@ chiVolumeMesherExecute();
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
-vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,0.25,1000)
+vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,0.0,1.5)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
+
+vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-0.333,L)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol2,2)
 
 
 
@@ -37,30 +40,38 @@ chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");
+materials[3] = chiPhysicsAddMaterial("Test Material3");
 
 chiPhysicsMaterialAddProperty(materials[1],TRANSPORT_XSECTIONS)
 chiPhysicsMaterialAddProperty(materials[2],TRANSPORT_XSECTIONS)
+chiPhysicsMaterialAddProperty(materials[3],TRANSPORT_XSECTIONS)
 
 chiPhysicsMaterialAddProperty(materials[1],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
+chiPhysicsMaterialAddProperty(materials[3],ISOTROPIC_MG_SOURCE)
 
 
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.5)
+                              SIMPLEXS1,1,0.2,0.2)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.5)
+                              SIMPLEXS1,1,1.0,0.0)
+chiPhysicsMaterialSetProperty(materials[3],
+                              TRANSPORT_XSECTIONS,
+                              SIMPLEXS1,1,0.01,0.0)
 
 src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 1.0
-chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
+chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 10.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 0.0
+chiPhysicsMaterialSetProperty(materials[3],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 
 
@@ -79,7 +90,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,1)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,8)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -121,7 +132,9 @@ chiSolverAddRegion(phys1,region0)
 
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-fac=1
+if (fac==nil) then
+    fac=1
+end
 fv_offset = 0
 fv_offset = num_groups
 chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*1e6)
@@ -133,7 +146,7 @@ chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
 --chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3.0/3)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/20,1000)
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/N,1000)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 
 chiMonteCarlonInitialize(phys1)
@@ -141,7 +154,7 @@ chiMonteCarlonExecute(phys1)
 
 fflist1,count = chiGetFieldFunctionList(phys1)
 
-----############################################### Setup ref Monte Carlo Physics
+----############################################### Setup Residual Monte Carlo Physics
 chiMeshHandlerSetCurrent(tmesh)
 phys2 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys2,region0)
@@ -159,8 +172,9 @@ chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MAKE_PWLD_SOLUTION,true)
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/20,1000)
-chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/N,1000)
+chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
+
 
 chiMonteCarlonInitialize(phys2)
 chiMonteCarlonExecute(phys2)
@@ -170,7 +184,7 @@ fflist2,count = chiGetFieldFunctionList(phys2) --Fine mesh MC
 ----############################################### Getting Sn and MC solution
 cline0 = chiFFInterpolationCreate(LINE)
 chiFFInterpolationSetProperty(cline0,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
-chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
+chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,0.0,0.0, L+xmin)
 chiFFInterpolationSetProperty(cline0,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist0[1])
@@ -200,7 +214,7 @@ end
 ----############################################### Getting RMC solution
 cline = chiFFInterpolationCreate(LINE)
 chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, L+xmin)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)

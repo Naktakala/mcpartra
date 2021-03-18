@@ -238,4 +238,15 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
   ref_solver->source_normalization = R_abs_globaldomain_interior +
                                      R_abs_globaldomain_surface;
 
+  //============================================= Export interior source
+  //                                              as FieldFunction
+  auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+    "R_interior",                                 //Text name
+    fv,                                           //Spatial Discretization
+    &R_abs_cellk_interior,                        //Data
+    ref_solver->uk_man_fv,                        //Nodal variable structure
+    0, 0);                                        //Reference variable and component
+
+  R_ff->ExportToVTKFV("ZRout","R_interior");
+
 }

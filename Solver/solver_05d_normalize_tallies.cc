@@ -19,7 +19,7 @@ void chi_montecarlon::Solver::NormalizeTallies()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(cell, uk_man_fv, m, g);
+            int ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
             grid_tally_blocks[t].tally_global[ir] *=
               source_normalization *

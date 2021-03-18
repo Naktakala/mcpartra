@@ -15,7 +15,7 @@ void chi_montecarlon::Solver::
   auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
   int cell_local_ind = cell.local_id;
 
-  int ir_cell = fv->MapDOFLocal(cell, uk_man_fv,/*m*/0, prtcl.egrp);
+  int ir_cell = fv->MapDOFLocal(cell, 0, uk_man_fv,/*m*/0, prtcl.egrp);
 
   double tracklength = (pf - prtcl.pos).Norm();
 

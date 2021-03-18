@@ -240,7 +240,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   avg_weight/=tracklength;
 
   //======================================== Contribute avg tally
-  int ir = fv->MapDOFLocal(cell, uk_man_fv,/*m*/0, prtcl.egrp);
+  int ir = fv->MapDOFLocal(cell, 0, uk_man_fv,/*m*/0, prtcl.egrp);
 
   double tally_contrib = tracklength*avg_weight;
 

@@ -7,29 +7,47 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=20
+N=60
 L=5.0
 ds=L/N
 xmin=0.0
 for i=0,N do
     nodes[i+1] = xmin + i*ds
 end
-mesh,region0 = chiMeshCreateUnpartitioned1DOrthoMesh(nodes)
+mesh,region0 = chiMeshCreateUnpartitioned2DOrthoMesh(nodes,nodes)
 
+--chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_XYZ_STYLE)
 chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_STYLE_XYZ)
-chiVolumeMesherSetProperty(PARTITION_Z,chi_number_of_processes)
 
 --Execute meshing
+if (chi_number_of_processes == 4) then
+    chiSurfaceMesherSetProperty(PARTITION_X,2)
+    chiSurfaceMesherSetProperty(PARTITION_Y,2)
+    chiSurfaceMesherSetProperty(CUT_X,L/2)
+    chiSurfaceMesherSetProperty(CUT_Y,L/2)
+end
 chiVolumeMesherExecute();
 
 ----############################################### Set Material IDs
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
-vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,0.25,1000)
+vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,0.8*L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
+
+----############################################### Set Material IDs
+vol0b = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,-1000,1000,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0b,0)
+
+-- vol2 = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,0.0,2*0.166666,-1000,1000)
+vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
+--vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol2,2)
+
+vol1b = chiLogicalVolumeCreate(RPP,-1+2.5,1+2.5,0.9*L,L,-1000,1000)
+chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1b,1)
 
 
 
@@ -37,30 +55,38 @@ chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");
+materials[3] = chiPhysicsAddMaterial("Test Material3");
 
 chiPhysicsMaterialAddProperty(materials[1],TRANSPORT_XSECTIONS)
 chiPhysicsMaterialAddProperty(materials[2],TRANSPORT_XSECTIONS)
+chiPhysicsMaterialAddProperty(materials[3],TRANSPORT_XSECTIONS)
 
 chiPhysicsMaterialAddProperty(materials[1],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
+chiPhysicsMaterialAddProperty(materials[3],ISOTROPIC_MG_SOURCE)
 
 
 num_groups = 1
 chiPhysicsMaterialSetProperty(materials[1],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.5)
+                              SIMPLEXS1,1,0.01,0.01)
 chiPhysicsMaterialSetProperty(materials[2],
                               TRANSPORT_XSECTIONS,
-                              SIMPLEXS1,1,1.0,0.5)
+                              SIMPLEXS1,1,0.1*20,0.8)
+chiPhysicsMaterialSetProperty(materials[3],
+                              TRANSPORT_XSECTIONS,
+                              SIMPLEXS1,1,0.3*20,0.0)
 
 src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 1.0
+src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 src[1] = 0.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 3.0
+chiPhysicsMaterialSetProperty(materials[3],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 
 
@@ -79,7 +105,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,1)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,6,6)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -121,20 +147,26 @@ chiSolverAddRegion(phys1,region0)
 
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-fac=1
+if (fac == nil) then fac=0.1 end
 fv_offset = 0
 fv_offset = num_groups
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*1e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,fac*100e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
---chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,5.0*3.0/3)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,3.0*L*L/3.0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/20,1000)
+tvol0 = chiLogicalVolumeCreate(RPP,2.3333,2.6666,4.16666,4.33333,-1000,1000)
+tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
+
+--tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
+--tvol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
+
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
 
 chiMonteCarlonInitialize(phys1)
 chiMonteCarlonExecute(phys1)
@@ -149,18 +181,17 @@ chiSolverAddRegion(phys2,region0)
 chiMonteCarlonCreateSource(phys2,MCSrcTypes.RESIDUAL_TYPE_A,fflist0[1]);
 
 
-
-chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*1e6)
+chiMonteCarlonSetProperty(phys2,MCProperties.NUM_PARTICLES,fac*100e6)
 chiMonteCarlonSetProperty(phys2,MCProperties.TFC_UPDATE_INTVL,10e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MERGE_INTVL,100e3)
 chiMonteCarlonSetProperty(phys2,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MONOENERGETIC,true)
 chiMonteCarlonSetProperty(phys2,MCProperties.FORCE_ISOTROPIC,true)
-chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
+-- chiMonteCarlonSetProperty(phys2,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0/1.0)
 chiMonteCarlonSetProperty(phys2,MCProperties.MAKE_PWLD_SOLUTION,true)
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-L/20,1000)
-chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
+chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
 chiMonteCarlonInitialize(phys2)
 chiMonteCarlonExecute(phys2)
@@ -169,8 +200,8 @@ fflist2,count = chiGetFieldFunctionList(phys2) --Fine mesh MC
 
 ----############################################### Getting Sn and MC solution
 cline0 = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline0,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
-chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
+chiFFInterpolationSetProperty(cline0,LINE_FIRSTPOINT ,L/2+0.001,0.0,0.0)
+chiFFInterpolationSetProperty(cline0,LINE_SECONDPOINT,L/2+0.001,0.0+L,0.0)
 chiFFInterpolationSetProperty(cline0,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline0,ADD_FIELDFUNCTION,fflist0[1])
@@ -199,8 +230,8 @@ end
 
 ----############################################### Getting RMC solution
 cline = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,0.0,0.0,0.0+xmin)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,0.0,0.0, 5.0+xmin)
+chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT ,L/2,0.0,0.0)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,L/2,0.0+L,0.0)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
 chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)
@@ -211,8 +242,24 @@ chiFFInterpolationInitialize(cline)
 chiFFInterpolationExecute(cline)
 chiFFInterpolationExportPython(cline)
 
+----############################################### Slice
+slice2 = chiFFInterpolationCreate(SLICE)
+chiFFInterpolationSetProperty(slice2,SLICE_POINT,0.0,0.0,0.025)
+chiFFInterpolationSetProperty(slice2,ADD_FIELDFUNCTION,fflist2[1]+fv_offset)
+
+chiFFInterpolationInitialize(slice2)
+chiFFInterpolationExecute(slice2)
+chiFFInterpolationExportPython(slice2)
+
 ----############################################### Show plots
-if (chi_location_id == 0) then
+if ((chi_location_id == 0) and (with_plot~=nil)) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
+    local handle = io.popen("python3 ZPFFI20.py")
 end
+
+-- chiExportFieldFunctionToVTKG(fflist2[1]+fv_offset,"ZPhi")
+-- chiExportFieldFunctionToVTKG(fflist1[1]+fv_offset,"ZSMC")
+chiExportFieldFunctionToVTKG(fflist2[1]+fv_offset,"ZPhi")
+chiExportFieldFunctionToVTKG(fflist1[1]+fv_offset,"ZSMC")
+chiExportFieldFunctionToVTKG(fflist0,"ZSn")

@@ -34,7 +34,7 @@ void chi_montecarlon::Solver::Execute()
       chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
 
       if (prtcl.alive) nps++;
-//      prtcl.alive = false;
+      prtcl.alive = false;
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 

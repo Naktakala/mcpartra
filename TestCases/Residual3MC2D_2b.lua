@@ -14,7 +14,7 @@ xmin=0.0
 for i=0,N do
     nodes[i+1] = xmin + i*ds
 end
-mesh,region0 = chiMeshCreate2DOrthoMesh(nodes,nodes)
+mesh,region0 = chiMeshCreateUnpartitioned2DOrthoMesh(nodes,nodes)
 
 --chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_XYZ_STYLE)
 chiVolumeMesherSetProperty(PARTITION_TYPE,KBA_STYLE_XYZ)
@@ -130,7 +130,7 @@ bsrc[1] = 1.0/2
 --        ZMIN,LBSBoundaryTypes.INCIDENT_ISOTROPIC,bsrc);
 
 --========== Solvers
-chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD3D)
+chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD)
 chiLBSSetProperty(phys0,SCATTERING_ORDER,0)
 
 chiLBSInitialize(phys0)

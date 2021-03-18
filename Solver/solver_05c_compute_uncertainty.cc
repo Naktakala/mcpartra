@@ -28,7 +28,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(cell, uk_man_fv, m, g);
+            int ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
             TULL divisor = (nps_global==0)? 1 : nps_global;
 
