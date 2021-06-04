@@ -65,7 +65,7 @@ public:
 
   void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
                         std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm);
-  chi_mesh::Vector3 GetRandomPositionInCell(
+  static chi_mesh::Vector3 GetRandomPositionInCell(
     chi_math::RandomNumberGenerator* rng,
           CellSideInfo& cell_side_info);
 

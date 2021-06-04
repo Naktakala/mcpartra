@@ -49,7 +49,7 @@ void chi_montecarlon::Solver::RaytraceUNC(Particle& prtcl)
   auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
     mat->properties[xs_id]);
 
-  double sigt = xs->sigma_tg[prtcl.egrp];
+  double sigt = xs->sigma_t[prtcl.egrp];
 
   //======================================== Compute distance to event
   double d_to_surface = 1.0e15;

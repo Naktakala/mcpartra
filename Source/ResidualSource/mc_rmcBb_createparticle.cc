@@ -48,11 +48,11 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Sample position
   if      (cell->Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = *grid->vertices[face.vertex_ids[0]];
+    new_particle.pos = grid->vertices[face.vertex_ids[0]];
   else if (cell->Type() == chi_mesh::CellType::POLYGON)
   {
-    chi_mesh::Vertex& v0 = *grid->vertices[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = *grid->vertices[face.vertex_ids[1]];
+    const auto& v0 = grid->vertices[face.vertex_ids[0]];
+    const auto& v1 = grid->vertices[face.vertex_ids[1]];
     double w = rng->Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
@@ -77,7 +77,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
     double w0 = rng->Rand();
     double w1 = rng->Rand()*(1.0-w0);
-    chi_mesh::Vector3& v0 = *grid->vertices[edges[s][0]];
+    const auto& v0 = grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
                        polyh_fv_view->face_side_vectors[f][s][1]*w1;
   }
@@ -223,8 +223,8 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
     mat->properties[xs_id]);
 
-  double siga = xs->sigma_ag[0];
-  double sigt = xs->sigma_tg[0];
+  double siga = xs->sigma_a[0];
+  double sigt = xs->sigma_t[0];
   double sigs = sigt-siga;
 
   //======================================== Sample position

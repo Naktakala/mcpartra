@@ -20,7 +20,7 @@ void chi_montecarlon::Solver::InitMaterials()
       << "chi_montecarlon::Solver::Initialize : No materials found.";
     exit(EXIT_FAILURE);
   }
-  int num_mat = chi_physics_handler.material_stack.size();
+  size_t num_mat = chi_physics_handler.material_stack.size();
   matid_xs_map.resize(num_mat,-1);
   matid_q_map.resize(num_mat,-1);
   for (int m=0; m<num_mat; m++)
@@ -41,16 +41,16 @@ void chi_montecarlon::Solver::InitMaterials()
         transp_xs->ComputeDiffusionParameters();
         transp_xs->ComputeDiscreteScattering(scattering_order);
 
-        if (transp_xs->G > num_grps)
-          num_grps = transp_xs->G;
+        if (transp_xs->num_groups > num_grps)
+          num_grps = static_cast<int>(transp_xs->num_groups);
 
-        matid_xs_map[m] = p;
+        matid_xs_map[m] = static_cast<int>(p);
       }
 
       if (cur_mat->properties[p]->Type() ==
           chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
       {
-        matid_q_map[m] = p;
+        matid_q_map[m] = static_cast<int>(p);
       }
     }//for prop
   }//for mat

@@ -92,11 +92,11 @@ public:
   void PopulateMaterialData(int mat_id, int group_g,
                             MaterialData& mat_data);
 
-  chi_mesh::Vector3 GetRandomPositionInCell(
+  static chi_mesh::Vector3 GetRandomPositionInCell(
     chi_math::RandomNumberGenerator& rng,
     const CellGeometryData& cell_info);
 
-  chi_mesh::Vector3 GetRandomPositionOnCellSurface(
+  static chi_mesh::Vector3 GetRandomPositionOnCellSurface(
     chi_math::RandomNumberGenerator& rng,
     const CellGeometryData& cell_info,
     const int face_mask=-1,

@@ -72,8 +72,8 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
     std::static_pointer_cast<chi_physics::TransportCrossSections>(
       mat->properties[xs_id]);
 
-  double sigt = xs->sigma_tg[prtcl.egrp];
-  double sigs = sigt - xs->sigma_ag[prtcl.egrp];
+  double sigt = xs->sigma_t[prtcl.egrp];
+  double sigs = sigt - xs->sigma_a[prtcl.egrp];
 
   //======================================== Compute distance to event
   double d_to_intract = -1.0*log(1.0-rng0.Rand())/sigt;

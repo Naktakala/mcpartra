@@ -92,8 +92,8 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
     material->properties[xs_prop_id]);
 
-  double siga = xs->sigma_ag[prtcl.egrp];
-  double sigt = xs->sigma_tg[prtcl.egrp];
+  double siga = xs->sigma_a[prtcl.egrp];
+  double sigt = xs->sigma_t[prtcl.egrp];
   double sigs = sigt-siga;
   double Q    = 0.0;
   if (src_prop_id >= 0)

@@ -215,7 +215,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
       material->properties[xs_prop_id]);
 
-    double siga = xs->sigma_ag[e_group];
+    double siga = xs->sigma_a[e_group];
     double Q    = 0.0;
     if (src_prop_id >= 0)
     {

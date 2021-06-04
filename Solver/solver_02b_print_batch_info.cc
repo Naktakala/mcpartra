@@ -11,7 +11,7 @@ extern ChiLog& chi_log;
 extern ChiMPI& chi_mpi;
 extern ChiTimer chi_program_timer;
 
-void chi_montecarlon::Solver::PrintBatchInfo(int b, double particle_rate)
+void chi_montecarlon::Solver::PrintBatchInfo(size_t b, double particle_rate)
 {
   if (b==0 or ((b+1)%10)==0)
     chi_log.Log(LOG_0)

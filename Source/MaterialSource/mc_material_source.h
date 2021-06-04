@@ -24,7 +24,7 @@ private:
                       int in_group,
                       double in_product_V_Q,
                       double in_source_value,
-                      chi_mesh::Vector3& in_source_geom_ref_point,
+                      const chi_mesh::Vector3& in_source_geom_ref_point,
                       std::vector<chi_mesh::Vector3>& in_source_geom_legs) :
       cell_local_index(in_cell_local_index),
       cell_global_index(in_cell_global_index),

@@ -160,11 +160,11 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
 
   //======================================== Sample position
   if      (cell.Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = *grid->vertices[face.vertex_ids[0]];
+    new_particle.pos = grid->vertices[face.vertex_ids[0]];
   else if (cell.Type() == chi_mesh::CellType::POLYGON)
   {
-    chi_mesh::Vertex& v0 = *grid->vertices[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = *grid->vertices[face.vertex_ids[1]];
+    chi_mesh::Vertex& v0 = grid->vertices[face.vertex_ids[0]];
+    chi_mesh::Vertex& v1 = grid->vertices[face.vertex_ids[1]];
     double w = rng->Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
@@ -192,7 +192,7 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
     while ((u+v)>1.0)
     {u = rng->Rand(); v = rng->Rand();}
 
-    chi_mesh::Vector3& v0 = *grid->vertices[edges[s][0]];
+    chi_mesh::Vector3& v0 = grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
                             polyh_fv_view->face_side_vectors[f][s][1]*v;
   }

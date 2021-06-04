@@ -43,8 +43,8 @@ void chi_montecarlon::ResidualSourceB::
       auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
         mat->properties[xs_id]);
 
-      double siga = xs->sigma_ag[0];
-      double sigt = xs->sigma_tg[0];
+      double siga = xs->sigma_a[0];
+      double sigt = xs->sigma_t[0];
       double sigs = sigt-siga;
 
       const int num_particles = 1000;

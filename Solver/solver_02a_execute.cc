@@ -21,8 +21,6 @@ void chi_montecarlon::Solver::Execute()
 
   nps_global = 0;
   double start_time = chi_program_timer.GetTime()/1000.0;
-  double time = 0.0;
-  double particle_rate = 0.0;
   for (size_t b=0; b<batch_sizes_per_loc.size(); b++)
   {
     nps = 0;
@@ -30,7 +28,6 @@ void chi_montecarlon::Solver::Execute()
 
     for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
     {
-//      chi_log.Log() << "src";
       chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
 
       if (prtcl.alive) nps++;
@@ -80,8 +77,8 @@ void chi_montecarlon::Solver::Execute()
     RendesvouzTallies();
     ComputeUncertainty();
 
-    time = chi_program_timer.GetTime()/1000.0;
-    particle_rate = ((double)nps_global)*3600.0e-6/(time-start_time);
+    double time = chi_program_timer.GetTime()/1000.0;
+    double particle_rate = ((double)nps_global)*3600.0e-6/(time-start_time);
 
     PrintBatchInfo(b,particle_rate);
   }//for batch

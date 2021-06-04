@@ -309,7 +309,7 @@ public:
   //02
   void Execute();
   void ExecuteRMCUncollided();
-  void PrintBatchInfo(int b, double particle_rate);
+  void PrintBatchInfo(size_t b, double particle_rate);
 
 private:
   //03

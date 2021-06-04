@@ -36,8 +36,8 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
       CellGeometryData cell_info;
 
       {
-        auto v0 = *ref_grid->vertices[cell.vertex_ids[0]];
-        auto v1 = *ref_grid->vertices[cell.vertex_ids[1]];
+        const auto& v0 = ref_grid->vertices[cell.vertex_ids[0]];
+        const auto& v1 = ref_grid->vertices[cell.vertex_ids[1]];
 
         auto v01 = v1 - v0;
 
@@ -56,8 +56,8 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
         cell_info.sides.push_back(side_data);
       }
       {
-        auto v0 = *ref_grid->vertices[cell.vertex_ids[0]];
-        auto v1 = *ref_grid->vertices[cell.vertex_ids[1]];
+        const auto& v0 = ref_grid->vertices[cell.vertex_ids[0]];
+        const auto& v1 = ref_grid->vertices[cell.vertex_ids[1]];
 
         auto v10 = v0 - v1;
 
@@ -85,8 +85,8 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
       for (auto& face : cell.faces)
       {
         ++f;
-        auto  v0 = *ref_grid->vertices[face.vertex_ids[0]];
-        auto  v1 = *ref_grid->vertices[face.vertex_ids[1]];
+        const auto& v0 = ref_grid->vertices[face.vertex_ids[0]];
+        const auto& v1 = ref_grid->vertices[face.vertex_ids[1]];
         auto& v2 = cell.centroid;
 
         auto v01 = v1-v0;
@@ -122,8 +122,8 @@ void chi_montecarlon::ResidualSourceA::BuildCellVolInfo(
 
         for (auto& edge : face_edges)
         {
-          auto  v0 = *ref_grid->vertices[edge[0]];
-          auto  v1 = *ref_grid->vertices[edge[1]];
+          const auto& v0 = ref_grid->vertices[edge[0]];
+          const auto& v1 = ref_grid->vertices[edge[1]];
           auto& v2 = face.centroid;
           auto& v3 = cell.centroid;
 
@@ -187,7 +187,7 @@ void chi_montecarlon::ResidualSourceA::
   auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
     material->properties[xs_prop_id]);
 
-  double siga = xs->sigma_ag[group_g];
+  double siga = xs->sigma_a[group_g];
   double Q    = 0.0;
   if (src_prop_id >= 0)
   {
@@ -204,9 +204,9 @@ void chi_montecarlon::ResidualSourceA::
 //###################################################################
 /**Samples the cell interior*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
-GetRandomPositionInCell(
-  chi_math::RandomNumberGenerator& rng,
-  const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info)
+  GetRandomPositionInCell(
+    chi_math::RandomNumberGenerator& rng,
+    const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info)
 {
   chi_mesh::Vector3 position;
   double rn = rng.Rand();
@@ -267,11 +267,11 @@ GetRandomPositionInCell(
 //###################################################################
 /**Samples the cell interior*/
 chi_mesh::Vector3 chi_montecarlon::ResidualSourceA::
-GetRandomPositionOnCellSurface(
-  chi_math::RandomNumberGenerator& rng,
-  const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info,
-  const int face_mask,
-  int* face_sampled)
+  GetRandomPositionOnCellSurface(
+    chi_math::RandomNumberGenerator& rng,
+    const chi_montecarlon::ResidualSourceA::CellGeometryData &cell_info,
+    const int face_mask,
+    int* face_sampled)
 {
   chi_mesh::Vector3 position;
   double rn = rng.Rand();

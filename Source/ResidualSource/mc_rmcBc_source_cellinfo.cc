@@ -24,8 +24,8 @@ void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
     {
       CellSideInfo cell_side_info;
 
-      auto v0 = *ref_grid->vertices[cell.vertex_ids[0]];
-      auto v1 = *ref_grid->vertices[cell.vertex_ids[1]];
+      const auto& v0 = ref_grid->vertices[cell.vertex_ids[0]];
+      const auto& v1 = ref_grid->vertices[cell.vertex_ids[1]];
 
       auto v01 = v1 - v0;
 
@@ -47,9 +47,9 @@ void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
       CellSideInfo cell_side_info(0.0,std::vector<CellSideData>());
       for (auto& face : cell.faces)
       {
-        auto  v0 = *ref_grid->vertices[face.vertex_ids[0]];
-        auto  v1 = *ref_grid->vertices[face.vertex_ids[1]];
-        auto& v2 = cell.centroid;
+        const auto& v0 = ref_grid->vertices[face.vertex_ids[0]];
+        const auto& v1 = ref_grid->vertices[face.vertex_ids[1]];
+        const auto& v2 = cell.centroid;
 
         auto v01 = v1-v0;
         auto v02 = v2-v0;
@@ -79,10 +79,10 @@ void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
 
         for (auto& edge : face_edges)
         {
-          auto  v0 = *ref_grid->vertices[edge[0]];
-          auto  v1 = *ref_grid->vertices[edge[1]];
-          auto& v2 = face.centroid;
-          auto& v3 = cell.centroid;
+          const auto& v0 = ref_grid->vertices[edge[0]];
+          const auto& v1 = ref_grid->vertices[edge[1]];
+          const auto& v2 = face.centroid;
+          const auto& v3 = cell.centroid;
 
           auto v01 = v1-v0;
           auto v02 = v2-v0;

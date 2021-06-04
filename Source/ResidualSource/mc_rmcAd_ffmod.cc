@@ -75,21 +75,21 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
   auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(uk_man);
   auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(uk_man);
 
-  Vec x = chi_math::PETScUtils::CreateVector(cfem_num_local_dofs,
-                                             cfem_num_globl_dofs);
+  Vec x = chi_math::PETScUtils::CreateVector(static_cast<int64_t>(cfem_num_local_dofs),
+                                             static_cast<int64_t>(cfem_num_globl_dofs));
   VecSet(x,0.0);
   Vec x_count;
   VecDuplicate(x,&x_count);
 
-  std::vector<int> global_cfem_dofs;
+  std::vector<int64_t> global_cfem_dofs;
   for (auto& cell : grid->local_cells)
   {
     int i=-1;
-    for (int vid : cell.vertex_ids)
+    for (uint64_t vid : cell.vertex_ids)
     {
       ++i;
-      int ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
-      int ir_cfem = pwl_cfem->MapDOF(cell,i);
+      int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
+      int64_t ir_cfem = pwl_cfem->MapDOF(cell,i);
 
       global_cfem_dofs.push_back(ir_cfem);
 
@@ -114,11 +114,11 @@ void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
   for (auto& cell : grid->local_cells)
   {
     int i=-1;
-    for (int vid : cell.vertex_ids)
+    for (uint64_t vid : cell.vertex_ids)
     {
       ++i;
       ++ic;
-      int ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
+      int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
 
       (*resid_ff->field_vector_local)[ir_dfem] = local_data[ic];
     }
