@@ -15,7 +15,7 @@ extern ChiPhysics&  chi_physics_handler;
 \author Jan*/
 int chiMonteCarlonCreateSolver(lua_State *L)
 {
-  chi_montecarlon::Solver* new_solver = new chi_montecarlon::Solver;
+  mcpartra::Solver* new_solver = new mcpartra::Solver;
 
   chi_physics_handler.solver_stack.push_back(new_solver);
 

@@ -35,9 +35,9 @@ int chiMonteCarlonInitialize(lua_State *L)
     exit(EXIT_FAILURE);
   }
 
-  if (typeid(*solver) == typeid(chi_montecarlon::Solver))
+  if (typeid(*solver) == typeid(mcpartra::Solver))
   {
-    auto mcsolver = (chi_montecarlon::Solver*)solver;
+    auto mcsolver = (mcpartra::Solver*)solver;
     mcsolver->Initialize();
   }
   else

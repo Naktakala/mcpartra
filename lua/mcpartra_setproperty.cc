@@ -1,14 +1,13 @@
 #include <ChiLua/chi_lua.h>
 
-#include"../Solver/solver_montecarlon.h"
+#include "mcpartra_lua_utils.h"
 
-#include <ChiPhysics/chi_physics.h>
+#include "chi_log.h"
+extern ChiLog& chi_log;
 
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
-#include <chi_log.h>
-
-extern ChiLog& chi_log;
 
 //#############################################################################
 /** Executes a MonteCarlon solver.
@@ -61,102 +60,81 @@ MC_UNCOLLIDED_ONLY\n
 \author Jan*/
 int chiMonteCarlonSetProperty(lua_State *L)
 {
+  const std::string fname(__FUNCTION__);
   int num_args = lua_gettop(L);
   if (num_args < 3)
-    LuaPostArgAmountError("chiMonteCarlonSetProperty",3,num_args);
+    LuaPostArgAmountError(__FUNCTION__, 3, num_args);
 
-  chi_physics::Solver* solver = nullptr;
-  try{
-    solver = chi_physics_handler.solver_stack.at(lua_tonumber(L,1));
-  }
-  catch (const std::out_of_range& o)
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "chiMonteCarlonSetProperty: Invalid solver handle. "
-      << lua_tonumber(L,1);
-    exit(EXIT_FAILURE);
-  }
+  LuaCheckNilValue(__FUNCTION__, L, 1);
+  LuaCheckNilValue(__FUNCTION__, L, 2);
+  LuaCheckNilValue(__FUNCTION__, L, 3);
 
-  chi_montecarlon::Solver* mcsolver;
-  if (typeid(*solver) == typeid(chi_montecarlon::Solver))
-    mcsolver = (chi_montecarlon::Solver*)solver;
-  else
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "chiMonteCarlonSetProperty: Solver pointed to by solver handle is "
-      << " not a MonteCarlo solver.";
-    exit(EXIT_FAILURE);
-  }
+  int solver_handle = lua_tointeger(L,1);
+  auto mcsolver = mcpartra::lua_utils::GetSolverByHandle(solver_handle,fname);
 
   //============================================= Process property index
   int property_index = lua_tonumber(L,2);
-  if (property_index == chi_montecarlon::Property::NUM_PARTICLES)
+  if (property_index == mcpartra::Property::NUM_PARTICLES)
   {
     unsigned long long num_part = lua_tonumber(L,3);
 
-    mcsolver->num_particles = num_part;
+    mcsolver->options.num_particles = num_part;
   }
-  else if (property_index == chi_montecarlon::Property::TFC_UPDATE_INTVL)
-  {
-    int tfc_updt_intvl = lua_tonumber(L,3);
-
-    mcsolver->tfc_update_interval = tfc_updt_intvl;
-  }
-  else if (property_index == chi_montecarlon::Property::SCATTERING_ORDER)
+  else if (property_index == mcpartra::Property::SCATTERING_ORDER)
   {
     int scatorder = lua_tonumber(L,3);
 
-    mcsolver->scattering_order = scatorder;
+    mcsolver->options.scattering_order = scatorder;
   }
-  else if (property_index == chi_montecarlon::Property::MONOENERGETIC)
+  else if (property_index == mcpartra::Property::MONOENERGETIC)
   {
     bool mono = lua_toboolean(L,3);
 
-    mcsolver->mono_energy = mono;
+    mcsolver->options.mono_energy = mono;
   }
-  else if (property_index == chi_montecarlon::Property::FORCE_ISOTROPIC)
+  else if (property_index == mcpartra::Property::FORCE_ISOTROPIC)
   {
     bool iso = lua_toboolean(L,3);
 
-    mcsolver->force_isotropic = iso;
+    mcsolver->options.force_isotropic = iso;
   }
-  else if (property_index == chi_montecarlon::Property::GROUP_BOUNDS)
+  else if (property_index == mcpartra::Property::GROUP_BOUNDS)
   {
     int hi = lua_tonumber(L,3);
     int lo = lua_tonumber(L,4);
 
-    mcsolver->group_hi_bound = hi;
-    mcsolver->group_lo_bound = lo;
+    mcsolver->options.group_hi_bound = hi;
+    mcsolver->options.group_lo_bound = lo;
   }
-  else if (property_index == chi_montecarlon::Property::TALLY_MERGE_INTVL)
+  else if (property_index == mcpartra::Property::TALLY_MERGE_INTVL)
   {
     unsigned long long tal_merg_invtl = lua_tonumber(L,3);
 
-    mcsolver->tally_rendezvous_intvl = tal_merg_invtl;
+    mcsolver->options.tally_rendezvous_intvl = tal_merg_invtl;
   }
-  else if (property_index == chi_montecarlon::Property::TALLY_MULTIPLICATION_FACTOR)
+  else if (property_index == mcpartra::Property::TALLY_MULTIPLICATION_FACTOR)
   {
     double tmf = lua_tonumber(L,3);
 
-    mcsolver->tally_multipl_factor = tmf;
+    mcsolver->options.tally_multipl_factor = tmf;
   }
-  else if (property_index == chi_montecarlon::Property::MAKE_PWLD_SOLUTION)
+  else if (property_index == mcpartra::Property::MAKE_PWLD_SOLUTION)
   {
     bool make_pwld = lua_toboolean(L,3);
 
-    mcsolver->make_pwld = make_pwld;
+    mcsolver->options.make_pwld = make_pwld;
   }
-  else if (property_index == chi_montecarlon::Property::UNCOLLIDED_ONLY)
+  else if (property_index == mcpartra::Property::UNCOLLIDED_ONLY)
   {
     bool unc_only = lua_toboolean(L,3);
 
-    mcsolver->uncollided_only = unc_only;
+    mcsolver->options.uncollided_only = unc_only;
   }
-  else if (property_index == chi_montecarlon::Property::NUM_UNCOLLIDED_PARTICLES)
+  else if (property_index == mcpartra::Property::NUM_UNCOLLIDED_PARTICLES)
   {
     unsigned long long num_part = lua_tonumber(L,3);
 
-    mcsolver->num_uncollided_particles = num_part;
+    mcsolver->options.num_uncollided_particles = num_part;
   }
   else
   {

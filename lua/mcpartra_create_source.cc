@@ -1,5 +1,7 @@
 #include"ChiLua/chi_lua.h"
 
+#include "mcpartra_lua_utils.h"
+
 #include"../Solver/solver_montecarlon.h"
 
 #include "../Source/BoundarySource/mc_bndry_source.h"
@@ -7,10 +9,10 @@
 #include "../Source/ResidualSource/mc_rmcA_source.h"
 #include "../Source/ResidualSource/mc_rmcB_source.h"
 
-#include <chi_log.h>
+#include "chi_log.h"
 extern ChiLog& chi_log;
 
-#include <ChiPhysics/chi_physics.h>
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 
@@ -49,28 +51,26 @@ MCSrcTypes.RESIDUAL_TYPE_B\n
 \author Jan*/
 int chiMonteCarlonCreateSource(lua_State *L)
 {
+  const std::string function_name(__FUNCTION__);
   int num_args = lua_gettop(L);
+  if (num_args < 2)
+    LuaPostArgAmountError(__FUNCTION__, 2, num_args);
 
-  int solver_index = lua_tonumber(L,1);
-  chi_montecarlon::Solver* solver= nullptr;
+  LuaCheckNilValue(__FUNCTION__,L,1);
+  LuaCheckNilValue(__FUNCTION__,L,2);
 
-  try{
-    solver = (chi_montecarlon::Solver*)chi_physics_handler.solver_stack.at(solver_index);
-  }
-  catch(const std::out_of_range& o){
-    std::cout << "Invalid solver handle" << std::endl;
-    lua_pushinteger(L,-1);
-  }
+  int solver_handle = lua_tonumber(L, 1);
+  int source_type   = lua_tonumber(L, 2);
 
-  LuaCheckNilValue("chiMonteCarlonCreateSource",L,2);
-  int source_type = lua_tonumber(L,2);
+  auto solver = mcpartra::lua_utils::
+                  GetSolverByHandle(solver_handle, function_name);
 
   //============================================= Boundary source
-  if (source_type == chi_montecarlon::SourceType::BNDRY_SRC)
+  if (source_type == mcpartra::SourceType::BNDRY_SRC)
   {
     if (num_args < 3)
-      LuaPostArgAmountError("chiMonteCarlonCreateSource-"
-                            "BOUNDARY_SOURCE",
+      LuaPostArgAmountError((function_name +
+                            ": With SourceType=BOUNDARY_SOURCE").c_str(),
                             3,num_args);
 
     int ref_boundary = lua_tonumber(L,3);
@@ -84,29 +84,29 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
 
-    auto new_source = new chi_montecarlon::BoundarySource(ref_boundary);
+    auto new_source = new mcpartra::BoundarySource(*solver, ref_boundary);
 
     solver->sources.push_back(new_source);
-    lua_pushnumber(L,solver->sources.size()-1);
+    lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
 
-    chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
+    chi_log.Log(LOG_0) << "MCParTra: Created boundary source.";
   }
   //============================================= Material source
-  else if (source_type == chi_montecarlon::SourceType::MATERIAL_SRC)
+  else if (source_type == mcpartra::SourceType::MATERIAL_SRC)
   {
     if (num_args < 2)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
                             "MATERIAL_SRC",
                             2,num_args);
 
-    auto new_source = new chi_montecarlon::MaterialSource();
+    auto new_source = new mcpartra::MaterialSource(*solver);
 
     solver->sources.push_back(new_source);
-    lua_pushnumber(L,solver->sources.size()-1);
+    lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
 
-    chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
+    chi_log.Log(LOG_0) << "MCParTra: Created material source.";
   }
-  else if (source_type == chi_montecarlon::SourceType::RESIDUAL_TYPE_A)
+  else if (source_type == mcpartra::SourceType::RESIDUAL_TYPE_A)
   {
     if (num_args != 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -114,7 +114,6 @@ int chiMonteCarlonCreateSource(lua_State *L)
                             3,num_args);
 
     int ff_handle = lua_tonumber(L,3);
-    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
 
     std::shared_ptr<chi_physics::FieldFunction> ff;
     try {
@@ -130,17 +129,17 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
     auto new_source =
-      new chi_montecarlon::ResidualSourceA(ff, false);
+      new mcpartra::ResidualSourceA(*solver, ff, false);
 
     solver->sources.push_back(new_source);
-    lua_pushnumber(L,solver->sources.size()-1);
+    lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
 
-    chi_log.Log(LOG_0) << "MonteCarlo-created residual3 source.";
+    chi_log.Log(LOG_0) << "MCParTra: Created residual type A source.";
 
   }
   //============================================= Improved Residual source
   //                                              MOC Uniform sampling
-  else if (source_type == chi_montecarlon::SourceType::RESIDUAL_TYPE_B)
+  else if (source_type == mcpartra::SourceType::RESIDUAL_TYPE_B)
   {
     if (num_args < 5)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -158,7 +157,6 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
     int ff_handle = lua_tonumber(L,4);
-    size_t ff_stack_size = chi_physics_handler.fieldfunc_stack.size();
 
     double bndry_value = lua_tonumber(L,5);
 
@@ -176,13 +174,13 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
     auto new_source =
-      new chi_montecarlon::ResidualSourceB(ff, false, bndry_value);
+      new mcpartra::ResidualSourceB(*solver, ff, false, bndry_value);
     new_source->ref_bndry = ref_boundary;
 
     solver->sources.push_back(new_source);
-    lua_pushnumber(L,solver->sources.size()-1);
+    lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
 
-    chi_log.Log(LOG_0) << "MonteCarlo-created residual source.";
+    chi_log.Log(LOG_0) << "MCParTra: Created residual type B source.";
 
   }
   else

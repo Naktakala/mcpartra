@@ -36,7 +36,7 @@ int chiMonteCarlonAddCustomVolumeTally(lua_State *L)
                                 std::string(__FUNCTION__) + ".");
   }
 
-  auto mc_solver = dynamic_cast<chi_montecarlon::Solver*>(solver);
+  auto mc_solver = dynamic_cast<mcpartra::Solver*>(solver);
   if (not mc_solver)
     throw std::invalid_argument("Solver pointed to in call to " +
                                 std::string(__FUNCTION__) + " does not have"

@@ -41,9 +41,9 @@ int chiMonteCarlonSetImportances(lua_State *L)
     exit(EXIT_FAILURE);
   }
 
-  chi_montecarlon::Solver* mcsolver;
-  if (typeid(*solver) == typeid(chi_montecarlon::Solver))
-    mcsolver = (chi_montecarlon::Solver*)solver;
+  mcpartra::Solver* mcsolver;
+  if (typeid(*solver) == typeid(mcpartra::Solver))
+    mcsolver = (mcpartra::Solver*)solver;
   else
   {
     chi_log.Log(LOG_ALLERROR)
