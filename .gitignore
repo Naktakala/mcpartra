@@ -4,6 +4,8 @@ cmake-build-debug
 .idea
 
 build/
+__pycache__/
+ZL*
 
 # Latex compile files
 *.aux

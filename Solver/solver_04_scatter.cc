@@ -17,8 +17,8 @@ extern ChiLog& chi_log;
 //###################################################################
 /**Processes a scattering event from cross-sections.*/
 std::pair<int,chi_mesh::Vector3>
-chi_montecarlon::Solver::
-ProcessScattering(chi_montecarlon::Particle &prtcl,
+mcpartra::Solver::
+ProcessScattering(mcpartra::Particle &prtcl,
                   std::shared_ptr<chi_physics::TransportCrossSections> xs)
 {
   //=================================== Sample energy
@@ -26,7 +26,7 @@ ProcessScattering(chi_montecarlon::Particle &prtcl,
   int gprime = xs->Sample_gprime(g,rng0.Rand());
 
   //=================================== Sample scattering cosine
-  double mu = xs->SampleMu_gprime_g(g, gprime, rng0.Rand(), force_isotropic);
+  double mu = xs->SampleMu_gprime_g(g, gprime, rng0.Rand(), options.force_isotropic);
 
   double theta    = acos(mu);
   double varphi   = rng0.Rand()*2.0*M_PI;
@@ -64,7 +64,7 @@ ProcessScattering(chi_montecarlon::Particle &prtcl,
 //###################################################################
 /**Processes a change in importance by either playing a game of
  * Russian-Roulette or by splitting the particle.*/
-void chi_montecarlon::Solver::ProcessImportanceChange(Particle& prtcl)
+void mcpartra::Solver::ProcessImportanceChange(Particle& prtcl)
 {
   //=================================== Particle splitting
   if (prtcl.cur_cell_importance > prtcl.pre_cell_importance)

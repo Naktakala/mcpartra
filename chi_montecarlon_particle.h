@@ -1,11 +1,11 @@
-#ifndef _chi_montecarlon_particle_h
-#define _chi_montecarlon_particle_h
+#ifndef MCPARTRA_PARTICLE_H
+#define MCPARTRA_PARTICLE_H
 
 #include <ChiMesh/chi_mesh.h>
 #include <chi_mpi.h>
 
 /**Structure for storing particle information.*/
-struct chi_montecarlon::Particle
+struct mcpartra::Particle final
 {
   //Pos
   chi_mesh::Vector3 pos;
@@ -16,11 +16,11 @@ struct chi_montecarlon::Particle
   double w = 1.0; //Weight
   int egrp = 0; //Energy group
 
-  int cur_cell_global_id = -1;
-  int pre_cell_global_id = -1;
+  uint64_t cur_cell_global_id = -1;
+  uint64_t pre_cell_global_id = -1;
 
-  int cur_cell_local_id = -1;
-  int pre_cell_local_id = -1;
+  uint64_t cur_cell_local_id = -1;
+  uint64_t pre_cell_local_id = -1;
 
   int ray_trace_method = 0; //STANDARD
   int tally_method = 0;     //STANDARD
@@ -35,6 +35,13 @@ struct chi_montecarlon::Particle
 
 
   Particle() {}
+
+  static Particle MakeDeadParticle()
+  {
+    Particle new_particle;
+    new_particle.alive = false;
+    return  new_particle;
+  }
 
   //=================================== Copy operator
   Particle& operator=(const Particle& that)
@@ -118,21 +125,21 @@ struct chi_montecarlon::Particle
       offsetof(Particle, banked)};
 
     MPI_Datatype block_types[] = {
-      MPI_DOUBLE, //pos
-      MPI_DOUBLE, //dir
-      MPI_DOUBLE, //w
-      MPI_INT,    //egrp
-      MPI_INT,    //cur_cell_global_id
-      MPI_INT,    //pre_cell_global_id
-      MPI_INT,    //cur_cell_local_id
-      MPI_INT,    //pre_cell_local_id
-      MPI_INT,    //ray_trace_method
-      MPI_INT,    //tally_method
-      MPI_INT,    //tally_mask
-      MPI_DOUBLE, //cur_cell_importance
-      MPI_DOUBLE, //pre_cell_importance
-      MPI_BYTE,   //alive
-      MPI_BYTE    //banked
+      MPI_DOUBLE,                //pos
+      MPI_DOUBLE,                //dir
+      MPI_DOUBLE,                //w
+      MPI_INT,                   //egrp
+      MPI_UNSIGNED_LONG_LONG,    //cur_cell_global_id
+      MPI_UNSIGNED_LONG_LONG,    //pre_cell_global_id
+      MPI_UNSIGNED_LONG_LONG,    //cur_cell_local_id
+      MPI_UNSIGNED_LONG_LONG,    //pre_cell_local_id
+      MPI_INT,                   //ray_trace_method
+      MPI_INT,                   //tally_method
+      MPI_INT,                   //tally_mask
+      MPI_DOUBLE,                //cur_cell_importance
+      MPI_DOUBLE,                //pre_cell_importance
+      MPI_BYTE,                  //alive
+      MPI_BYTE                   //banked
     };
 
     MPI_Type_create_struct(
@@ -149,4 +156,4 @@ struct chi_montecarlon::Particle
 };
 
 
-#endif
+#endif //MCPARTRA_PARTICLE_H

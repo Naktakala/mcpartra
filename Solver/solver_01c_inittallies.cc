@@ -10,10 +10,9 @@ extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Initializes tallies.*/
-void chi_montecarlon::Solver::InitTallies()
+void mcpartra::Solver::InitTallies()
 {
-  auto handler = chi_mesh::GetCurrentHandler();
-  mesh_is_global = handler->volume_mesher->options.mesh_global;
+  chi_log.Log() << "MCParTra: Initializing tallies";
 
   //=================================== Unknown Manager
   for (int m=0; m<num_moms; ++m)

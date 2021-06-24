@@ -9,9 +9,9 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Initialize materials.*/
-void chi_montecarlon::Solver::InitMaterials()
+void mcpartra::Solver::InitMaterials()
 {
-  chi_log.Log(LOG_0VERBOSE_1) << "Initializing MonteCarlo solver.";
+  chi_log.Log() << "MCParTra: Initializing Materials.";
 
   //=================================== Initialize Materials
   if (chi_physics_handler.material_stack.empty())
@@ -38,8 +38,8 @@ void chi_montecarlon::Solver::InitMaterials()
           std::static_pointer_cast<chi_physics::TransportCrossSections>(
             cur_mat->properties[p]);
 
-        transp_xs->ComputeDiffusionParameters();
-        transp_xs->ComputeDiscreteScattering(scattering_order);
+//        transp_xs->ComputeDiffusionParameters();
+        transp_xs->ComputeDiscreteScattering(options.scattering_order);
 
         if (transp_xs->num_groups > num_grps)
           num_grps = static_cast<int>(transp_xs->num_groups);

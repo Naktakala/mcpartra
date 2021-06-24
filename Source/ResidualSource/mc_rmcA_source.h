@@ -9,7 +9,7 @@
 
 //###################################################################
 /**Residual source class.*/
-class chi_montecarlon::ResidualSourceA : public chi_montecarlon::Source
+class mcpartra::ResidualSourceA : public mcpartra::SourceBase
 {
 public:
   std::shared_ptr<chi_physics::FieldFunction> resid_ff;
@@ -78,12 +78,16 @@ public:
 public:
   //a
   explicit
-  ResidualSourceA(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
-                  bool use_uniform_sampling=false);
+  ResidualSourceA(mcpartra::Solver& solver,
+                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff,
+                  bool use_uniform_sampling=false) :
+    SourceBase(SourceType::RESIDUAL_TYPE_A, solver),
+    resid_ff(in_resid_ff),
+    sample_uniformly(use_uniform_sampling)
+  {}
 
-  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
-                  chi_montecarlon::Solver* ref_solver) override;
+  void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
 
   //b
   void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
@@ -121,10 +125,10 @@ public:
     const chi_mesh::Vector3& normal);
 
   //c
-  chi_montecarlon::Particle
+  mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator* rng) override;
 
-  double GetParallelRelativeSourceWeight() override;
+//  double GetParallelRelativeSourceWeight() override;
 
   //d
   void RemoveFFDiscontinuities();

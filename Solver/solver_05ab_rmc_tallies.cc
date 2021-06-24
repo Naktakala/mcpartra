@@ -13,9 +13,9 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Obtains a field function interpolant of the flux.*/
-double chi_montecarlon::Solver::
+double mcpartra::Solver::
   GetResidualFFPhi(std::vector<double> &N_in, int dofs, int rmap,
-                   chi_montecarlon::ResidualSourceB *rsrc, int egrp)
+                   mcpartra::ResidualSourceB *rsrc, int egrp)
 {
   const auto& uk_man = rsrc->resid_ff->unknown_manager;
   auto sdm = rsrc->resid_ff->spatial_discretization;
@@ -43,9 +43,9 @@ double chi_montecarlon::Solver::
 
 //###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
-chi_mesh::Vector3 chi_montecarlon::Solver::
+chi_mesh::Vector3 mcpartra::Solver::
   GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in, int dofs, int rmap,
-                       chi_montecarlon::ResidualSourceB *rsrc, int egrp)
+                       mcpartra::ResidualSourceB *rsrc, int egrp)
 {
   const auto& uk_man = rsrc->resid_ff->unknown_manager;
   auto sdm = rsrc->resid_ff->spatial_discretization;
@@ -74,8 +74,8 @@ chi_mesh::Vector3 chi_montecarlon::Solver::
 
 //###################################################################
 /**Makes a contribution to tallies*/
-void chi_montecarlon::Solver::ContributeTallyRMC(
-  chi_montecarlon::Particle &prtcl,
+void mcpartra::Solver::ContributeTallyRMC(
+  mcpartra::Particle &prtcl,
   const chi_mesh::Vector3& pf,
   chi_mesh::RayDestinationInfo& ray_dest_info)
 {
@@ -108,7 +108,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
   double avg_weight = 0.0;
 
   //======================================== Get residual-source and mappings
-  auto src = (chi_montecarlon::ResidualSourceB*)sources.back();
+  auto src = (mcpartra::ResidualSourceB*)sources.back();
   int rmap = 0;//src->resid_ff->spatial_discretization->cell_local_block_address[cell_local_ind];
 
   //======================================== Contribute PWLD
@@ -296,7 +296,7 @@ void chi_montecarlon::Solver::ContributeTallyRMC(
 
 //###################################################################
 /**Makes a scattered particle.*/
-chi_montecarlon::Particle chi_montecarlon::Solver::
+mcpartra::Particle mcpartra::Solver::
   MakeScatteredParticle(Particle &prtcl,
                         const double tracklength,
                         const double weight)
@@ -333,8 +333,8 @@ chi_montecarlon::Particle chi_montecarlon::Solver::
   new_particle.cur_cell_local_id  = prtcl.cur_cell_local_id;
 
   //======================================== Methods
-  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::STANDARD;
-  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::STANDARD;
+  new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::STANDARD;
+  new_particle.tally_method = mcpartra::Solver::TallyMethod::STANDARD;
 
   return new_particle;
 }

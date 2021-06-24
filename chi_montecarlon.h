@@ -1,12 +1,12 @@
-#ifndef _chi_montecarlon_h
-#define _chi_montecarlon_h
+#ifndef CHI_MONTECARLON_H
+#define CHI_MONTECARLON_H
 
 #include <map>
 
 //######################################################### Namespace
-namespace chi_montecarlon
+namespace mcpartra
 {
-  class Source;
+  class SourceBase;
   class BoundarySource;
   class MaterialSource;
   class ResidualSourceA;
@@ -17,4 +17,4 @@ namespace chi_montecarlon
   struct Particle;
 }
 
-#endif
+#endif //CHI_MONTECARLON_H

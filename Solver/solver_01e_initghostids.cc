@@ -9,9 +9,9 @@ extern ChiMPI& chi_mpi;
 //###################################################################
 /** The montecarlo method requires a particle to transfer from
  * one partition to another. This means that its local id might change. */
-void chi_montecarlon::Solver::InitGhostIDs()
+void mcpartra::Solver::InitGhostIDs()
 {
-  chi_log.Log(LOG_0) << "Initializing Ghost IDs";
+  chi_log.Log(LOG_0) << "MCParTra: Initializing Ghost IDs";
 
   //======================================== Develop list of cells requiring
   //                                         local ids
@@ -29,8 +29,8 @@ void chi_montecarlon::Solver::InitGhostIDs()
   size_t tot_send=0;
   for (int loc=0; loc<chi_mpi.process_count; ++loc)
   {
-    send_counts[loc] = cells_needing_local_ids[loc].size();
-    send_displs[loc] = tot_send;
+    send_counts[loc] = static_cast<int>(cells_needing_local_ids[loc].size());
+    send_displs[loc] = static_cast<int>(tot_send);
 
     tot_send += cells_needing_local_ids[loc].size();
   }
@@ -46,7 +46,7 @@ void chi_montecarlon::Solver::InitGhostIDs()
   send_buf.resize(tot_send,0);
   size_t count=0;
   for (int loc=0; loc<chi_mpi.process_count; ++loc)
-    for (int cell_g_id : cells_needing_local_ids[loc])
+    for (auto cell_g_id : cells_needing_local_ids[loc])
     {
       send_buf[count] = cell_g_id;
       ++count;
@@ -58,15 +58,17 @@ void chi_montecarlon::Solver::InitGhostIDs()
   for (int loc=0; loc<chi_mpi.process_count; ++loc)
   {
     recv_displs[loc] = tot_recv;
-    tot_recv += recv_counts[loc];
+    tot_recv += static_cast<int>(recv_counts[loc]);
   }
 
   //======================================== Communicate
   std::vector<uint64_t> recv_buf;
   recv_buf.resize(tot_recv,0);
 
-  MPI_Alltoallv(send_buf.data(),send_counts.data(),send_displs.data(),MPI_UNSIGNED_LONG_LONG,
-                recv_buf.data(),recv_counts.data(),recv_displs.data(),MPI_UNSIGNED_LONG_LONG,
+  MPI_Alltoallv(send_buf.data(), send_counts.data(), send_displs.data(),
+                MPI_UNSIGNED_LONG_LONG,
+                recv_buf.data(), recv_counts.data(), recv_displs.data(),
+                MPI_UNSIGNED_LONG_LONG,
                 MPI_COMM_WORLD);
 
   //We now have all the global ids from each location

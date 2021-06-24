@@ -66,7 +66,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   int source_type = lua_tonumber(L,2);
 
   //============================================= Boundary source
-  if (source_type == chi_montecarlon::SourceTypes::BNDRY_SRC)
+  if (source_type == chi_montecarlon::SourceType::BNDRY_SRC)
   {
     if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -92,7 +92,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
   }
   //============================================= Material source
-  else if (source_type == chi_montecarlon::SourceTypes::MATERIAL_SRC)
+  else if (source_type == chi_montecarlon::SourceType::MATERIAL_SRC)
   {
     if (num_args < 2)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -106,7 +106,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
 
     chi_log.Log(LOG_0) << "MonteCarlo-created boundary source.";
   }
-  else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL_TYPE_A)
+  else if (source_type == chi_montecarlon::SourceType::RESIDUAL_TYPE_A)
   {
     if (num_args != 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -140,7 +140,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
   //============================================= Improved Residual source
   //                                              MOC Uniform sampling
-  else if (source_type == chi_montecarlon::SourceTypes::RESIDUAL_TYPE_B)
+  else if (source_type == chi_montecarlon::SourceType::RESIDUAL_TYPE_B)
   {
     if (num_args < 5)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"

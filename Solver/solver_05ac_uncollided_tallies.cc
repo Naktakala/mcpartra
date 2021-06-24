@@ -5,8 +5,8 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Makes a contribution to tallies*/
-void chi_montecarlon::Solver::ContributeTallyUNC(
-  chi_montecarlon::Particle &prtcl,
+void mcpartra::Solver::ContributeTallyUNC(
+  mcpartra::Particle &prtcl,
   const chi_mesh::Vector3& pf,
   double sig_t)
 {
@@ -47,7 +47,7 @@ void chi_montecarlon::Solver::ContributeTallyUNC(
   //============================================= PWL Tallies
   for (int t : pwl_tallies)
   {
-    if ( (prtcl.tally_mask & (1 << t)) && (make_pwld))
+    if ( (prtcl.tally_mask & (1 << t)) && (options.make_pwld))
     {
       segment_lengths.clear();
       segment_lengths.push_back(tracklength);

@@ -10,14 +10,14 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Populates MPI datatypes*/
-void chi_montecarlon::Solver::BuildMPITypes()
+void mcpartra::Solver::BuildMPITypes()
 {
-  chi_montecarlon::Particle::BuildMPIDatatype(mpi_prtcl_data_type);
+  mcpartra::Particle::BuildMPIDatatype(mpi_prtcl_data_type);
 }
 
 //###################################################################
 /**Determine Outbound bank size*/
-void chi_montecarlon::Solver::GetOutboundBankSize()
+void mcpartra::Solver::GetOutboundBankSize()
 {
   unsigned int local_size = outbound_particle_bank.size();
 
@@ -27,7 +27,7 @@ void chi_montecarlon::Solver::GetOutboundBankSize()
 
 //###################################################################
 /**Builds the outgoing/incoming structures.*/
-void chi_montecarlon::Solver::
+void mcpartra::Solver::
   ReceiveIncomingParticles(std::vector<Particle>& inbound_particles)
 {
   //=================================== Segregate particles acc. to location

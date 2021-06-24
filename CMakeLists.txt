@@ -10,9 +10,9 @@ set(SOURCES "mcpartra.cc")
 file (GLOB_RECURSE MORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
 
 FOREACH(item ${MORE_SOURCES})
-    IF(${item} MATCHES "lua/montecarlon_maindoc_page.cc")
+    IF(${item} MATCHES "lua/mcpartra_maindoc_page.cc")
         LIST(REMOVE_ITEM MORE_SOURCES ${item})
-    ENDIF(${item} MATCHES "lua/montecarlon_maindoc_page.cc")
+    ENDIF(${item} MATCHES "lua/mcpartra_maindoc_page.cc")
 ENDFOREACH(item)
 
 set(SOURCES ${SOURCES} ${MORE_SOURCES})

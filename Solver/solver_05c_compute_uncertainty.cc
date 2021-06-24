@@ -4,13 +4,13 @@ typedef unsigned long long TULL;
 
 //###################################################################
 /**Computes the relative std dev for all the tallies.*/
-void chi_montecarlon::Solver::ComputeUncertainty()
+void mcpartra::Solver::ComputeUncertainty()
 {
   max_sigma = 0.0;
   max_relative_sigma = 0.0;
 
-  max_fem_sigma = 0.0;
-  max_fem_relative_sigma = 0.0;
+//  max_fem_sigma = 0.0;
+//  max_fem_relative_sigma = 0.0;
 
 
   //============================================= FV Tallies
@@ -93,7 +93,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
               if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
               {
                 grid_tally_blocks[t].tally_relative_sigma[ir] = stddev/x_avg;
-                max_fem_relative_sigma = std::max(max_relative_sigma,stddev/x_avg);
+//                max_fem_relative_sigma = std::max(max_relative_sigma,stddev/x_avg);
               }
               else
                 grid_tally_blocks[t].tally_relative_sigma[ir] = 0.0;
@@ -109,7 +109,7 @@ void chi_montecarlon::Solver::ComputeUncertainty()
       }//for local cell
     }//if tally active
   }//for tallies
-  avg_fem_sigma = IntV_fem_sigma / Vtot_fem;
+//  avg_fem_sigma = IntV_fem_sigma / Vtot_fem;
 
   //============================================= Custom tallies
   for (auto& custom_tally : custom_tallies)
@@ -144,12 +144,12 @@ void chi_montecarlon::Solver::ComputeUncertainty()
 
         double normalized_avg = x_avg*
                                 source_normalization*
-                                tally_multipl_factor/
+                                options.tally_multipl_factor/
                                 custom_tally.tally_volume;
 
         double normalized_std = stddev*
                                 source_normalization*
-                                tally_multipl_factor/
+                                options.tally_multipl_factor/
                                 custom_tally.tally_volume;
 
         new_chart.average.push_back(normalized_avg);

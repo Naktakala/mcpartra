@@ -1,5 +1,7 @@
 #include"solver_montecarlon.h"
 
+#include "ChiMesh/MeshHandler/chi_meshhandler.h"
+
 #include <chi_log.h>
 #include <chi_mpi.h>
 
@@ -8,49 +10,28 @@ extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Initialize the solver.*/
-bool chi_montecarlon::Solver::Initialize()
+bool mcpartra::Solver::Initialize()
 {
-  chi_log.Log(LOG_0) << "Initializing MonteCarlo solver.";
+  chi_log.Log(LOG_0) << "\nInitializing MCParTra solver.\n\n";
 
   //=================================== Obtain grid reference
-  chi_mesh::Region*  aregion = this->regions.back();
-  this->grid                 = aregion->GetGrid();
-  size_t num_local_cells = grid->local_cells.size();
+  grid = chi_mesh::GetCurrentHandler()->GetGrid();
 
-  //=================================== Set cell importance
-  if (local_cell_importance_setting.empty())
-  {
-    local_cell_importance.clear();
-    local_cell_importance.resize(num_local_cells,1.0);
-  }
-  else
-    local_cell_importance = local_cell_importance_setting;
+  default_raytracer = std::make_shared<chi_mesh::RayTracer>(*grid,
+                                                            1.0e-8,
+                                                            1.0e-10,
+                                                            1.0e5,
+                                                            false);
 
-  //=================================== Initialize materials
   InitMaterials();
-
+  InitTallies();
+  InitFieldFunctions();
+  InitGhostIDs();
+  InitCellImportances();
+  InitSources();
   InitParticleBatches();
 
-  //=================================== Initialize tallies
-  InitTallies();
 
-  //=================================== Initialize Sources
-  chi_log.Log(LOG_0) << "Initializing sources";
-  for (auto source : sources)
-  {
-    source->Initialize(grid, fv, this);
-    double local_weight = source->GetParallelRelativeSourceWeight();
-    for (auto& val : batch_sizes_per_loc)
-      val *= local_weight*chi_mpi.process_count;
-  }
-
-  //=================================== Initialize field functions
-  InitFieldFunctions();
-
-  //=================================== Init ghost ids
-  InitGhostIDs();
-
-  //=================================== Initialize data types
   BuildMPITypes();
 
   MPI_Barrier(MPI_COMM_WORLD);

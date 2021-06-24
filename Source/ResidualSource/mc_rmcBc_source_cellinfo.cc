@@ -9,7 +9,7 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Build cell volume information.*/
-void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
+void mcpartra::ResidualSourceB::BuildCellVolInfo(
   chi_mesh::MeshContinuumPtr ref_grid,
   std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm)
 {
@@ -125,10 +125,10 @@ void chi_montecarlon::ResidualSourceB::BuildCellVolInfo(
 
 //###################################################################
 /**Samples the cell interior*/
-chi_mesh::Vector3 chi_montecarlon::ResidualSourceB::
+chi_mesh::Vector3 mcpartra::ResidualSourceB::
   GetRandomPositionInCell(
-    chi_math::RandomNumberGenerator *rng,
-    chi_montecarlon::ResidualSourceB::CellSideInfo &cell_side_info)
+  chi_math::RandomNumberGenerator *rng,
+  mcpartra::ResidualSourceB::CellSideInfo &cell_side_info)
 {
   chi_mesh::Vector3 position;
   double rn = rng->Rand();

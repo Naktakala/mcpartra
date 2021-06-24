@@ -7,7 +7,7 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /** Adds a custom volume tally to the solver.*/
-size_t chi_montecarlon::Solver::
+size_t mcpartra::Solver::
   AddCustomVolumeTally(chi_mesh::LogicalVolume &logical_volume)
 {
   chi_mesh::Region*  aregion = this->regions.back();

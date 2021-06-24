@@ -2,9 +2,9 @@
 
 //###################################################################
 /**Computes PWLD transformations of the PWLD tallies.*/
-void chi_montecarlon::Solver::ComputePWLDTransformations()
+void mcpartra::Solver::ComputePWLDTransformations()
 {
-  if (make_pwld)
+  if (options.make_pwld)
   {
     for (auto& cell : grid->local_cells)
     {

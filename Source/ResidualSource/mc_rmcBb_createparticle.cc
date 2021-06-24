@@ -19,10 +19,10 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSourceB::
+mcpartra::Particle mcpartra::ResidualSourceB::
 CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 {
-  chi_montecarlon::Particle new_particle;
+  mcpartra::Particle new_particle;
 
   if (source_patch_cdf.empty())
   {
@@ -96,7 +96,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Determine weight
   // Interpolate phi
-  auto pwl_view = ref_solver->pwl->GetCellMappingFE(cell_local_id);
+  auto pwl_view = ref_solver.pwl->GetCellMappingFE(cell_local_id);
   std::vector<double> shape_values(pwl_view->num_nodes,0.0);
   pwl_view->ShapeValues(new_particle.pos,shape_values);
 //  auto ff_dof_vals = (*resid_ff).GetCellDOFValues(cell_local_id,
@@ -121,19 +121,19 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
   new_particle.cur_cell_global_id = cell->global_id;
   new_particle.cur_cell_local_id  = cell_local_id;
 
-  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::UNCOLLIDED;
-  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::RMC_CHAR_RAY;
+  new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::UNCOLLIDED;
+  new_particle.tally_method = mcpartra::Solver::TallyMethod::RMC_CHAR_RAY;
 
   if (collided_source_mode == CollidedSrcMode::DIRECT)
     new_particle.tally_mask = new_particle.tally_mask |
-      chi_montecarlon::Solver::TallyMask::MAKE_DIRECT_PARTICLES;
+                              mcpartra::Solver::TallyMask::MAKE_DIRECT_PARTICLES;
 
   return new_particle;
 }
 
 //###################################################################
 /**Applies the re-execution efforts.*/
-bool chi_montecarlon::ResidualSourceB::
+bool mcpartra::ResidualSourceB::
   CheckForReExecution()
 {
   if (collided_source_mode == CollidedSrcMode::STAGGERED)
@@ -142,9 +142,9 @@ bool chi_montecarlon::ResidualSourceB::
     {
       ray_trace_phase = false;
 
-      auto& tally_blocks = ref_solver->grid_tally_blocks;
-      auto& masks = ref_solver->TallyMaskIndex;
-      typedef chi_montecarlon::Solver::TallyMask maskv;
+      auto& tally_blocks = ref_solver.grid_tally_blocks;
+      auto& masks = ref_solver.TallyMaskIndex;
+      typedef mcpartra::Solver::TallyMask maskv;
 
       uncollided_fv_tally  = tally_blocks[masks[maskv::DEFAULT_FVTALLY]];
       uncollided_pwl_tally = tally_blocks[masks[maskv::DEFAULT_PWLTALLY]];
@@ -153,14 +153,14 @@ bool chi_montecarlon::ResidualSourceB::
       tally_blocks[masks[maskv::DEFAULT_PWLTALLY]].ZeroOut();
 
       DevelopRMCCollidedSource();
-      ref_solver->source_normalization = ref_solver->IntVSumG_phi_unc;
+      ref_solver.source_normalization = ref_solver.IntVSumG_phi_unc;
       return true;
     }
     else
     {
-      auto& tally_blocks = ref_solver->grid_tally_blocks;
-      auto& masks = ref_solver->TallyMaskIndex;
-      typedef chi_montecarlon::Solver::TallyMask maskv;
+      auto& tally_blocks = ref_solver.grid_tally_blocks;
+      auto& masks = ref_solver.TallyMaskIndex;
+      typedef mcpartra::Solver::TallyMask maskv;
 
       tally_blocks[masks[maskv::DEFAULT_FVTALLY]] += uncollided_fv_tally;
       tally_blocks[masks[maskv::DEFAULT_PWLTALLY]] += uncollided_pwl_tally;
@@ -178,46 +178,46 @@ bool chi_montecarlon::ResidualSourceB::
 
 //###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSourceB::
+mcpartra::Particle mcpartra::ResidualSourceB::
 CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
 {
-  chi_montecarlon::Particle new_particle;
+  mcpartra::Particle new_particle;
 
-  if (ref_solver->IntVSumG_phi_unc < 1.0e-12)
+  if (ref_solver.IntVSumG_phi_unc < 1.0e-12)
   {
     new_particle.alive = false;
     return new_particle;
   }
 
   //======================================== Sample group
-  auto& cdf_group = ref_solver->cdf_phi_unc_group;
+  auto& cdf_group = ref_solver.cdf_phi_unc_group;
   int group_g = std::lower_bound(
     cdf_group.begin(),
     cdf_group.end(),
     rng->Rand()) - cdf_group.begin();
 
   //======================================== Sample cell
-  auto& cdf_cell = ref_solver->cdf_phi_unc_group_cell[group_g];
+  auto& cdf_cell = ref_solver.cdf_phi_unc_group_cell[group_g];
   int lc = std::lower_bound(
     cdf_cell.begin(),
     cdf_cell.end(),
     rng->Rand()) - cdf_cell.begin();
 
-  auto& tally_blocks = ref_solver->grid_tally_blocks;
-  auto& masks = ref_solver->TallyMaskIndex;
-  typedef chi_montecarlon::Solver::TallyMask maskv;
+  auto& tally_blocks = ref_solver.grid_tally_blocks;
+  auto& masks = ref_solver.TallyMaskIndex;
+  typedef mcpartra::Solver::TallyMask maskv;
 
   auto& unc_fv_tally  = uncollided_fv_tally.tally_global;
   auto& unc_fem_tally = uncollided_pwl_tally.tally_global;
 
   //======================================== Randomly Sample Cell
-  int cell_glob_index = ref_solver->grid->local_cell_glob_indices[lc];
-  auto& cell = ref_solver->grid->local_cells[lc];
-  auto pwl_view = ref_solver->pwl->GetCellMappingFE(lc);
-  auto fv_view = ref_solver->fv->MapFeView(lc);
+  int cell_glob_index = ref_solver.grid->local_cell_glob_indices[lc];
+  auto& cell = ref_solver.grid->local_cells[lc];
+  auto pwl_view = ref_solver.pwl->GetCellMappingFE(lc);
+  auto fv_view = ref_solver.fv->MapFeView(lc);
 
   int mat_id = cell.material_id;
-  int xs_id = ref_solver->matid_xs_map[mat_id];
+  int xs_id = ref_solver.matid_xs_map[mat_id];
 
   auto mat = chi_physics_handler.material_stack[mat_id];
   auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
@@ -249,12 +249,12 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   double source = 0.0;
   for (int dof=0; dof<pwl_view->num_nodes; ++dof)
   {
-    int irfem = ref_solver->pwl->MapDOFLocal(cell, dof, ref_solver->uk_man_pwld,/*m*/0,/*g*/0);
+    int irfem = ref_solver.pwl->MapDOFLocal(cell, dof, ref_solver.uk_man_pwld,/*m*/0,/*g*/0);
     source += shape_values[dof] * unc_fem_tally[irfem];
   }
   source *= sigs;
 
-  double cell_avg_src = ref_solver->IntVk_phi_unc_g[0][lc] / fv_view->volume;
+  double cell_avg_src = ref_solver.IntVk_phi_unc_g[0][lc] / fv_view->volume;
 
   new_particle.w = source / cell_avg_src;
   new_particle.egrp = 0;
@@ -267,8 +267,8 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   new_particle.cur_cell_global_id = cell_glob_index;
   new_particle.cur_cell_local_id  = cell.local_id;
 
-  new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::STANDARD;
-  new_particle.tally_method = chi_montecarlon::Solver::TallyMethod::STANDARD;
+  new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::STANDARD;
+  new_particle.tally_method = mcpartra::Solver::TallyMethod::STANDARD;
 
   return new_particle;
 }

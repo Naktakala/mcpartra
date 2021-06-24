@@ -10,7 +10,7 @@ typedef unsigned long long TULL;
 
 //###################################################################
 /**Merges tallies from multiple locations.*/
-void chi_montecarlon::Solver::RendesvouzTallies()
+void mcpartra::Solver::RendesvouzTallies()
 {
   TULL temp_nps_global = 0;
   MPI_Allreduce(&nps,&temp_nps_global,

@@ -7,7 +7,7 @@
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
-void chi_montecarlon::ResidualSourceA::RemoveFFDiscontinuities()
+void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
 {
 //  size_t num_verts = resid_ff->grid->vertices.size();
 //

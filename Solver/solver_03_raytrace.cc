@@ -13,7 +13,7 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**Entry point ray-tracer which selects different ray tracing algorithms.*/
-void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
+void mcpartra::Solver::Raytrace(Particle& prtcl)
 {
   switch (prtcl.ray_trace_method)
   {
@@ -34,9 +34,8 @@ void chi_montecarlon::Solver::Raytrace(Particle& prtcl)
 //###################################################################
 /**Standard neutral particle raytracer, tracing to next event
  * or to next surface.*/
-void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
+void mcpartra::Solver::RaytraceSTD(Particle& prtcl)
 {
-//  chi_log.Log() << "here " << prtcl.pos.PrintS() << " " << prtcl.dir.PrintS() << " " << prtcl.cur_cell_global_id;
   //======================================== Get cell
   chi_mesh::Cell* cell;
   if (prtcl.cur_cell_local_id >= 0)
@@ -82,20 +81,25 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
   chi_mesh::Vector3 posf = prtcl.pos;
   chi_mesh::Vector3 dirf = prtcl.dir;
   int                ef = prtcl.egrp;
-  chi_mesh::RayDestinationInfo ray_dest_info =
-    chi_mesh::RayTrace(*grid,          //[Input] Grid
-                       *cell,          //[Input] Current cell
-                       prtcl.pos,     //[Input] Current position
-                       prtcl.dir,     //[Input] Current direction
-                       d_to_surface,  //[Otput] Distance to next surface
-                       posf);         //[Otput] Intersection point at next surf
+//  chi_mesh::RayDestinationInfo ray_dest_info =
+//    chi_mesh::RayTrace(*grid,          //[Input] Grid
+//                       *cell,          //[Input] Current cell
+//                       prtcl.pos,     //[Input] Current position
+//                       prtcl.dir,     //[Input] Current direction
+//                       d_to_surface,  //[Otput] Distance to next surface
+//                       posf);         //[Otput] Intersection point at next surf
+
+  auto ray_dest_info = default_raytracer->TraceRay(*cell,prtcl.pos,prtcl.dir);
+
+  d_to_surface = ray_dest_info.distance_to_surface;
+  posf = ray_dest_info.pos_f;
 
   //======================================== Process interaction
   if (d_to_intract < d_to_surface)
   {
     posf = prtcl.pos + prtcl.dir*d_to_intract;
 
-    if (uncollided_only)
+    if (options.uncollided_only)
     {
       ef = prtcl.egrp;
       dirf = prtcl.dir;
@@ -110,7 +114,7 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
         ef   = energy_dir.first;
         dirf = energy_dir.second;
 
-        if (mono_energy && (ef != prtcl.egrp))
+        if (options.mono_energy && (ef != prtcl.egrp))
           prtcl.alive = false;
       }
       else
@@ -149,7 +153,7 @@ void chi_montecarlon::Solver::RaytraceSTD(Particle& prtcl)
       prtcl.pre_cell_global_id = prtcl.cur_cell_global_id;
       prtcl.cur_cell_global_id = ray_dest_info.destination_face_neighbor;
 
-      if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_global_id)))
+      if (not grid->IsCellLocal(prtcl.cur_cell_global_id))
       {
         prtcl.pos = posf;
         prtcl.dir = dirf;

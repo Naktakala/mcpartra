@@ -11,7 +11,7 @@ extern ChiLog& chi_log;
 extern ChiMPI& chi_mpi;
 extern ChiTimer chi_program_timer;
 
-void chi_montecarlon::Solver::PrintBatchInfo(size_t b, double particle_rate)
+void mcpartra::Solver::PrintBatchInfo(size_t b, double particle_rate)
 {
   if (b==0 or ((b+1)%10)==0)
     chi_log.Log(LOG_0)
@@ -21,7 +21,7 @@ void chi_montecarlon::Solver::PrintBatchInfo(size_t b, double particle_rate)
 //    << "00:01:17 Batch  10       1000000      57.78   3.6438e-04 1.0356e-01 6.5527e-05";
 
   double correction = 1.0;
-  if (typeid(*sources.back()) == typeid(chi_montecarlon::ResidualSourceA))
+  if (typeid(*sources.back()) == typeid(mcpartra::ResidualSourceA))
     correction = 1/3.0;
 
   chi_log.Log(LOG_0)

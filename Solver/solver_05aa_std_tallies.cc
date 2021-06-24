@@ -9,8 +9,8 @@ typedef unsigned long long TULL;
 
 //###################################################################
 /**Makes a contribution to tallies*/
-void chi_montecarlon::Solver::
-  ContributeTally(chi_montecarlon::Particle &prtcl, const chi_mesh::Vector3& pf)
+void mcpartra::Solver::
+  ContributeTally(mcpartra::Particle &prtcl, const chi_mesh::Vector3& pf)
 {
   auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
   int cell_local_ind = cell.local_id;
@@ -55,7 +55,7 @@ void chi_montecarlon::Solver::
   //============================================= PWL Tallies
   for (int t : pwl_tallies)
   {
-    if ( (prtcl.tally_mask & (1 << t)) && (make_pwld))
+    if ( (prtcl.tally_mask & (1 << t)) && (options.make_pwld))
     {
       segment_lengths.clear();
       segment_lengths.push_back(tracklength);

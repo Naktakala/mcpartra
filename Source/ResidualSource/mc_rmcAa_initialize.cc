@@ -11,37 +11,25 @@ extern ChiLog& chi_log;
 #include "chi_mpi.h"
 extern ChiMPI& chi_mpi;
 
-//###################################################################
-/**Constructor for residual source.*/
-chi_montecarlon::ResidualSourceA::
-ResidualSourceA(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
-                bool use_uniform_sampling) :
-  sample_uniformly(use_uniform_sampling)
-{
-  type_index = SourceTypes::RESIDUAL_TYPE_A;
-  resid_ff = in_resid_ff;
-}
 
 //###################################################################
 /**Initializes an rmc source.
  *
  * This process involves numerous steps. One of the first steps is
  * to */
-void chi_montecarlon::ResidualSourceA::
-Initialize(chi_mesh::MeshContinuumPtr ref_grid,
-           std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
-           chi_montecarlon::Solver* ref_solver)
+void mcpartra::ResidualSourceA::
+Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
+           std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm)
 {
   chi_log.Log(LOG_0) << "Initializing Residual3 Sources";
 
   const double FOUR_PI   = 4.0*M_PI;
   grid                   = ref_grid;
   fv_sdm                 = ref_fv_sdm;
-  this->ref_solver       = ref_solver;
-  auto& rng              = ref_solver->rng0;
-  size_t num_local_cells = ref_solver->grid->local_cells.size();
-  auto& pwl              = ref_solver->pwl;
-  auto& fv               = ref_solver->fv;
+  auto& rng              = ref_solver.rng0;
+  size_t num_local_cells = ref_solver.grid->local_cells.size();
+  auto& pwl              = ref_solver.pwl;
+  auto& fv               = ref_solver.fv;
 
   //============================================= Build cell composition data
   //This info is basically constituent side triangles/tetrahedrons
@@ -74,7 +62,7 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
   std::vector<chi_mesh::Vector3> grad_shape_values;
   MaterialData                   mat_data;
 
-  for (auto& cell : ref_solver->grid->local_cells)
+  for (auto& cell : ref_solver.grid->local_cells)
   {
     const int k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
@@ -128,7 +116,7 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
 
   //============================================= Sample surfaces
   chi_log.Log(LOG_0) << "Integrating surface source.";
-  for (auto& cell : ref_solver->grid->local_cells)
+  for (auto& cell : ref_solver.grid->local_cells)
   {
     const int k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
@@ -235,16 +223,17 @@ Initialize(chi_mesh::MeshContinuumPtr ref_grid,
   }
   chi_log.Log(LOG_0) << "Done initializing Residual Sources";
 
-  ref_solver->source_normalization = R_abs_globaldomain_interior +
+  ref_solver.source_normalization = R_abs_globaldomain_interior +
                                      R_abs_globaldomain_surface;
 
   //============================================= Export interior source
   //                                              as FieldFunction
+  auto fv_sd = std::dynamic_pointer_cast<SpatialDiscretization>(fv);
   auto R_ff = std::make_shared<chi_physics::FieldFunction>(
     "R_interior",                                 //Text name
-    fv,                                           //Spatial Discretization
+    fv_sd,                                        //Spatial Discretization
     &R_abs_cellk_interior,                        //Data
-    ref_solver->uk_man_fv,                        //Nodal variable structure
+    ref_solver.uk_man_fv,                        //Nodal variable structure
     0, 0);                                        //Reference variable and component
 
   R_ff->ExportToVTKFV("ZRout","R_interior");

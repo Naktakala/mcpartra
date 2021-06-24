@@ -2,7 +2,7 @@
 
 //###################################################################
 /**Compute tally square contributions.*/
-void chi_montecarlon::Solver::NormalizeTallies()
+void mcpartra::Solver::NormalizeTallies()
 {
   if (nps_global == 0) nps_global = 1;
 
@@ -19,17 +19,17 @@ void chi_montecarlon::Solver::NormalizeTallies()
         {
           for (int g=0; g<num_grps; ++g)
           {
-            int ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
+            int64_t ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
             grid_tally_blocks[t].tally_global[ir] *=
               source_normalization *
-              tally_multipl_factor /
+              options.tally_multipl_factor /
                 (double)nps_global /
               cell_fv_view->volume;
 
             grid_tally_blocks[t].tally_sigma[ir] *=
               source_normalization *
-              tally_multipl_factor /
+              options.tally_multipl_factor /
               cell_fv_view->volume;
 
           }//for g
@@ -53,11 +53,11 @@ void chi_montecarlon::Solver::NormalizeTallies()
           {
             for (int g=0; g<num_grps; ++g)
             {
-              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
+              int64_t ir = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
 
               grid_tally_blocks[t].tally_global[ir] *=
                 source_normalization *
-                tally_multipl_factor /
+                options.tally_multipl_factor /
                 (double)nps_global /
                 cell_pwl_view.IntV_shapeI(i);
 
@@ -81,13 +81,13 @@ void chi_montecarlon::Solver::NormalizeTallies()
 
         grid_tally.tally_global[ir] *=
           source_normalization *
-          tally_multipl_factor /
+          options.tally_multipl_factor /
           (double)nps_global /
           custom_tally.tally_volume;
 
         grid_tally.tally_sigma[ir] *=
           source_normalization *
-          tally_multipl_factor /
+          options.tally_multipl_factor /
           custom_tally.tally_volume;
 
       }//for g

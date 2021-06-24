@@ -13,13 +13,14 @@
 
 //###################################################################
 /**Residual source class.*/
-class chi_montecarlon::ResidualSourceB : public chi_montecarlon::Source
+class mcpartra::ResidualSourceB : public mcpartra::SourceBase
 {
+public:
+  std::shared_ptr<chi_physics::FieldFunction> resid_ff;
 public:
   int ref_bndry=-1;
   double ref_bndry_val = 0.0;
 
-  std::shared_ptr<chi_physics::FieldFunction> resid_ff;
   bool ray_trace_phase = true;
 
   enum class CollidedSrcMode
@@ -28,7 +29,7 @@ public:
     DIRECT    = 2
   };
 
-  CollidedSrcMode collided_source_mode = CollidedSrcMode::STAGGERED;
+  CollidedSrcMode collided_source_mode = CollidedSrcMode::DIRECT;
 
 private:
 //  chi_math::QuadratureGaussLegendre quadrature;
@@ -51,17 +52,22 @@ private:
 
   const bool sample_uniformly;
 
-  chi_montecarlon::GridTallyBlock uncollided_fv_tally;
-  chi_montecarlon::GridTallyBlock uncollided_pwl_tally;
+  mcpartra::GridTallyBlock uncollided_fv_tally;
+  mcpartra::GridTallyBlock uncollided_pwl_tally;
 
 public:
-  ResidualSourceB(std::shared_ptr<chi_physics::FieldFunction> in_resid_ff,
+  ResidualSourceB(mcpartra::Solver& solver,
+                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff,
                   bool use_uniform_sampling=false,
-                  double in_bndry_val=0.0);
+                  double in_bndry_val=0.0) :
+    SourceBase(SourceType::RESIDUAL_TYPE_B, solver),
+    resid_ff(in_resid_ff),
+    sample_uniformly(use_uniform_sampling),
+    ref_bndry_val(in_bndry_val)
+  {}
 
-  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV>   ref_fv_sdm,
-                  chi_montecarlon::Solver* ref_solver);
+  void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV>&   ref_fv_sdm) override;
 
   void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
                         std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm);
@@ -69,7 +75,7 @@ public:
     chi_math::RandomNumberGenerator* rng,
           CellSideInfo& cell_side_info);
 
-  chi_montecarlon::Particle
+  mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator* rng)
   {
     if (ray_trace_phase)
@@ -78,13 +84,13 @@ public:
       return CreateCollidedParticle(rng);
   }
 
-  chi_montecarlon::Particle
+  mcpartra::Particle
   CreateBndryParticle(chi_math::RandomNumberGenerator* rng);
 
-  chi_montecarlon::Particle
+  mcpartra::Particle
   CreateCollidedParticle(chi_math::RandomNumberGenerator* rng);
 
-  double GetRMCParallelRelativeSourceWeight();
+//  double GetRMCParallelRelativeSourceWeight();
 
   bool CheckForReExecution() override;
 

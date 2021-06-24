@@ -9,7 +9,7 @@
 
 //###################################################################
 /**Boundary source class.*/
-class chi_montecarlon::BoundarySource : public chi_montecarlon::Source
+class mcpartra::BoundarySource : public mcpartra::SourceBase
 {
 public:
   const int ref_bndry;
@@ -20,16 +20,18 @@ private:
 
   std::vector<double>      source_patch_cdf;
 public:
-  BoundarySource(const int in_ref_bndry);
+  BoundarySource(mcpartra::Solver& solver, const int in_ref_bndry) :
+    SourceBase(SourceType::BNDRY_SRC,solver),
+    ref_bndry(in_ref_bndry)
+  {}
 
-  void Initialize(chi_mesh::MeshContinuumPtr ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
-                  chi_montecarlon::Solver* ref_solver) override;
+  void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
+                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
 
-  chi_montecarlon::Particle
+  mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator* rng) override;
 
-  double GetParallelRelativeSourceWeight() override;
+//  double GetParallelRelativeSourceWeight() override;
 };
 
 #endif

@@ -8,8 +8,6 @@
 #include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
 #include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
 
-#include <ChiMath/Statistics/cdfsampler.h>
-
 #include <ChiPhysics/chi_physics.h>
 #include <chi_log.h>
 #include "../../Solver/solver_montecarlon.h"
@@ -176,11 +174,11 @@ extern ChiMPI& chi_mpi;
 
 //###################################################################
 /**Executes a source sampling for the residual source.*/
-chi_montecarlon::Particle chi_montecarlon::ResidualSourceA::
+mcpartra::Particle mcpartra::ResidualSourceA::
 CreateParticle(chi_math::RandomNumberGenerator* rng)
 {
   const double FOUR_PI = 4.0*M_PI;
-  chi_montecarlon::Particle new_particle;
+  mcpartra::Particle new_particle;
 
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
@@ -199,9 +197,9 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       domain_cdf.end(),
       rng->Rand()) - domain_cdf.begin();
 
-    auto& cell = ref_solver->grid->local_cells[cell_local_id];
+    auto& cell = ref_solver.grid->local_cells[cell_local_id];
     auto cell_pwl_view =
-      ref_solver->pwl->GetCellMappingFE(cell_local_id);
+      ref_solver.pwl->GetCellMappingFE(cell_local_id);
 
     //======================================== Sample energy group
     int e_group = 0;
@@ -209,8 +207,8 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
     //======================================== Get material properties
     int  mat_id         = cell.material_id;
-    int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
-    int  src_prop_id    = ref_solver->matid_q_map[mat_id];
+    int  xs_prop_id     = ref_solver.matid_xs_map[mat_id];
+    int  src_prop_id    = ref_solver.matid_q_map[mat_id];
     auto material = chi_physics_handler.material_stack[mat_id];
     auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
       material->properties[xs_prop_id]);
@@ -286,9 +284,9 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
     auto& rcellface = r_abs_cellk_facef_surface_average[cf];
 
-    auto& cell = ref_solver->grid->local_cells[rcellface.cell_local_id];
+    auto& cell = ref_solver.grid->local_cells[rcellface.cell_local_id];
     auto cell_pwl_view =
-      ref_solver->pwl->GetCellMappingFE(rcellface.cell_local_id);
+      ref_solver.pwl->GetCellMappingFE(rcellface.cell_local_id);
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -353,12 +351,12 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
   return new_particle;
 }
 
-double chi_montecarlon::ResidualSourceA::
-  GetParallelRelativeSourceWeight()
-{
-  double global_total_source_weight =
-    (R_abs_globaldomain_interior + R_abs_globaldomain_surface);
-
-  relative_weight = (R_abs_localdomain_interior + R_abs_localdomain_surface) / global_total_source_weight;
-  return  relative_weight;
-}
+//double mcpartra::ResidualSourceA::
+//  GetParallelRelativeSourceWeight()
+//{
+//  double global_total_source_weight =
+//    (R_abs_globaldomain_interior + R_abs_globaldomain_surface);
+//
+//  relative_weight = (R_abs_localdomain_interior + R_abs_localdomain_surface) / global_total_source_weight;
+//  return  relative_weight;
+//}

@@ -20,14 +20,6 @@ extern ChiLog& chi_log;
 
 
 //###################################################################
-/**Default constructor.*/
-chi_montecarlon::BoundarySource::BoundarySource(const int in_ref_bndry) :
-  ref_bndry(in_ref_bndry)
-{
-  type_index = SourceTypes::BNDRY_SRC;
-}
-
-//###################################################################
 /**Initializes references to necessary mesh elements.
  *
  * Since this is a boundary source the major difficulty here is
@@ -35,15 +27,13 @@ chi_montecarlon::BoundarySource::BoundarySource(const int in_ref_bndry) :
  * to be rotation to the opposite of the outward pointing boundary
  * normals. For this we assemble a rotation matrix for each face
  * that needs to be sampled.*/
-void chi_montecarlon::BoundarySource::
-  Initialize(chi_mesh::MeshContinuumPtr    ref_grid,
-             std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm,
-             chi_montecarlon::Solver*    ref_solver)
+void mcpartra::BoundarySource::
+  Initialize(chi_mesh::MeshContinuumPtr&    ref_grid,
+             std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm)
 {
   chi_log.Log(LOG_0) << "Initializing Boundary Source";
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
-  this->ref_solver = ref_solver;
 
   const int ALL_BOUNDRIES = -1;
 
@@ -131,10 +121,10 @@ void chi_montecarlon::BoundarySource::
 
 //###################################################################
 /**Source routine for boundary source.*/
-chi_montecarlon::Particle chi_montecarlon::BoundarySource::
+mcpartra::Particle mcpartra::BoundarySource::
   CreateParticle(chi_math::RandomNumberGenerator *rng)
 {
-  chi_montecarlon::Particle new_particle;
+  mcpartra::Particle new_particle;
 
   if (source_patch_cdf.empty())
   {
@@ -218,27 +208,27 @@ chi_montecarlon::Particle chi_montecarlon::BoundarySource::
   new_particle.cur_cell_global_id = cell.global_id;
   new_particle.cur_cell_local_id  = cell.local_id;
 
-  if (ref_solver->uncollided_only)
-    new_particle.ray_trace_method = chi_montecarlon::Solver::RayTraceMethod::UNCOLLIDED;
+  if (ref_solver.options.uncollided_only)
+    new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::UNCOLLIDED;
 
   return new_particle;
 }
 
-//###################################################################
-/**Gets the relative source strength accross all processors.*/
-double chi_montecarlon::BoundarySource::GetParallelRelativeSourceWeight()
-{
-  double local_total_source_weight = 0.0;
-  for (auto& source_patch : source_patches)
-    local_total_source_weight += std::get<3>(source_patch);
-
-  double global_total_source_weight = 0.0;
-  MPI_Allreduce(&local_total_source_weight,  //sendbuf
-                &global_total_source_weight, //recvbuf
-                1,                           //recvcount
-                MPI_DOUBLE,                  //datatype
-                MPI_SUM,                     //operation
-                MPI_COMM_WORLD);             //communicator
-
-  return local_total_source_weight/global_total_source_weight;
-}
+////###################################################################
+///**Gets the relative source strength accross all processors.*/
+//double mcpartra::BoundarySource::GetParallelRelativeSourceWeight()
+//{
+//  double local_total_source_weight = 0.0;
+//  for (auto& source_patch : source_patches)
+//    local_total_source_weight += std::get<3>(source_patch);
+//
+//  double global_total_source_weight = 0.0;
+//  MPI_Allreduce(&local_total_source_weight,  //sendbuf
+//                &global_total_source_weight, //recvbuf
+//                1,                           //recvcount
+//                MPI_DOUBLE,                  //datatype
+//                MPI_SUM,                     //operation
+//                MPI_COMM_WORLD);             //communicator
+//
+//  return local_total_source_weight/global_total_source_weight;
+//}

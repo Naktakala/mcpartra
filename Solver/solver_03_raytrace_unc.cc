@@ -13,7 +13,7 @@ extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
 /**The default raytracing algorithm.*/
-void chi_montecarlon::Solver::RaytraceUNC(Particle& prtcl)
+void mcpartra::Solver::RaytraceUNC(Particle& prtcl)
 {
   //======================================== Get cell
   chi_mesh::Cell* cell;
@@ -93,7 +93,7 @@ void chi_montecarlon::Solver::RaytraceUNC(Particle& prtcl)
     prtcl.pre_cell_global_id = prtcl.cur_cell_global_id;
     prtcl.cur_cell_global_id = ray_dest_info.destination_face_neighbor;
 
-    if ((not mesh_is_global) and (not grid->IsCellLocal(prtcl.cur_cell_global_id)))
+    if (not grid->IsCellLocal(prtcl.cur_cell_global_id))
     {
       prtcl.pos = posf;
       prtcl.dir = dirf;

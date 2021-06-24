@@ -5,50 +5,55 @@
 
 extern ChiLog& chi_log;
 extern ChiTimer chi_program_timer;
-typedef unsigned long long TULL;
 
 #include "../Source/ResidualSource/mc_rmcA_source.h"
 
 //#########################################################
 /**Executes the solver*/
-void chi_montecarlon::Solver::Execute()
+void mcpartra::Solver::Execute()
 {
-  chi_log.Log(LOG_0) << "Executing Montecarlo solver";
+  chi_log.Log(LOG_0) << "\nExecuting MCParTra solver\n";
 
-  chi_montecarlon::Source* src = sources.back();
+  mcpartra::SourceBase* src = sources.back();
 
+  //#######################################################
+  /**Short lambda to deplete bank.*/
+  auto DepleteBank = [this]()
+  {
+    mcpartra::Particle prtcl;
+    while (not particle_source_bank.empty())
+    {
+      prtcl = particle_source_bank.back();
+      particle_source_bank.pop_back();
+
+      prtcl.alive = true;
+      prtcl.banked = false;
+
+      while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+    }
+  };
+
+  //============================================= Start batch processing
   std::vector<Particle> inbound_particles;
-
   nps_global = 0;
   double start_time = chi_program_timer.GetTime()/1000.0;
   for (size_t b=0; b<batch_sizes_per_loc.size(); b++)
   {
     nps = 0;
-    current_batch = b;
-
-    for (TULL pi=0; pi<batch_sizes_per_loc[b]; pi++)
+    for (uint64_t pi=0; pi<batch_sizes_per_loc[b]; ++pi)
     {
-      chi_montecarlon::Particle prtcl = src->CreateParticle(&rng0);
+      mcpartra::Particle prtcl = src->CreateParticle(&rng0);
 
       if (prtcl.alive) nps++;
-      prtcl.alive = false;
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
-      while (not particle_source_bank.empty())
-      {
-        prtcl = particle_source_bank.back();
-        particle_source_bank.pop_back();
-
-        prtcl.alive = true;
-        prtcl.banked = false;
-
-        while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
-      }
+      DepleteBank();
     }//for pi in batch
 
     MPI_Barrier(MPI_COMM_WORLD);
 
+    //================================= Communicate and deplete banks
     GetOutboundBankSize();
     while (total_outbound_bank_size>0)
     {
@@ -59,21 +64,12 @@ void chi_montecarlon::Solver::Execute()
         prtcl.banked = false;
         while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
-        while (not particle_source_bank.empty())
-        {
-          prtcl = particle_source_bank.back();
-          particle_source_bank.pop_back();
-
-          prtcl.alive = true;
-          prtcl.banked = false;
-
-          while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
-        }
+        DepleteBank();
       }
       GetOutboundBankSize();
     }
 
-
+    //================================= Rendesvouz and housekeeping
     RendesvouzTallies();
     ComputeUncertainty();
 
@@ -83,14 +79,13 @@ void chi_montecarlon::Solver::Execute()
     PrintBatchInfo(b,particle_rate);
   }//for batch
 
-  //Normalize tallies
+  //============================================= Post processing
   NormalizeTallies();
-
   ComputePWLDTransformations();
 
   double correction=1.0;
   {
-    if (typeid(*sources.back()) == typeid(chi_montecarlon::ResidualSourceA))
+    if (sources.back()->Type() == RESIDUAL_TYPE_A)
       correction = 1/3.0;
   }
 

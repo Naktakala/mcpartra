@@ -15,7 +15,7 @@ RegisterFunction(chiMonteCarlonSetImportances)
 RegisterFunction(chiMonteCarlonSetProperty);
 RegisterNamespace(MCProperties);
   AddNamedConstantToNamespace(NUM_PARTICLES,               1,MCProperties);
-  AddNamedConstantToNamespace(TFC_UPDATE_INTVL,            2,MCProperties);
+//  AddNamedConstantToNamespace(TFC_UPDATE_INTVL,            2,MCProperties);
   AddNamedConstantToNamespace(MONOENERGETIC,               3,MCProperties);
   AddNamedConstantToNamespace(SCATTERING_ORDER,            4,MCProperties);
   AddNamedConstantToNamespace(FORCE_ISOTROPIC,             5,MCProperties);
