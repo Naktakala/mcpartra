@@ -20,7 +20,7 @@ extern ChiPhysics&  chi_physics_handler;
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 mcpartra::Particle mcpartra::ResidualSourceB::
-CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
+CreateBndryParticle(chi_math::RandomNumberGenerator& rng)
 {
   mcpartra::Particle new_particle;
 
@@ -34,7 +34,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
   int source_patch_sample = std::lower_bound(
     source_patch_cdf.begin(),
     source_patch_cdf.end(),
-    rng->Rand()) - source_patch_cdf.begin();
+    rng.Rand()) - source_patch_cdf.begin();
 
   auto& source_patch = source_patches[source_patch_sample];
 
@@ -53,7 +53,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
   {
     const auto& v0 = grid->vertices[face.vertex_ids[0]];
     const auto& v1 = grid->vertices[face.vertex_ids[1]];
-    double w = rng->Rand();
+    double w = rng.Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
   else if (cell->Type() == chi_mesh::CellType::POLYHEDRON)
@@ -64,7 +64,7 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
     auto edges = polyh_cell->GetFaceEdges(f);
 
     //===================== Sample side
-    double rn = rng->Rand();
+    double rn = rng.Rand();
     int s = -1;
     double cumulated_area = 0.0;
     for (auto face_side_area : polyh_fv_view->face_side_area[f])
@@ -75,17 +75,17 @@ CreateBndryParticle(chi_math::RandomNumberGenerator* rng)
       cumulated_area+=face_side_area;
     }
 
-    double w0 = rng->Rand();
-    double w1 = rng->Rand()*(1.0-w0);
+    double w0 = rng.Rand();
+    double w1 = rng.Rand()*(1.0-w0);
     const auto& v0 = grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*w0 +
                        polyh_fv_view->face_side_vectors[f][s][1]*w1;
   }
 
   //======================================== Sample direction
-  double costheta = rng->Rand();     //Sample half-range only
+  double costheta = rng.Rand();     //Sample half-range only
   double theta    = acos(sqrt(costheta));
-  double varphi   = rng->Rand()*2.0*M_PI;
+  double varphi   = rng.Rand()*2.0*M_PI;
 
   chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
@@ -179,7 +179,7 @@ bool mcpartra::ResidualSourceB::
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 mcpartra::Particle mcpartra::ResidualSourceB::
-CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
+CreateCollidedParticle(chi_math::RandomNumberGenerator& rng)
 {
   mcpartra::Particle new_particle;
 
@@ -194,14 +194,14 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   int group_g = std::lower_bound(
     cdf_group.begin(),
     cdf_group.end(),
-    rng->Rand()) - cdf_group.begin();
+    rng.Rand()) - cdf_group.begin();
 
   //======================================== Sample cell
   auto& cdf_cell = ref_solver.cdf_phi_unc_group_cell[group_g];
   int lc = std::lower_bound(
     cdf_cell.begin(),
     cdf_cell.end(),
-    rng->Rand()) - cdf_cell.begin();
+    rng.Rand()) - cdf_cell.begin();
 
   auto& tally_blocks = ref_solver.grid_tally_blocks;
   auto& masks = ref_solver.TallyMaskIndex;
@@ -228,12 +228,12 @@ CreateCollidedParticle(chi_math::RandomNumberGenerator* rng)
   double sigs = sigt-siga;
 
   //======================================== Sample position
-  new_particle.pos = GetRandomPositionInCell(rng, cell_vol_info[lc]);
+  new_particle.pos = GetRandomPositionInCell(&rng, cell_vol_info[lc]);
 
   //======================================== Sample direction
-  double costheta = 2.0*rng->Rand()-1.0;
+  double costheta = 2.0*rng.Rand()-1.0;
   double theta    = acos(costheta);
-  double varphi   = rng->Rand()*2.0*M_PI;
+  double varphi   = rng.Rand()*2.0*M_PI;
 
   chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);

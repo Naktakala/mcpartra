@@ -8,6 +8,8 @@
 extern ChiLog& chi_log;
 extern ChiMPI& chi_mpi;
 
+#include <unistd.h>
+
 //###################################################################
 /**Initializes tallies.*/
 void mcpartra::Solver::InitTallies()
@@ -47,6 +49,8 @@ void mcpartra::Solver::InitTallies()
   chi_log.Log(LOG_0) << "Adding finite volume views.";
   fv = SpatialDiscretization_FV::New(grid);
 
+  usleep(1000000);
+
   //=================================== Tally sizes
   auto fv_tally_size = fv->GetNumLocalDOFs(uk_man_fv);
 
@@ -55,20 +59,27 @@ void mcpartra::Solver::InitTallies()
 
   MPI_Barrier(MPI_COMM_WORLD);
 
+
   //=================================== Initialize pwl discretization
   chi_log.Log(LOG_0) << "Adding PWL finite element views.";
   pwl = SpatialDiscretization_PWLD::New(grid,
           chi_math::finite_element::COMPUTE_CELL_MAPPINGS |
           chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
 
+  usleep(1000000);
 
   //=================================== Initialize PWLD tallies
   auto fem_tally_size = pwl->GetNumLocalDOFs(uk_man_pwld);
+  auto fem_tally_size_global = pwl->GetNumGlobalDOFs(uk_man_pwld);
 
-  chi_log.Log(LOG_0) << "PWL #local-dofs: " << fem_tally_size;
+  chi_log.Log(LOG_0) << "PWL #global-dofs: " << fem_tally_size_global;
 
   grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].Resize(fem_tally_size);
-  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_PWLTALLY]].Resize(fem_tally_size);
+//  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_PWLTALLY]].Resize(fem_tally_size);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  chi_log.Log(LOG_0) << "Done sizing tallies";
+  usleep(1000000);
 
   //=================================== Initialize custom tallies
   auto fv_dof_struct_size = uk_man_fv.GetTotalUnknownStructureSize();

@@ -18,21 +18,18 @@ end
 --############################################### Setup mesh
 chiMeshHandlerCreate()
 
-mesh={}
-N=10
-L=5
-xmin = -L/2
-dx = L/N
-for i=1,(N+1) do
-    k=i-1
-    mesh[i] = xmin + k*dx
-end
-chiMeshCreateUnpartitioned2DOrthoMesh(mesh,mesh)
+chiUnpartitionedMeshFromEnsightGold("RegressionTests/Sphere.case")
+
+region1 = chiRegionCreate()
+chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED)
+chiVolumeMesherCreate(VOLUMEMESHER_UNPARTITIONED)
+
+chiSurfaceMesherExecute()
 chiVolumeMesherExecute();
 
 --############################################### Set Material IDs
-vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
-chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
+-- vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
+-- chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
 
 --############################################### Add materials
@@ -57,8 +54,8 @@ src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
-src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 --############################################### Setup Physics
@@ -68,8 +65,8 @@ chiSolverAddRegion(phys1,region1)
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,10e6)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1e5)
+chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e4)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
@@ -92,7 +89,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,16, 8)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE_CHEBYSHEV,2, 2)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys1)
@@ -127,36 +124,9 @@ chiLBSSetProperty(phys1,DISCRETIZATION_METHOD,PWLD)
 chiLBSSetProperty(phys1,SCATTERING_ORDER,0)
 
 chiLBSInitialize(phys1)
-chiLBSExecute(phys1)
+-- chiLBSExecute(phys1)
 
 fflist,count = chiLBSGetScalarFieldFunctionList(phys1)
-
-
---Testing consolidated interpolation
-cline = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,-0.01,-L/2, 0.0)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,-0.01,L/2, 0.0)
-chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
-
--- for k=1,2 do
---     chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,k-1)
--- end
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,num_groups)
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist[1])
---chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist[2])
-
-
-chiFFInterpolationInitialize(cline)
-chiFFInterpolationExecute(cline)
-chiFFInterpolationExportPython(cline)
-
-
---
-
-
-if (chi_location_id == 0) then
-    local handle = io.popen("python ZLFFI00.py")
-end
 
 chiExportFieldFunctionToVTKG(0,"ZPhiMC")
 chiExportFieldFunctionToVTKG(num_groups,"ZPhiMCPWL")

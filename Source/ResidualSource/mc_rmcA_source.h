@@ -126,7 +126,7 @@ public:
 
   //c
   mcpartra::Particle
-  CreateParticle(chi_math::RandomNumberGenerator* rng) override;
+  CreateParticle(chi_math::RandomNumberGenerator& rng) override;
 
 //  double GetParallelRelativeSourceWeight() override;
 

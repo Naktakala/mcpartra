@@ -122,7 +122,7 @@ void mcpartra::BoundarySource::
 //###################################################################
 /**Source routine for boundary source.*/
 mcpartra::Particle mcpartra::BoundarySource::
-  CreateParticle(chi_math::RandomNumberGenerator *rng)
+  CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
   mcpartra::Particle new_particle;
 
@@ -136,7 +136,7 @@ mcpartra::Particle mcpartra::BoundarySource::
   int source_patch_sample = std::lower_bound(
     source_patch_cdf.begin(),
     source_patch_cdf.end(),
-    rng->Rand()) - source_patch_cdf.begin();
+    rng.Rand()) - source_patch_cdf.begin();
 
   auto& source_patch = source_patches[source_patch_sample];
 
@@ -155,7 +155,7 @@ mcpartra::Particle mcpartra::BoundarySource::
   {
     chi_mesh::Vertex& v0 = grid->vertices[face.vertex_ids[0]];
     chi_mesh::Vertex& v1 = grid->vertices[face.vertex_ids[1]];
-    double w = rng->Rand();
+    double w = rng.Rand();
     new_particle.pos = v0*w + v1*(1.0-w);
   }
   else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
@@ -166,7 +166,7 @@ mcpartra::Particle mcpartra::BoundarySource::
     auto edges = polyh_cell->GetFaceEdges(f);
 
     //===================== Sample side
-    double rn = rng->Rand();
+    double rn = rng.Rand();
     int s = -1;
     double cumulated_area = 0.0;
     for (auto face_side_area : polyh_fv_view->face_side_area[f])
@@ -177,10 +177,10 @@ mcpartra::Particle mcpartra::BoundarySource::
       cumulated_area+=face_side_area;
     }
 
-    double u = rng->Rand();
-    double v = rng->Rand();
+    double u = rng.Rand();
+    double v = rng.Rand();
     while ((u+v)>1.0)
-    {u = rng->Rand(); v = rng->Rand();}
+    {u = rng.Rand(); v = rng.Rand();}
 
     chi_mesh::Vector3& v0 = grid->vertices[edges[s][0]];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
@@ -188,9 +188,9 @@ mcpartra::Particle mcpartra::BoundarySource::
   }
 
   //======================================== Sample direction
-  double costheta = rng->Rand();     //Sample half-range only
+  double costheta = rng.Rand();     //Sample half-range only
   double theta    = acos(sqrt(costheta));
-  double varphi   = rng->Rand()*2.0*M_PI;
+  double varphi   = rng.Rand()*2.0*M_PI;
 
   chi_mesh::Vector3 ref_dir;
   ref_dir.x = sin(theta)*cos(varphi);
@@ -213,22 +213,3 @@ mcpartra::Particle mcpartra::BoundarySource::
 
   return new_particle;
 }
-
-////###################################################################
-///**Gets the relative source strength accross all processors.*/
-//double mcpartra::BoundarySource::GetParallelRelativeSourceWeight()
-//{
-//  double local_total_source_weight = 0.0;
-//  for (auto& source_patch : source_patches)
-//    local_total_source_weight += std::get<3>(source_patch);
-//
-//  double global_total_source_weight = 0.0;
-//  MPI_Allreduce(&local_total_source_weight,  //sendbuf
-//                &global_total_source_weight, //recvbuf
-//                1,                           //recvcount
-//                MPI_DOUBLE,                  //datatype
-//                MPI_SUM,                     //operation
-//                MPI_COMM_WORLD);             //communicator
-//
-//  return local_total_source_weight/global_total_source_weight;
-//}

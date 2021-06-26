@@ -30,7 +30,7 @@ public:
             double in_epsilon_nudge      = 1.0e-8,
             double in_backward_tolerance = 1.0e-10,
             double in_extension_distance = 1.0e5,
-            bool   in_perform_concavity_checks = false) :
+            bool   in_perform_concavity_checks = true) :
     grid(in_grid),
     epsilon_nudge     (in_epsilon_nudge     ),
     backward_tolerance(in_backward_tolerance),

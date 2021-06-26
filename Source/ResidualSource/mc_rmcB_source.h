@@ -76,7 +76,7 @@ public:
           CellSideInfo& cell_side_info);
 
   mcpartra::Particle
-  CreateParticle(chi_math::RandomNumberGenerator* rng)
+  CreateParticle(chi_math::RandomNumberGenerator& rng)
   {
     if (ray_trace_phase)
       return CreateBndryParticle(rng);
@@ -85,10 +85,10 @@ public:
   }
 
   mcpartra::Particle
-  CreateBndryParticle(chi_math::RandomNumberGenerator* rng);
+  CreateBndryParticle(chi_math::RandomNumberGenerator& rng);
 
   mcpartra::Particle
-  CreateCollidedParticle(chi_math::RandomNumberGenerator* rng);
+  CreateCollidedParticle(chi_math::RandomNumberGenerator& rng);
 
 //  double GetRMCParallelRelativeSourceWeight();
 

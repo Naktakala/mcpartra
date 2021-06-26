@@ -23,9 +23,19 @@ void mcpartra::Solver::InitSources()
 
   char buffer[100];
   snprintf(buffer,100,"%g",total_globl_source_rate);
-  std::string stotal_globl_source_rate(buffer);
+  std::string stotal_globl_src_rate(buffer);
 
   chi_log.Log() << "  Total amount of sources     = " << sources.size();
-  chi_log.Log() << "  Total source rate           = " << stotal_globl_source_rate;
+  chi_log.Log() << "  Total source rate           = " << stotal_globl_src_rate;
+
+  //============================================= Build local cdf
+  size_t num_sources = sources.size();
+  local_source_cdf.assign(num_sources, 0.0);
+  double running_total = 0.0;
+  for (int s=0; s<num_sources; ++s)
+  {
+    running_total += sources[s]->LocalSourceRate();
+    local_source_cdf[s] = running_total/total_local_source_rate;
+  }
 
 }

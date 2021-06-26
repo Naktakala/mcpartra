@@ -57,13 +57,18 @@ void mcpartra::Solver::RaytraceUNC(Particle& prtcl)
   chi_mesh::Vector3 posf = prtcl.pos;
   chi_mesh::Vector3 dirf = prtcl.dir;
   int                ef = prtcl.egrp;
-  chi_mesh::RayDestinationInfo ray_dest_info =
-    chi_mesh::RayTrace(*grid,          //[Input] Grid
-                       *cell,          //[Input] Current cell
-                       prtcl.pos,     //[Input] Current position
-                       prtcl.dir,     //[Input] Current direction
-                       d_to_surface,  //[Otput] Distance to next surface
-                       posf);         //[Otput] Intersection point at next surf
+//  chi_mesh::RayDestinationInfo ray_dest_info =
+//    chi_mesh::RayTrace(*grid,          //[Input] Grid
+//                       *cell,          //[Input] Current cell
+//                       prtcl.pos,     //[Input] Current position
+//                       prtcl.dir,     //[Input] Current direction
+//                       d_to_surface,  //[Otput] Distance to next surface
+//                       posf);         //[Otput] Intersection point at next surf
+
+  auto ray_dest_info = default_raytracer->TraceRay(*cell,prtcl.pos,prtcl.dir);
+
+  d_to_surface = ray_dest_info.distance_to_surface;
+  posf = ray_dest_info.pos_f;
 
   //======================================== Process surface
   if (d_to_surface <0.0)
@@ -75,8 +80,8 @@ void mcpartra::Solver::RaytraceUNC(Particle& prtcl)
   //posf set in call to RayTrace
   if (prtcl.tally_method == TallyMethod::STANDARD)
     ContributeTallyUNC(prtcl,posf,sigt);
-  if (prtcl.tally_method == TallyMethod::RMC_CHAR_RAY)
-    ContributeTallyRMC(prtcl,posf,ray_dest_info);
+//  if (prtcl.tally_method == TallyMethod::RMC_CHAR_RAY)
+//    ContributeTallyRMC(prtcl,posf,ray_dest_info);
 
   //======================= If surface is boundary
   if (not cell->faces[ray_dest_info.destination_face_index].has_neighbor)

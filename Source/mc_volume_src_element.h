@@ -35,6 +35,7 @@ public:
   double Volume() const {return volume;}
   uint64_t ParentCellLocalID() const {return parent_cell_local_id;}
   uint64_t ParentCellGlobalID() const {return parent_cell_global_id;}
+  size_t TypeIndex() const {return geom_legs.size();}
 };
 
 //###################################################################

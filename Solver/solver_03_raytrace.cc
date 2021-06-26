@@ -1,6 +1,5 @@
 #include "solver_montecarlon.h"
 
-#include "ChiMesh/Raytrace/raytracing.h"
 #include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 
 #include "chi_log.h"

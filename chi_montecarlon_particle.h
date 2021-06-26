@@ -33,6 +33,15 @@ struct mcpartra::Particle final
   bool alive = true;
   bool banked = false;
 
+  double moment_values[64] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
 
   Particle() {}
 
@@ -68,6 +77,9 @@ struct mcpartra::Particle final
     this->alive = that.alive;
     this->banked = that.banked;
 
+    for (int i=0; i<64; ++i)
+      this->moment_values[i] = that.moment_values[i];
+
     return *this;
   }
 
@@ -87,7 +99,10 @@ struct mcpartra::Particle final
     pre_cell_importance(that.pre_cell_importance),
     alive(that.alive),
     banked(that.banked)
-  {}
+  {
+    for (int i=0; i<64; ++i)
+      this->moment_values[i] = that.moment_values[i];
+  }
 
   static void BuildMPIDatatype(MPI_Datatype& prtcl_data_type)
   {
@@ -105,7 +120,8 @@ struct mcpartra::Particle final
                            1, //cur_cell_importance
                            1, //pre_cell_importance
                            1, //alive
-                           1};//banked
+                           1,
+                           64};//banked
 
     MPI_Aint block_disp[] = {
       offsetof(Particle, pos),
@@ -122,7 +138,8 @@ struct mcpartra::Particle final
       offsetof(Particle, cur_cell_importance),
       offsetof(Particle, pre_cell_importance),
       offsetof(Particle, alive),
-      offsetof(Particle, banked)};
+      offsetof(Particle, banked),
+      offsetof(Particle, moment_values)};
 
     MPI_Datatype block_types[] = {
       MPI_DOUBLE,                //pos
@@ -139,11 +156,12 @@ struct mcpartra::Particle final
       MPI_DOUBLE,                //cur_cell_importance
       MPI_DOUBLE,                //pre_cell_importance
       MPI_BYTE,                  //alive
-      MPI_BYTE                   //banked
+      MPI_BYTE,                  //banked
+      MPI_DOUBLE                 //moment_values
     };
 
     MPI_Type_create_struct(
-      15,             // Number of blocks
+      16,             // Number of blocks
       block_lengths,  // Block lengths
       block_disp,     // Block displacements
       block_types,    // Block types

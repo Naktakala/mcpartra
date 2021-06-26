@@ -24,6 +24,7 @@ bool mcpartra::Solver::Initialize()
                                                             false);
 
   InitMaterials();
+  InitMomentIndices();
   InitTallies();
   InitFieldFunctions();
   InitGhostIDs();

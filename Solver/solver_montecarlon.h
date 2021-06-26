@@ -29,7 +29,6 @@ namespace mcpartra
 {
   enum Property{
     NUM_PARTICLES               = 1,
-    TFC_UPDATE_INTVL            = 2,
     MONOENERGETIC               = 3,
     SCATTERING_ORDER            = 4,
     FORCE_ISOTROPIC             = 5,
@@ -212,7 +211,7 @@ public:
 
   //=================================== Members
 private:
-  chi_mesh::MeshContinuumPtr            grid;
+  chi_mesh::MeshContinuumPtr            grid = nullptr;
 
   // Materials related members
   std::vector<int>                      matid_xs_map;
@@ -285,6 +284,8 @@ private:
   std::vector<Particle>                 outbound_particle_bank;
   std::vector<Particle>                 particle_source_bank;
   unsigned int                          total_outbound_bank_size=0;
+public:
+  std::vector<std::pair<int,int>>       m_to_ell_em_map;
 
 public:
 
@@ -296,7 +297,7 @@ public:
     unsigned long long num_uncollided_particles = 1000;
     unsigned long long tally_rendezvous_intvl = 100000;
     bool               mono_energy = false;
-    int                scattering_order = 10;
+    int                scattering_order = 1; ///< Maximum 7
     bool               force_isotropic = false;
     int                group_hi_bound = -1;
     int                group_lo_bound = -1;
@@ -311,16 +312,21 @@ public:
 
   //01
   bool Initialize();
-  void InitMaterials();
-  void InitCellImportances();
-  void InitTallies();
-  void InitFieldFunctions();
-  void InitGhostIDs();
-  void InitSources();
-  void InitParticleBatches();
+  void InitMaterials(); //01a
+  void InitCellImportances(); //01b
+  // void InitRaytracing();
+  void InitMomentIndices(); //01d
+  void InitTallies(); //01e
+  void InitFieldFunctions(); //01f
+  void InitGhostIDs(); //01g
+  void InitSources(); //01h
+  void InitParticleBatches(); //01i
 
   //02
   void Execute() override;
+  //02a
+  Particle SampleSources(chi_math::RandomNumberGenerator& rng);
+  //02b
   void PrintBatchInfo(size_t b, double particle_rate);
 
 private:

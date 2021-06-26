@@ -40,7 +40,7 @@ private:
   std::vector<double> group_cdf;
   std::map<uint64_t, std::vector<VolumeSourceElement>> cell_elements;
 
-  typedef std::pair<double, VolumeSourceElement> ElementSrc;
+  typedef std::pair<double, VolumeSourceElement*> ElementSrc;
   typedef std::vector<ElementSrc> GrpSrc;
 
   std::vector<GrpSrc> group_sources;
@@ -58,7 +58,7 @@ public:
                   std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
 
   mcpartra::Particle
-  CreateParticle(chi_math::RandomNumberGenerator* rng) override;
+  CreateParticle(chi_math::RandomNumberGenerator& rng) override;
 
 //  double GetParallelRelativeSourceWeight() override;
 };

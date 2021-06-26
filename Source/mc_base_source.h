@@ -59,9 +59,7 @@ public:
                           std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm);
 
   virtual mcpartra::Particle
-  CreateParticle(chi_math::RandomNumberGenerator *rng);
-
-//  virtual double GetParallelRelativeSourceWeight() { return 1.0; }
+  CreateParticle(chi_math::RandomNumberGenerator& rng);
 
   virtual bool CheckForReExecution() { return false; }
 

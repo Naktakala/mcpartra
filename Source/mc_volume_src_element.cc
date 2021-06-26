@@ -42,8 +42,11 @@ mcpartra::VolumeSourceElement::
 
     double detJ = J.Det();
 
-    volume = detJ/6.0;
+    volume = std::fabs(detJ/6.0);
   }
+  else
+    throw std::logic_error(std::string(__FUNCTION__) + ": Unsupported number "
+                           "of legs passed to function.");
 }
 
 //###################################################################
@@ -77,8 +80,8 @@ chi_mesh::Vector3 mcpartra::VolumeSourceElement::
 
     return ref_point + geom_legs[0]*u + geom_legs[1]*v + geom_legs[2]*w;
   }
-
-  return ref_point;
+  else
+    throw std::logic_error(std::string(__FUNCTION__) + ": Corrupted element.");
 }
 
 //###################################################################
@@ -124,10 +127,10 @@ std::vector<mcpartra::VolumeSourceElement> mcpartra::
       for (int fv=0; fv<num_face_verts; ++fv)
       {
         int fvp1 = (fv<(num_face_verts-1))? fv+1 : 0;
-        const auto& v0 = grid->vertices[fv];
-        const auto& v1 = grid->vertices[fvp1];
-        auto& v2 = face.centroid;
-        auto& v3 = cell.centroid;
+        const auto& v0 = grid->vertices[face.vertex_ids[fv]];
+        const auto& v1 = grid->vertices[face.vertex_ids[fvp1]];
+        const auto& v2 = face.centroid;
+        const auto& v3 = cell.centroid;
 
         auto v01 = v1-v0;
         auto v02 = v2-v0;

@@ -175,7 +175,7 @@ extern ChiMPI& chi_mpi;
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 mcpartra::Particle mcpartra::ResidualSourceA::
-CreateParticle(chi_math::RandomNumberGenerator* rng)
+CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
   const double FOUR_PI = 4.0*M_PI;
   mcpartra::Particle new_particle;
@@ -185,7 +185,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
   //======================================== Choose interior or surface
   bool sample_interior = false;
-  if (rng->Rand() < R_abs_localdomain_interior / (R_abs_localdomain_interior + R_abs_localdomain_surface))
+  if (rng.Rand() < R_abs_localdomain_interior / (R_abs_localdomain_interior + R_abs_localdomain_surface))
     sample_interior = true;
 
   //################################################## INTERIOR
@@ -195,7 +195,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     int cell_local_id = std::lower_bound(
       domain_cdf.begin(),
       domain_cdf.end(),
-      rng->Rand()) - domain_cdf.begin();
+      rng.Rand()) - domain_cdf.begin();
 
     auto& cell = ref_solver.grid->local_cells[cell_local_id];
     auto cell_pwl_view =
@@ -232,12 +232,12 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
       //==================================== Sample position
       chi_mesh::Vector3 pos =
-        GetRandomPositionInCell(*rng, cell_geometry_info[cell.local_id]);
+        GetRandomPositionInCell(rng, cell_geometry_info[cell.local_id]);
 
       new_particle.pos = pos;
 
       //==================================== Sample direction
-      chi_mesh::Vector3 omega = RandomDirection(*rng);
+      chi_mesh::Vector3 omega = RandomDirection(rng);
       new_particle.dir = omega;
 
       //==================================== Populate shape values
@@ -257,7 +257,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       double r = (1.0/FOUR_PI)*
                  ( Q - siga*phi - omega.Dot(grad_phi) );
 
-      double rrandom = rng->Rand()*r_cellk_interior_max[cell.local_id];
+      double rrandom = rng.Rand()*r_cellk_interior_max[cell.local_id];
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
@@ -280,7 +280,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
     int cf = std::lower_bound(
       surface_cdf.begin(),
       surface_cdf.end(),
-      rng->Rand()) - surface_cdf.begin();
+      rng.Rand()) - surface_cdf.begin();
 
     auto& rcellface = r_abs_cellk_facef_surface_average[cf];
 
@@ -298,7 +298,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       //==================================== Sample position
       int f=rcellface.ass_face;
       chi_mesh::Vector3 pos =
-        GetRandomPositionOnCellSurface(*rng,
+        GetRandomPositionOnCellSurface(rng,
                                        cell_geometry_info[cell.local_id],
                                        f);
 
@@ -312,7 +312,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
       new_particle.pos = pos;
 
       //==================================== Sample direction
-      chi_mesh::Vector3 omega = RandomCosineLawDirection(*rng,-1.0*n);
+      chi_mesh::Vector3 omega = RandomCosineLawDirection(rng,-1.0*n);
       new_particle.dir = omega;
 
       //==================================== Populate shape values
@@ -330,7 +330,7 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
       double r = (1.0/FOUR_PI)*(phi_N - phi_P);
 
-      double rrandom = rng->Rand()*rcellface.maximum;
+      double rrandom = rng.Rand()*rcellface.maximum;
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
@@ -350,13 +350,3 @@ CreateParticle(chi_math::RandomNumberGenerator* rng)
 
   return new_particle;
 }
-
-//double mcpartra::ResidualSourceA::
-//  GetParallelRelativeSourceWeight()
-//{
-//  double global_total_source_weight =
-//    (R_abs_globaldomain_interior + R_abs_globaldomain_surface);
-//
-//  relative_weight = (R_abs_localdomain_interior + R_abs_localdomain_surface) / global_total_source_weight;
-//  return  relative_weight;
-//}

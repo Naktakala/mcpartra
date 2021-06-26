@@ -31,43 +31,6 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
                  intersection_found/*byRef*/,
                  backward_tolerance_hit/*byRef*/,
                  oi/*byRef*/);
-//  {
-//    chi_mesh::Vector3 ip; //intersection point
-//
-//    chi_mesh::Vector3 pos_f_line = pos_i + omega_i * extension_distance;
-//
-//    std::vector<RayTracerOutputInformation> face_intersections;
-//
-//    size_t num_faces = cell.faces.size();
-//    face_intersections.reserve(num_faces);
-//    for (int f=0; f<num_faces; f++)
-//    {
-//      uint64_t fpi = cell.faces[f].vertex_ids[0]; //face point index 0
-//      uint64_t fpf = cell.faces[f].vertex_ids[1]; //face point index 1
-//      const chi_mesh::Vertex& face_point_i = grid.vertices[fpi];
-//      const chi_mesh::Vertex& face_point_f = grid.vertices[fpf];
-//
-//      bool intersects = chi_mesh::CheckLineIntersectStrip(
-//        face_point_i, face_point_f, cell.faces[f].normal,
-//        pos_i, pos_f_line, ip);
-//
-//      double D = (ip - pos_i).Norm();
-//
-//      if ( (D > backward_tolerance) and intersects )
-//      {
-//        oi.distance_to_surface = D;
-//        oi.pos_f = ip;
-//
-//        oi.destination_face_index = f;
-//        oi.destination_face_neighbor = cell.faces[f].neighbor_id;
-//        intersection_found = true;
-//        face_intersections.emplace_back(std::move(oi));
-//        break;
-//      }//if intersects
-//      if ( intersects )
-//        backward_tolerance_hit = true;
-//    }//for faces
-//  }
   else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
     TracePolyhedron(cell, pos_i, omega_i,
                     intersection_found/*byRef*/,

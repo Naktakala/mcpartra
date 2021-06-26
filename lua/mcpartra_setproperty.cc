@@ -84,6 +84,13 @@ int chiMonteCarlonSetProperty(lua_State *L)
   {
     int scatorder = lua_tonumber(L,3);
 
+    if (scatorder > 7)
+    {
+      chi_log.Log() << __FUNCTION__ << ": maximum scattering order allowed "
+                                       "is 7. Defaulting to 7.";
+      scatorder = 7;
+    }
+
     mcsolver->options.scattering_order = scatorder;
   }
   else if (property_index == mcpartra::Property::MONOENERGETIC)

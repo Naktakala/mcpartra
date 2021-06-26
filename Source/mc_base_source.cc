@@ -14,7 +14,7 @@ void mcpartra::SourceBase::
 //#########################################################
 /**Create a default particle from a point.*/
 mcpartra::Particle mcpartra::SourceBase::
-  CreateParticle(chi_math::RandomNumberGenerator* rng)
+  CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
   return Particle::MakeDeadParticle();
 }

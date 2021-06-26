@@ -42,7 +42,7 @@ void mcpartra::Solver::Execute()
     nps = 0;
     for (uint64_t pi=0; pi<batch_sizes_per_loc[b]; ++pi)
     {
-      mcpartra::Particle prtcl = src->CreateParticle(&rng0);
+      mcpartra::Particle prtcl = SampleSources(rng0);
 
       if (prtcl.alive) nps++;
 

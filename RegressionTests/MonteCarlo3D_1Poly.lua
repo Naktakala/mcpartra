@@ -68,14 +68,14 @@ chiSolverAddRegion(phys1,region1)
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,10e6)
+chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1e6)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
 chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
 chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
 chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0)
 chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
-chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,false)
+chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
 
 chiMonteCarlonInitialize(phys1)
 -- os.exit()
@@ -134,8 +134,8 @@ fflist,count = chiLBSGetScalarFieldFunctionList(phys1)
 
 --Testing consolidated interpolation
 cline = chiFFInterpolationCreate(LINE)
-chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,-0.01,-1.0, 0.0)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,-0.01,1.0, 0.0)
+chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,-0.01,-L/2, 0.0)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,-0.01,-L/2, 0.0)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
 -- for k=1,2 do

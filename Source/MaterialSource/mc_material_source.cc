@@ -6,6 +6,8 @@
 
 #include "ChiMesh/Cell/cell_polyhedron.h"
 
+#include "ChiMath/Quadratures/LegendrePoly/legendrepoly.h"
+
 #include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
@@ -58,12 +60,19 @@ void mcpartra::MaterialSource::
           double Q_g = src->source_value_g[g];
           IntV_Q_g[g] += fv_view->volume*Q_g;
 
-          const auto& v_elements = cell_elements[cell.local_id];
+          auto& v_elements = cell_elements.at(cell.local_id);
           for (auto& element : v_elements)
-            group_sources[g].emplace_back(Q_g * element.Volume(), element);
+            group_sources[g].emplace_back(Q_g * element.Volume(), &element);
         }//for g
       }//if src prop
   }//for cell
+
+  //============================================= Checking group sources integrity
+  for (const auto& group_source : group_sources)
+    for (const auto& source_item : group_source)
+      if (source_item.second->TypeIndex() == 0)
+        throw std::logic_error(std::string(__FUNCTION__) +
+                               ": Group source integrity failed.");
 
   // The next two steps build two levels of CDFs. The first is group-wise,
   // then the second is the elements within a group.
@@ -88,7 +97,8 @@ void mcpartra::MaterialSource::
   for (size_t g=0; g<ref_solver.num_grps; ++g)
   {
     running_total += IntV_Q_g[g];
-    group_cdf[g] = running_total / IntV_Q_total_local;
+    group_cdf[g] = (IntV_Q_total_local > 0.0)?
+                    running_total / IntV_Q_total_local : 0.0;
   }
 
   //============================================= Within each group, construct
@@ -104,8 +114,8 @@ void mcpartra::MaterialSource::
     for (auto& src_element : group_source)
     {
       elem_running_total += src_element.first;
-      group_element_cdf[g][elem] = elem_running_total/IntV_Q_g[g];
-
+      group_element_cdf[g][elem] = (IntV_Q_g[g] > 0.0)?
+                                   elem_running_total/IntV_Q_g[g] : 0.0;
       ++elem;
     }
     ++g;
@@ -117,7 +127,7 @@ void mcpartra::MaterialSource::
 //###################################################################
 /**Creates a source particle.*/
 mcpartra::Particle mcpartra::MaterialSource::
-  CreateParticle(chi_math::RandomNumberGenerator *rng)
+  CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
   Particle new_particle;
 
@@ -125,10 +135,11 @@ mcpartra::Particle mcpartra::MaterialSource::
   size_t g = std::lower_bound(
             group_cdf.begin(),
             group_cdf.end(),
-            rng->Rand()) - group_cdf.begin();
+            rng.Rand()) - group_cdf.begin();
 
-  if (g>group_cdf.size())
-    return Particle::MakeDeadParticle();
+  if (g >= group_cdf.size())
+    throw std::logic_error(std::string(__FUNCTION__) +
+                           ": Error sampling group cdf.");
 
   new_particle.egrp = static_cast<int>(g);
 
@@ -142,54 +153,44 @@ mcpartra::Particle mcpartra::MaterialSource::
   size_t elem = std::lower_bound(
                group_element_cdf[g].begin(),
                group_element_cdf[g].end(),
-               rng->Rand()) - group_element_cdf[g].begin();
+               rng.Rand()) - group_element_cdf[g].begin();
+
+  if (elem >= group_sources[g].size())
+    throw std::logic_error(std::string(__FUNCTION__) +
+                           ": Error sampling group_sources[" +
+                           std::to_string(g) + "]");
 
   auto& src_element = group_sources[g][elem].second;
 
   //======================================== Sample position
-  new_particle.pos = src_element.SampleRandomPosition(*rng);
+  new_particle.pos = src_element->SampleRandomPosition(rng);
 
   //======================================== Sample direction
-  double costheta = 2.0*rng->Rand() - 1.0;
-  double theta    = acos(costheta);
-  double varphi   = rng->Rand()*2.0*M_PI;
-
-  chi_mesh::Vector3 ref_dir;
-  ref_dir.x = sin(theta)*cos(varphi);
-  ref_dir.y = sin(theta)*sin(varphi);
-  ref_dir.z = cos(theta);
-
-  new_particle.dir = ref_dir;
+  new_particle.dir = SampleRandomDirection(rng);
 
   //======================================== Determine weight
   new_particle.w = 1.0;
 
-  new_particle.cur_cell_local_id  = src_element.ParentCellLocalID();
-  new_particle.cur_cell_global_id = src_element.ParentCellGlobalID();
+  new_particle.cur_cell_local_id  = src_element->ParentCellLocalID();
+  new_particle.cur_cell_global_id = src_element->ParentCellGlobalID();
 
   if (ref_solver.options.uncollided_only)
     new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::UNCOLLIDED;
 
+  //======================================== Determine moment indices
+  int num_moments = ref_solver.num_moms;
+  for (int m=1; m<num_moments; ++m)
+  {
+    const auto& ell_em = ref_solver.m_to_ell_em_map[m];
+    int ell = ell_em.first;
+    int em = ell_em.second;
+
+    auto phi_theta = OmegaToPhiThetaSafe(new_particle.dir);
+    double& phi   = phi_theta.first;
+    double& theta = phi_theta.second;
+
+    new_particle.moment_values[m] = chi_math::Ylm(ell,em,phi,theta);
+  }
+
   return new_particle;
 }
-
-////###################################################################
-///**Gets the relative source strength accross all processors.*/
-//double mcpartra::MaterialSource::GetParallelRelativeSourceWeight()
-//{
-//  double local_total_source_weight = 0.0;
-//
-//  for (auto& grp_src : group_sources)
-//    for (auto& src_element : grp_src)
-//      local_total_source_weight += src_element.first;
-//
-//  double global_total_source_weight = 0.0;
-//  MPI_Allreduce(&local_total_source_weight,  //sendbuf
-//                &global_total_source_weight, //recvbuf
-//                1,                           //recvcount
-//                MPI_DOUBLE,                  //datatype
-//                MPI_SUM,                     //operation
-//                MPI_COMM_WORLD);             //communicator
-//
-//  return local_total_source_weight/global_total_source_weight;
-//}
