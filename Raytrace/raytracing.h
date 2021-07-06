@@ -38,6 +38,13 @@ public:
     perform_concavity_checks(in_perform_concavity_checks)
   {}
 
+    void SetTolerancesFromCellSize(double cell_size)
+  {
+    epsilon_nudge = cell_size * 1.0e-2;
+    backward_tolerance = cell_size * 1.0e-10;
+    extension_distance = 3.0 * cell_size;
+  }
+
   RayTracerOutputInformation
     TraceRay(const Cell& cell,
              Vector3& pos_i,

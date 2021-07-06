@@ -257,6 +257,7 @@ public:
 public:
   chi_math::RandomNumberGenerator       rng0;
   std::shared_ptr<chi_mesh::RayTracer>  default_raytracer = nullptr;
+  std::vector<double>                   cell_sizes;
 
   //======================== RMC quantities
 public:
@@ -312,9 +313,9 @@ public:
 
   //01
   bool Initialize();
+  void InitRaytracing();
   void InitMaterials(); //01a
   void InitCellImportances(); //01b
-  // void InitRaytracing();
   void InitMomentIndices(); //01d
   void InitTallies(); //01e
   void InitFieldFunctions(); //01f

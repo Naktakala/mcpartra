@@ -106,22 +106,22 @@ struct mcpartra::Particle final
 
   static void BuildMPIDatatype(MPI_Datatype& prtcl_data_type)
   {
-    int block_lengths[] = {3, //pos
-                           3, //dir
-                           1, //w
-                           1, //egrp
-                           1, //cur_cell_global_id
-                           1, //pre_cell_global_id
-                           1, //cur_cell_local_id
-                           1, //pre_cell_local_id
-                           1, //ray_trace_method
-                           1, //tally_method
-                           1, //tally_mask
-                           1, //cur_cell_importance
-                           1, //pre_cell_importance
-                           1, //alive
-                           1,
-                           64};//banked
+    int block_lengths[] = {3,  //pos
+                           3,  //dir
+                           1,  //w
+                           1,  //egrp
+                           1,  //cur_cell_global_id
+                           1,  //pre_cell_global_id
+                           1,  //cur_cell_local_id
+                           1,  //pre_cell_local_id
+                           1,  //ray_trace_method
+                           1,  //tally_method
+                           1,  //tally_mask
+                           1,  //cur_cell_importance
+                           1,  //pre_cell_importance
+                           1,  //alive
+                           1,  //banked
+                           64};//moments
 
     MPI_Aint block_disp[] = {
       offsetof(Particle, pos),

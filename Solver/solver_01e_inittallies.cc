@@ -62,9 +62,11 @@ void mcpartra::Solver::InitTallies()
 
   //=================================== Initialize pwl discretization
   chi_log.Log(LOG_0) << "Adding PWL finite element views.";
+//  pwl = SpatialDiscretization_PWLD::New(grid,
+//          chi_math::finite_element::COMPUTE_CELL_MAPPINGS |
+//          chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
   pwl = SpatialDiscretization_PWLD::New(grid,
-          chi_math::finite_element::COMPUTE_CELL_MAPPINGS |
-          chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
+                                        chi_math::finite_element::COMPUTE_CELL_MAPPINGS);
 
   usleep(1000000);
 

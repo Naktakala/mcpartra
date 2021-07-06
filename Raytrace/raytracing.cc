@@ -72,7 +72,9 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
       << ((backward_tolerance_hit)? " Backward tolerance hit. " : "")
       << "For particle xyz="
       << pos_i.PrintS() << " uvw="
-      << omega_i.PrintS() << " in cell " << cell.global_id
+      << omega_i.PrintS() << " " << (pos_i + extension_distance*omega_i).PrintS()
+      << " " << extension_distance
+      << " in cell " << cell.global_id
       << " with vertices: \n";
 
     for (auto vi : cell.vertex_ids)
@@ -85,6 +87,36 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
       for (auto vi : face.vertex_ids)
         outstr << grid.vertices[vi].PrintS() << "\n";
     }
+
+    outstr << "o Cell\n";
+    for (auto& vid : cell.vertex_ids)
+    {
+      auto& v = grid.vertices[vid];
+      outstr << "v " << v.x << " " << v.y << " " << v.z << "\n";
+    }
+
+    for (auto& face : cell.faces)
+    {
+      auto& v = face.centroid;
+      outstr << "v " << v.x << " " << v.y << " " << v.z << "\n";
+    }
+
+    for (size_t f=0; f < cell.faces.size(); ++f)
+    {
+      auto& face = cell.faces[f];
+      outstr << "f ";
+      for (auto vid : face.vertex_ids)
+      {
+        size_t ref_cell_id=0;
+        for (size_t cid=0; cid < cell.vertex_ids.size(); ++cid)
+          if (cell.vertex_ids[cid] == vid)
+            ref_cell_id = cid + 1;
+
+        outstr << ref_cell_id << "// ";
+      }
+      outstr << "\n";
+    }
+
 
     chi_log.Log(LOG_ALLERROR) << outstr.str();
     exit(EXIT_FAILURE);

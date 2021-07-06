@@ -88,6 +88,7 @@ void mcpartra::Solver::RaytraceSTD(Particle& prtcl)
 //                       d_to_surface,  //[Otput] Distance to next surface
 //                       posf);         //[Otput] Intersection point at next surf
 
+  default_raytracer->SetTolerancesFromCellSize(cell_sizes[cell->local_id]);
   auto ray_dest_info = default_raytracer->TraceRay(*cell,prtcl.pos,prtcl.dir);
 
   d_to_surface = ray_dest_info.distance_to_surface;

@@ -23,6 +23,7 @@ bool mcpartra::Solver::Initialize()
                                                             1.0e5,
                                                             false);
 
+  InitRaytracing();
   InitMaterials();
   InitMomentIndices();
   InitTallies();

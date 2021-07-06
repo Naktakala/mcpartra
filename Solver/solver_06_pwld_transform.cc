@@ -1,9 +1,16 @@
 #include "solver_montecarlon.h"
 
+#include "chi_log.h"
+#include "ChiTimer/chi_timer.h"
+extern ChiTimer chi_program_timer;
+
 //###################################################################
 /**Computes PWLD transformations of the PWLD tallies.*/
 void mcpartra::Solver::ComputePWLDTransformations()
 {
+  auto& chi_log = ChiLog::GetInstance();
+  chi_log.Log() << chi_program_timer.GetTimeString()
+                << " Processing PWLD Tallies.";
   if (options.make_pwld)
   {
     for (auto& cell : grid->local_cells)
@@ -47,4 +54,7 @@ void mcpartra::Solver::ComputePWLDTransformations()
 
     }//for local cell lc
   }//if make_pwld
+
+  chi_log.Log() << chi_program_timer.GetTimeString()
+                << " Done processing PWLD Tallies.";
 }
