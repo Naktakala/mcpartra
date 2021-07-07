@@ -2,13 +2,13 @@
 
 #include <ChiMesh/MeshHandler/chi_meshhandler.h>
 
-#include <chi_log.h>
-#include <chi_mpi.h>
-
+#include "chi_log.h"
 extern ChiLog& chi_log;
+
+#include "chi_mpi.h"
 extern ChiMPI& chi_mpi;
 
-#include <unistd.h>
+#include <iomanip>
 
 //###################################################################
 /**Initializes tallies.*/
@@ -17,11 +17,11 @@ void mcpartra::Solver::InitTallies()
   chi_log.Log() << "MCParTra: Initializing tallies";
 
   //=================================== Unknown Manager
-  for (int m=0; m<num_moms; ++m)
+  for (size_t m=0; m<num_moms; ++m)
   {
     uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
     uk_man_pwld.AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
-    for (int g=0; g<num_grps; ++g)
+    for (size_t g=0; g<num_grps; ++g)
     {
       auto fv_comp_name = std::string("PhiFV");
       auto fem_comp_name = std::string("PhiFEM");
@@ -37,6 +37,79 @@ void mcpartra::Solver::InitTallies()
     }//for g
   }//for m
 
+  //=================================== Estimating total size requirement
+  //                                    for tallies only
+  size_t num_local_cells = grid->local_cells.size();
+  size_t num_globl_cells = grid->GetGlobalNumberOfCells();
+
+  size_t num_local_nodes = 0;
+  for (const auto& cell : grid->local_cells)
+    num_local_nodes += cell.vertex_ids.size();
+
+  size_t max_num_local_cells = 0;
+  MPI_Allreduce(&num_local_cells,         //sendbuf
+                &max_num_local_cells,     //recvbuf
+                1,MPI_UNSIGNED_LONG_LONG, //count,datatype
+                MPI_MAX,                  //operation
+                MPI_COMM_WORLD);          //communicator
+
+  size_t num_globl_nodes = 0;
+  MPI_Allreduce(&num_local_nodes,         //sendbuf
+                &num_globl_nodes,         //recvbuf
+                1,MPI_UNSIGNED_LONG_LONG, //count,datatype
+                MPI_SUM,                  //operation
+                MPI_COMM_WORLD);          //communicator
+
+  size_t max_num_local_nodes = 0;
+  MPI_Allreduce(&num_local_nodes,         //sendbuf
+                &max_num_local_nodes,     //recvbuf
+                1,MPI_UNSIGNED_LONG_LONG, //count,datatype
+                MPI_MAX,                  //operation
+                MPI_COMM_WORLD);          //communicator
+
+  double fv_tally_peak_size_estimate =
+    static_cast<double>(max_num_local_cells) *
+    uk_man_fv.GetTotalUnknownStructureSize() *
+    8 *      //bytes per float
+    6 *      //vectors per tally
+    1.0e-6;  //bytes per megabyte
+
+  double fv_tally_total_size_estimate =
+    static_cast<double>(num_globl_cells) *
+    uk_man_fv.GetTotalUnknownStructureSize() *
+    8 *      //bytes per float
+    6 *      //vectors per tally
+    1e-6;    //bytes per megabyte
+
+  chi_log.Log() << "MCParTra: Estimated size required by FV tallies: peak "
+                << std::fixed << std::setprecision(1)
+                << fv_tally_peak_size_estimate << "Mb (total "
+                << std::fixed << std::setprecision(1)
+                << fv_tally_total_size_estimate << "Mb)";
+
+  if (options.make_pwld)
+  {
+    double pwl_tally_peak_size_estimate =
+      static_cast<double>(max_num_local_nodes) *
+      uk_man_pwld.GetTotalUnknownStructureSize() *
+      8 *      //bytes per float
+      6 /      //vectors per tally
+      1000000; //bytes per megabyte
+
+    double pwl_tally_total_size_estimate =
+      static_cast<double>(num_globl_nodes) *
+      uk_man_pwld.GetTotalUnknownStructureSize() *
+      8 *      //bytes per float
+      6 /      //vectors per tally
+      1000000; //bytes per megabyte
+
+    chi_log.Log() << "MCParTra: Estimated size required by PWL tallies: peak "
+                  << std::fixed << std::setprecision(1)
+                  << pwl_tally_peak_size_estimate << "Mb (total "
+                  << std::fixed << std::setprecision(1)
+                  << pwl_tally_total_size_estimate << "Mb)";
+  }
+
   //=================================== Initialize tally blocks
   grid_tally_blocks.clear();
   grid_tally_blocks.emplace_back(); //DEFAULT_FVTALLY
@@ -49,39 +122,23 @@ void mcpartra::Solver::InitTallies()
   chi_log.Log(LOG_0) << "Adding finite volume views.";
   fv = SpatialDiscretization_FV::New(grid);
 
-  usleep(1000000);
-
   //=================================== Tally sizes
   auto fv_tally_size = fv->GetNumLocalDOFs(uk_man_fv);
 
   grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].Resize(fv_tally_size);
-  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_FVTALLY]].Resize(fv_tally_size);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
 
   //=================================== Initialize pwl discretization
-  chi_log.Log(LOG_0) << "Adding PWL finite element views.";
-//  pwl = SpatialDiscretization_PWLD::New(grid,
-//          chi_math::finite_element::COMPUTE_CELL_MAPPINGS |
-//          chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
   pwl = SpatialDiscretization_PWLD::New(grid,
-                                        chi_math::finite_element::COMPUTE_CELL_MAPPINGS);
-
-  usleep(1000000);
+              chi_math::finite_element::COMPUTE_CELL_MAPPINGS);
 
   //=================================== Initialize PWLD tallies
   auto fem_tally_size = pwl->GetNumLocalDOFs(uk_man_pwld);
   auto fem_tally_size_global = pwl->GetNumGlobalDOFs(uk_man_pwld);
 
-  chi_log.Log(LOG_0) << "PWL #global-dofs: " << fem_tally_size_global;
-
   grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]].Resize(fem_tally_size);
-//  grid_tally_blocks[TallyMaskIndex[UNCOLLIDED_PWLTALLY]].Resize(fem_tally_size);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  chi_log.Log(LOG_0) << "Done sizing tallies";
-  usleep(1000000);
 
   //=================================== Initialize custom tallies
   auto fv_dof_struct_size = uk_man_fv.GetTotalUnknownStructureSize();
@@ -103,6 +160,5 @@ void mcpartra::Solver::InitTallies()
     custom_tally.Initialize(fv_dof_struct_size,global_volume);
   }
 
-  chi_log.Log(LOG_0) << "Done initializing tallies.";
-  MPI_Barrier(MPI_COMM_WORLD);
+  chi_log.Log(LOG_0) << "MCParTra: Done initializing tallies.";
 }

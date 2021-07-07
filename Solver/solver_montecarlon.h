@@ -251,8 +251,8 @@ private:
   std::vector<unsigned long long>       uncollided_batch_sizes_per_loc;
 
 public:
-  int                                   num_grps=1; //updated during material init
-  int                                   num_moms=1;
+  size_t                                num_grps=1; //updated during material init
+  size_t                                num_moms=1;
 
 public:
   chi_math::RandomNumberGenerator       rng0;

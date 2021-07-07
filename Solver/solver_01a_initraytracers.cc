@@ -8,7 +8,7 @@ extern ChiLog& chi_log;
 /**Initializes raytracers according to cell-size histogram.*/
 void mcpartra::Solver::InitRaytracing()
 {
-  chi_log.Log() << "Initializing Raytracing.";
+  chi_log.Log() << "MCPartra: Initializing Raytracing items.";
 
   /**Lambda to get cell bounding box.*/
   auto GetCellApproximateSize = [this](const chi_mesh::Cell& cell)

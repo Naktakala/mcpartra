@@ -4,8 +4,6 @@
 
 #include "ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h"
 
-#include "ChiMesh/Cell/cell_polyhedron.h"
-
 #include "ChiMath/Quadratures/LegendrePoly/legendrepoly.h"
 
 #include "ChiPhysics/chi_physics.h"
@@ -27,7 +25,8 @@ void mcpartra::MaterialSource::
   std::map<uint64_t, chi_mesh::Cell*> mat_src_cells;
   for (auto& cell : ref_grid->local_cells)
   {
-    auto mat = chi_physics_handler.material_stack[cell.material_id];
+    auto mat_id = static_cast<unsigned long>(cell.material_id);
+    auto mat = chi_physics_handler.material_stack[mat_id];
     for (auto& prop : mat->properties)
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
       {
@@ -49,7 +48,8 @@ void mcpartra::MaterialSource::
     auto& cell = *cell_index_ptr_pair.second;
     auto fv_view = ref_fv_sdm->MapFeView(cell.local_id);
 
-    auto mat = chi_physics_handler.material_stack[cell.material_id];
+    auto mat_id = static_cast<unsigned long>(cell.material_id);
+    auto mat = chi_physics_handler.material_stack[mat_id];
 
     for (auto& prop : mat->properties)
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
@@ -58,6 +58,9 @@ void mcpartra::MaterialSource::
         for (size_t g=0; g<src->source_value_g.size(); ++g)
         {
           double Q_g = src->source_value_g[g];
+
+          if (not (std::fabs(Q_g) > 0.0)) continue;
+
           IntV_Q_g[g] += fv_view->volume*Q_g;
 
           auto& v_elements = cell_elements.at(cell.local_id);
@@ -105,7 +108,7 @@ void mcpartra::MaterialSource::
   //                                              source element cdf
   group_element_cdf.clear();
   group_element_cdf.resize(ref_solver.num_grps);
-  int g=0;
+  size_t g=0;
   for (auto& group_source : group_sources)
   {
     group_element_cdf[g].resize(group_source.size(),0.0);
@@ -129,17 +132,15 @@ void mcpartra::MaterialSource::
 mcpartra::Particle mcpartra::MaterialSource::
   CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
+  const std::string fname{__FUNCTION__};
+
   Particle new_particle;
 
   //======================================== Sample group
-  size_t g = std::lower_bound(
-            group_cdf.begin(),
-            group_cdf.end(),
-            rng.Rand()) - group_cdf.begin();
+  size_t g = SampleCDF(group_cdf, rng);
 
   if (g >= group_cdf.size())
-    throw std::logic_error(std::string(__FUNCTION__) +
-                           ": Error sampling group cdf.");
+    throw std::logic_error(fname + ": Error sampling group cdf.");
 
   new_particle.egrp = static_cast<int>(g);
 
@@ -150,10 +151,11 @@ mcpartra::Particle mcpartra::MaterialSource::
   }
 
   //======================================== Sample element
-  size_t elem = std::lower_bound(
+  auto elem = static_cast<size_t>(
+    std::lower_bound(
                group_element_cdf[g].begin(),
                group_element_cdf[g].end(),
-               rng.Rand()) - group_element_cdf[g].begin();
+               rng.Rand()) - group_element_cdf[g].begin());
 
   if (elem >= group_sources[g].size())
     throw std::logic_error(std::string(__FUNCTION__) +
@@ -178,16 +180,16 @@ mcpartra::Particle mcpartra::MaterialSource::
     new_particle.ray_trace_method = mcpartra::Solver::RayTraceMethod::UNCOLLIDED;
 
   //======================================== Determine moment indices
-  int num_moments = ref_solver.num_moms;
-  for (int m=1; m<num_moments; ++m)
+  const auto phi_theta = OmegaToPhiThetaSafe(new_particle.dir);
+  const double& phi   = phi_theta.first;
+  const double& theta = phi_theta.second;
+
+  size_t num_moments = ref_solver.num_moms;
+  for (size_t m=1; m<num_moments; ++m)
   {
     const auto& ell_em = ref_solver.m_to_ell_em_map[m];
-    int ell = ell_em.first;
-    int em = ell_em.second;
-
-    auto phi_theta = OmegaToPhiThetaSafe(new_particle.dir);
-    double& phi   = phi_theta.first;
-    double& theta = phi_theta.second;
+    auto ell = static_cast<unsigned int>(ell_em.first);
+    int em           = ell_em.second;
 
     new_particle.moment_values[m] = chi_math::Ylm(ell,em,phi,theta);
   }

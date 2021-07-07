@@ -27,6 +27,7 @@ ENDFOREACH(item)
 set(SOURCES ${SOURCES} ${MORE_SOURCES})
 
 set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O3")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3")
 
 add_executable(${TARGET} "${SOURCES}")
 target_link_libraries(${TARGET} ${CHI_LIBS})

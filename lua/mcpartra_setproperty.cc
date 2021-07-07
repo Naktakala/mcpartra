@@ -15,44 +15,45 @@ extern ChiPhysics&  chi_physics_handler;
 \param SolverHandle int Handle to the montecarlo solver.
 \param PropertyIndex int Code for a specific property.
 
-
-
 ##_
 
 ###PropertyIndex\n
-MC_NUM_PARTICLES\n
+NUM_PARTICLES\n
  Number of particles to run. Expects to be followed by an integer specifying
  the amount of particles to run. Default 1000.\n\n
 
-MC_TFC_UPDATE_DIV\n
- Number of divisions of the number of particles to use for tally fluctuation
- chart (TFC) update. Expects to be followed by an integer specifying the number
- of bins. Default 10.\n\n
-
-MC_MONOENERGETIC\n
+MONOENERGETIC\n
  Forces the scattering out of a group to be treated like absorbtion.
  Expects to be followed by a boolean value. Default false.\n\n
 
-MC_SCATTERING_ORDER\n
+SCATTERING_ORDER\n
  Sets the scattering order used for building discrete scattering angles.
  Expect to be followed by an integer specifying the order. Default 10.
  Note: when this number is set greater than the scattering order available
  in the provided cross-sections then the scattering order will default to that
  available.\n\n
 
-MC_FORCE_ISOTROPIC\n
+FORCE_ISOTROPIC\n
  Flag forcing isotropic scattering. Expects to be followed by a boolean value.
  Default false.\n\n
 
-MC_TALLY_MULTIPLICATION_FACTOR\n
+GROUP_BOUNDS\n
+ Bounds the simulations only between the specified groups (all inclusive).
+ Expects to be followed by two integers.\n\n
+
+TALLY_MERGE_INTVL\n
+ Sets how many particles to run before merging tallies. Expects to be followed
+ by an integer.
+
+TALLY_MULTIPLICATION_FACTOR\n
  Classical global tally multiplication factor to be applied after normalization
  per source particle. Expects to be followed by a float. Default 1.0.\n\n
 
-MC_MAKE_PWLD_SOLUTION\n
+MAKE_PWLD_SOLUTION\n
  Classical global tally multiplication factor to be applied after normalization
  per source particle. Expects to be followed by a float. Default 1.0.\n\n
 
-MC_UNCOLLIDED_ONLY\n
+UNCOLLIDED_ONLY\n
  Trace source particles as uncollided particles, adjusting the weight
  instead of scattering or absorbing.\n\n
 
@@ -79,6 +80,8 @@ int chiMonteCarlonSetProperty(lua_State *L)
     unsigned long long num_part = lua_tonumber(L,3);
 
     mcsolver->options.num_particles = num_part;
+
+    chi_log.Log() << "MCParTra: Number of particles to run set to " << num_part;
   }
   else if (property_index == mcpartra::Property::SCATTERING_ORDER)
   {
@@ -92,18 +95,24 @@ int chiMonteCarlonSetProperty(lua_State *L)
     }
 
     mcsolver->options.scattering_order = scatorder;
+
+    chi_log.Log() << "MCParTra: Scattering order set to " << scatorder;
   }
   else if (property_index == mcpartra::Property::MONOENERGETIC)
   {
     bool mono = lua_toboolean(L,3);
 
     mcsolver->options.mono_energy = mono;
+
+    chi_log.Log() << "MCParTra: Mono-energetic flag set to " << mono;
   }
   else if (property_index == mcpartra::Property::FORCE_ISOTROPIC)
   {
     bool iso = lua_toboolean(L,3);
 
     mcsolver->options.force_isotropic = iso;
+
+    chi_log.Log() << "MCParTra: Force-isotropic flag set to " << iso;
   }
   else if (property_index == mcpartra::Property::GROUP_BOUNDS)
   {
@@ -112,30 +121,40 @@ int chiMonteCarlonSetProperty(lua_State *L)
 
     mcsolver->options.group_hi_bound = hi;
     mcsolver->options.group_lo_bound = lo;
+
+    chi_log.Log() << "MCParTra: Group-bounds set from " << lo << " to " << hi;
   }
   else if (property_index == mcpartra::Property::TALLY_MERGE_INTVL)
   {
     unsigned long long tal_merg_invtl = lua_tonumber(L,3);
 
     mcsolver->options.tally_rendezvous_intvl = tal_merg_invtl;
+
+    chi_log.Log() << "MCParTra: Tally merge interval set to " << tal_merg_invtl;
   }
   else if (property_index == mcpartra::Property::TALLY_MULTIPLICATION_FACTOR)
   {
     double tmf = lua_tonumber(L,3);
 
     mcsolver->options.tally_multipl_factor = tmf;
+
+    chi_log.Log() << "MCParTra: Tally multiplication factor set to " << tmf;
   }
   else if (property_index == mcpartra::Property::MAKE_PWLD_SOLUTION)
   {
     bool make_pwld = lua_toboolean(L,3);
 
     mcsolver->options.make_pwld = make_pwld;
+
+    chi_log.Log() << "MCParTra: Flag to make PWLD-solution set to " << make_pwld;
   }
   else if (property_index == mcpartra::Property::UNCOLLIDED_ONLY)
   {
     bool unc_only = lua_toboolean(L,3);
 
     mcsolver->options.uncollided_only = unc_only;
+
+    chi_log.Log() << "MCParTra: Flag to run uncollided only, set to " << unc_only;
   }
   else if (property_index == mcpartra::Property::NUM_UNCOLLIDED_PARTICLES)
   {

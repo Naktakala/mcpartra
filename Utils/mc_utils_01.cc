@@ -63,3 +63,13 @@ std::pair<double,double> mcpartra::
     return {phi, theta};
   }
 }
+
+//###################################################################
+/**Samples a CDF.*/
+size_t mcpartra::
+  SampleCDF(const std::vector<double> &cdf, chi_math::RandomNumberGenerator &rng)
+{
+  auto bin_iterator = std::lower_bound(cdf.begin(), cdf.end(), rng.Rand());
+
+  return static_cast<size_t>(std::distance(cdf.begin(), bin_iterator));
+}
