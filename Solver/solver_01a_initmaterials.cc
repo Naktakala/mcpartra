@@ -59,8 +59,8 @@ void mcpartra::Solver::InitMaterials()
 
         transp_xs->ComputeDiscreteScattering(options.scattering_order);
 
-        if (transp_xs->num_groups > num_grps)
-          num_grps = transp_xs->num_groups;
+        if (transp_xs->num_groups > num_groups)
+          num_groups = transp_xs->num_groups;
 
         matid_xs_map[m] = static_cast<int>(p);
         material_xs_mapped = true;

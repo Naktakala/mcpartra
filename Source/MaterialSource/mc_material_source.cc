@@ -41,8 +41,8 @@ void mcpartra::MaterialSource::
   //                                              source weights
   typedef chi_physics::IsotropicMultiGrpSource IsoMGSrc;
   IntV_Q_g.clear();
-  IntV_Q_g.resize(ref_solver.num_grps,0.0);
-  group_sources.resize(ref_solver.num_grps);
+  IntV_Q_g.resize(ref_solver.num_groups, 0.0);
+  group_sources.resize(ref_solver.num_groups);
   for (auto& cell_index_ptr_pair : mat_src_cells)
   {
     auto& cell = *cell_index_ptr_pair.second;
@@ -95,9 +95,9 @@ void mcpartra::MaterialSource::
   SetSourceRates(IntV_Q_total_local,IntV_Q_total_globl);
 
   group_cdf.clear();
-  group_cdf.resize(ref_solver.num_grps,0.0);
+  group_cdf.resize(ref_solver.num_groups, 0.0);
   double running_total = 0.0;
-  for (size_t g=0; g<ref_solver.num_grps; ++g)
+  for (size_t g=0; g<ref_solver.num_groups; ++g)
   {
     running_total += IntV_Q_g[g];
     group_cdf[g] = (IntV_Q_total_local > 0.0)?
@@ -107,7 +107,7 @@ void mcpartra::MaterialSource::
   //============================================= Within each group, construct
   //                                              source element cdf
   group_element_cdf.clear();
-  group_element_cdf.resize(ref_solver.num_grps);
+  group_element_cdf.resize(ref_solver.num_groups);
   size_t g=0;
   for (auto& group_source : group_sources)
   {
@@ -184,7 +184,7 @@ mcpartra::Particle mcpartra::MaterialSource::
   const double& phi   = phi_theta.first;
   const double& theta = phi_theta.second;
 
-  size_t num_moments = ref_solver.num_moms;
+  size_t num_moments = ref_solver.num_moments;
   for (size_t m=1; m<num_moments; ++m)
   {
     const auto& ell_em = ref_solver.m_to_ell_em_map[m];

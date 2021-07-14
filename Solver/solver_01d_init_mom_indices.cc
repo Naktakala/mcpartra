@@ -28,6 +28,6 @@ void mcpartra::Solver::InitMomentIndices()
       for (int m=-ell; m<=ell; m++)
         m_to_ell_em_map.emplace_back(ell,m);
 
-  num_moms = m_to_ell_em_map.size();
+  num_moments = m_to_ell_em_map.size();
 }
 

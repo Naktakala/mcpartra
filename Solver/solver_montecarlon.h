@@ -2,6 +2,8 @@
 #define SOLVER_MONTECARLON_H
 
 #include"../chi_montecarlon.h"
+#include "GridTallyBlock/mcpt_gridtallyblock.h"
+#include "CustomVolumeTally/mcpt_customvolumetally.h"
 #include "../chi_montecarlon_particle.h"
 #include "../Raytrace/raytracing.h"
 #include "../Source/mc_base_source.h"
@@ -27,146 +29,23 @@
 
 namespace mcpartra
 {
-  enum Property{
-    NUM_PARTICLES               = 1,
-    MONOENERGETIC               = 3,
-    SCATTERING_ORDER            = 4,
-    FORCE_ISOTROPIC             = 5,
-    GROUP_BOUNDS                = 6,
-    TALLY_MERGE_INTVL           = 7,
-    TALLY_MULTIPLICATION_FACTOR = 8,
-    MAKE_PWLD_SOLUTION          = 9,
-    UNCOLLIDED_ONLY             = 10,
-    NUM_UNCOLLIDED_PARTICLES    = 11
-  };
-
-  class GridTallyBlock;
-  class CustomVolumeTally;
-}
-
-//######################################################### Tally struct
-/**Tally block.*/
-class mcpartra::GridTallyBlock
+enum Property
 {
-private:
-  bool is_empty = true;
-public:
-  std::vector<double> tally_local;
-  std::vector<double> tally_global;
-  std::vector<double> tally_sqr_local;
-  std::vector<double> tally_sqr_global;
-
-  std::vector<double> tally_sigma;
-  std::vector<double> tally_relative_sigma;
-
-  void Resize(size_t tally_size)
-  {
-    tally_local         .resize(tally_size, 0.0);
-    tally_global        .resize(tally_size, 0.0);
-    tally_sqr_local     .resize(tally_size, 0.0);
-    tally_sqr_global    .resize(tally_size, 0.0);
-    tally_sigma         .resize(tally_size, 0.0);
-    tally_relative_sigma.resize(tally_size, 0.0);
-
-    is_empty = false;
-  }
-
-  GridTallyBlock& operator=(const GridTallyBlock& that)
-  {
-    tally_local          = that.tally_local;
-    tally_global         = that.tally_global;
-    tally_sqr_local      = that.tally_sqr_local;
-    tally_sqr_global     = that.tally_sqr_global;
-
-    tally_sigma          = that.tally_sigma;
-    tally_relative_sigma = that.tally_relative_sigma;
-
-    return *this;
-  }
-
-  void ZeroOut()
-  {
-    size_t tally_size = tally_local.size();
-
-    tally_local          .assign(tally_size, 0.0);
-    tally_global         .assign(tally_size, 0.0);
-    tally_sqr_local      .assign(tally_size, 0.0);
-    tally_sqr_global     .assign(tally_size, 0.0);
-
-    tally_sigma          .assign(tally_size, 0.0);
-    tally_relative_sigma .assign(tally_size, 0.0);
-  }
-
-  GridTallyBlock& operator+=(const GridTallyBlock& that)
-  {
-    size_t tally_size = tally_local.size();
-
-    for (int i=0; i<tally_size; ++i)
-    {
-      tally_local         [i] += that.tally_local         [i];
-      tally_global        [i] += that.tally_global        [i];
-      tally_sqr_local     [i] += that.tally_sqr_local     [i];
-      tally_sqr_global    [i] += that.tally_sqr_global    [i];
-      tally_sigma         [i] += that.tally_sigma         [i];
-      tally_relative_sigma[i] += that.tally_relative_sigma[i];
-    }
-
-    return *this;
-  }
-
-  GridTallyBlock& operator*=(const double value)
-  {
-    size_t tally_size = tally_local.size();
-
-    for (int i=0; i<tally_size; ++i)
-    {
-      tally_local         [i] *= value;
-      tally_global        [i] *= value;
-      tally_sqr_local     [i] *= value;
-      tally_sqr_global    [i] *= value;
-      tally_sigma         [i] *= value;
-      tally_relative_sigma[i] *= value;
-    }
-
-    return *this;
-  }
-
-  bool empty() const {return is_empty;}
-};
-
-//#########################################################
-/**Custom tally Structure.*/
-class mcpartra::CustomVolumeTally
-{
-public:
-  struct TallyFluctuationChart
-  {
-    std::vector<double> average;
-    std::vector<double> sigma;
-  };
-  typedef TallyFluctuationChart TFC;
-public:
-  GridTallyBlock        grid_tally;
-  std::vector<bool>     local_cell_tally_mask; ///< Indicates whether a local cell is part of tally
-  double                tally_volume=0.0;
-//  bool                  initialized=false;
-  std::vector<TFC>      tally_fluctation_chart;
-
-  explicit
-  CustomVolumeTally(std::vector<bool>& in_masking) :
-    local_cell_tally_mask(in_masking) {}
-
-  void Initialize(size_t tally_size, double in_volume)
-  {
-    grid_tally.Resize(tally_size);
-    tally_volume = in_volume;
-//    initialized = true;
-  }
+  NUM_PARTICLES               = 1,
+  MONOENERGETIC               = 3,
+  SCATTERING_ORDER            = 4,
+  FORCE_ISOTROPIC             = 5,
+  GROUP_BOUNDS                = 6,
+  TALLY_MERGE_INTVL           = 7,
+  TALLY_MULTIPLICATION_FACTOR = 8,
+  MAKE_PWLD_SOLUTION          = 9,
+  UNCOLLIDED_ONLY             = 10,
+  NUM_UNCOLLIDED_PARTICLES    = 11
 };
 
 //######################################################### Class def
 /**Monte Carlo neutron particle solver.*/
-class mcpartra::Solver : public chi_physics::Solver
+class Solver : public chi_physics::Solver
 {
 protected:
   typedef std::shared_ptr<SpatialDiscretization_FV> SDMFVPtr;
@@ -187,7 +66,7 @@ public:
   /**Bit-wise identifier to a specific tally. This allows
    * particles to ship with a bit-wise integer that functions
    * as 8bits*4bytes=32 flag values.*/
-  enum TallyMask
+  enum TallyMask : unsigned int
   {
     DEFAULT_FVTALLY       = 1 << 0, //0000 0001
     DEFAULT_PWLTALLY      = 1 << 1, //0000 0010
@@ -197,16 +76,16 @@ public:
   };
 
   /**Maps a bit-wise tally identifier to an actual index.*/
-  std::map<TallyMask,int> TallyMaskIndex =
+  std::map<TallyMask,unsigned int> TallyMaskIndex =
     {{DEFAULT_FVTALLY,     0},
      {DEFAULT_PWLTALLY,    1},
      {UNCOLLIDED_FVTALLY,  2},
      {UNCOLLIDED_PWLTALLY, 3}};
 
-  std::vector<int> fv_tallies =
+  std::vector<unsigned int> fv_tallies =
     {TallyMaskIndex[DEFAULT_FVTALLY]};
 
-  std::vector<int> pwl_tallies =
+  std::vector<unsigned int> pwl_tallies =
     {TallyMaskIndex[DEFAULT_PWLTALLY]};
 
   //=================================== Members
@@ -236,7 +115,7 @@ private:
 
   // Source information
 public:
-  std::vector<mcpartra::SourceBase*>    sources;
+  std::vector<SourceBase*>    sources;
 private:
   double                                total_local_source_rate = 0.0;
   double                                total_globl_source_rate = 0.0;
@@ -251,8 +130,8 @@ private:
   std::vector<unsigned long long>       uncollided_batch_sizes_per_loc;
 
 public:
-  size_t                                num_grps=1; //updated during material init
-  size_t                                num_moms=1;
+  size_t                                num_groups=1; //updated during material init
+  size_t                                num_moments=1;
 
 public:
   chi_math::RandomNumberGenerator       rng0;
@@ -305,11 +184,15 @@ public:
     double             tally_multipl_factor = 1.0;
     bool               make_pwld = false;
     bool               uncollided_only = false;
+
+    bool               write_run_tape = false;
+    std::string        run_tape_base_name;
   }options;
 
 public:
   //00
        Solver();
+  explicit Solver(int seed);
 
   //01
   bool Initialize();
@@ -348,12 +231,12 @@ private:
   double
   GetResidualFFPhi(std::vector<double>& N_in,
                    int dofs, int rmap,
-                   mcpartra::ResidualSourceB* rsrc,
+                   ResidualSourceB* rsrc,
                    int egrp);
   chi_mesh::Vector3
   GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
                        int dofs, int rmap,
-                       mcpartra::ResidualSourceB* rsrc,
+                       ResidualSourceB* rsrc,
                        int egrp);
   void ContributeTallyRMC(Particle& prtcl,
                           const chi_mesh::Vector3& pf,
@@ -390,9 +273,13 @@ private:
 public:
   size_t AddCustomVolumeTally(chi_mesh::LogicalVolume& logical_volume);
 
-  friend class mcpartra::ResidualSourceB;
-  friend class mcpartra::ResidualSourceA;
+  //IO Utils
+  void WriteRunTape(const std::string& file_base_name);
+  void ReadRunTape(const std::string& file_name);
+
+  friend class ResidualSourceB;
+  friend class ResidualSourceA;
 
 };
-
+}//namespace mcpartra
 #endif

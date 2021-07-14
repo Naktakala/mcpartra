@@ -15,9 +15,8 @@ void mcpartra::Solver::NormalizeTallies()
   if (nps_global == 0) nps_global = 1;
 
   //======================================== FV Tallies
-  for (int _t : fv_tallies)
+  for (unsigned int t : fv_tallies)
   {
-    auto t = static_cast<unsigned int>(_t);
     if (not grid_tally_blocks[t].empty())
     {
       auto& tally_global = grid_tally_blocks[t].tally_global;
@@ -26,9 +25,9 @@ void mcpartra::Solver::NormalizeTallies()
       {
         auto cell_fv_view = fv->MapFeView(cell.local_id);
 
-        for (size_t m=0; m<num_moms; ++m)
+        for (size_t m=0; m < num_moments; ++m)
         {
-          for (size_t g=0; g<num_grps; ++g)
+          for (size_t g=0; g < num_groups; ++g)
           {
             int64_t _dof_map = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
             auto dof_map = static_cast<uint64_t>(_dof_map);
@@ -51,9 +50,8 @@ void mcpartra::Solver::NormalizeTallies()
   }//for tallies
 
   //============================================= PWL Tallies
-  for (int _t : pwl_tallies)
+  for (unsigned int t : pwl_tallies)
   {
-    auto t = static_cast<unsigned int>(_t);
     if (not grid_tally_blocks[t].empty())
     {
       for (auto& cell : grid->local_cells)
@@ -62,9 +60,9 @@ void mcpartra::Solver::NormalizeTallies()
 
         for (size_t i=0; i < cell.vertex_ids.size(); ++i)
         {
-          for (size_t m=0; m < num_moms; ++m)
+          for (size_t m=0; m < num_moments; ++m)
           {
-            for (size_t g=0; g < num_grps; ++g)
+            for (size_t g=0; g < num_groups; ++g)
             {
               int64_t _dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
               auto dof_map = static_cast<uint64_t>(_dof_map);
@@ -86,9 +84,9 @@ void mcpartra::Solver::NormalizeTallies()
   for (auto& custom_tally : custom_tallies)
   {
     auto& grid_tally = custom_tally.grid_tally;
-    for (size_t m=0; m<num_moms; ++m)
+    for (size_t m=0; m < num_moments; ++m)
     {
-      for (size_t g=0; g<num_grps; ++g)
+      for (size_t g=0; g < num_groups; ++g)
       {
         auto ir = uk_man_fv.MapUnknown(m, g);
 

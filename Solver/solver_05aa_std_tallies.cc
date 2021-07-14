@@ -13,28 +13,17 @@ void mcpartra::Solver::
   ContributeTally(mcpartra::Particle &prtcl, const chi_mesh::Vector3& pf)
 {
   auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
-  uint64_t cell_local_ind = cell.local_id;
 
   double tracklength = (pf - prtcl.pos).Norm();
 
   double tlw = tracklength * prtcl.w; ///< Tracklength times weight
 
-  if (std::isnan(tracklength))
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "Tracklength corruption."
-      << " pos  " << prtcl.pos.PrintS()
-      << " posf " << pf.PrintS();
-    exit(EXIT_FAILURE);
-  }
-
   //============================================= Custom tallies
-
   for (auto& tally : custom_tallies)
   {
     if (tally.local_cell_tally_mask[cell.local_id])
     {
-      for (int m=0; m<num_moms; ++m)
+      for (size_t m=0; m < num_moments; ++m)
       {
         auto dof_map = uk_man_fv.MapUnknown(m,prtcl.egrp);
 
@@ -47,11 +36,11 @@ void mcpartra::Solver::
   }//for custom tallies
 
   //============================================= FV Tallies
-  for (int t : fv_tallies)
+  for (unsigned int t : fv_tallies)
   {
     if (prtcl.tally_mask & (1 << t))
     {
-      for (int m=0; m<num_moms; ++m)
+      for (size_t m=0; m < num_moments; ++m)
       {
         int64_t dof_map = fv->MapDOFLocal(cell,/*node*/0,uk_man_fv,m,prtcl.egrp);
 
@@ -64,7 +53,7 @@ void mcpartra::Solver::
   }//for fv tallies
 
   //============================================= PWL Tallies
-  for (int t : pwl_tallies)
+  for (unsigned int t : pwl_tallies)
   {
     if ( (prtcl.tally_mask & (1 << t)) && (options.make_pwld))
     {
@@ -74,7 +63,7 @@ void mcpartra::Solver::
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 
-      auto cell_pwl_view = pwl->GetCellMappingFE(cell_local_ind);
+      auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
 
       double last_segment_length = 0.0;
       for (auto segment_length : segment_lengths)
@@ -86,10 +75,12 @@ void mcpartra::Solver::
 
         for (int i=0; i < cell_pwl_view->num_nodes; ++i)
         {
-          for (int m=0; m<num_moms; ++m)
+          for (size_t m=0; m < num_moments; ++m)
           {
             int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, prtcl.egrp);
-            double pwl_tlw_Ylm = segment_length * prtcl.w * N_f[i];
+
+            double pwl_tlw_Ylm = segment_length * prtcl.w * N_f[i] *
+                                 prtcl.moment_values[m];
 
             grid_tally_blocks[t].tally_local[dof_map]     += pwl_tlw_Ylm;
             grid_tally_blocks[t].tally_sqr_local[dof_map] += pwl_tlw_Ylm *

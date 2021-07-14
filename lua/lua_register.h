@@ -4,6 +4,8 @@ RegisterFunction(chiMonteCarlonCreateSource);
 RegisterFunction(chiMonteCarlonInitialize);
 RegisterFunction(chiMonteCarlonExecute);
 
+RegisterFunction(chiMonteCarlonReadRuntape);
+
 RegisterNamespace(MCSrcTypes);
 AddNamedConstantToNamespace(POINT_SRC,             1,MCSrcTypes);
 AddNamedConstantToNamespace(BNDRY_SRC,             2,MCSrcTypes);
@@ -13,6 +15,7 @@ AddNamedConstantToNamespace(RESIDUAL_TYPE_B,       5,MCSrcTypes);
 
 RegisterFunction(chiMonteCarlonSetImportances)
 RegisterFunction(chiMonteCarlonSetProperty);
+RegisterFunction(chiMonteCarlonSetProperty2);
 RegisterNamespace(MCProperties);
   AddNamedConstantToNamespace(NUM_PARTICLES,               1,MCProperties);
 //  AddNamedConstantToNamespace(TFC_UPDATE_INTVL,            2,MCProperties);

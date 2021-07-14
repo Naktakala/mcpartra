@@ -11,5 +11,13 @@ extern ChiMPI& chi_mpi;
 mcpartra::Solver::Solver() :
   rng0(chi_mpi.location_id)
 {
-  chi_log.Log() << "MCParTra: Solver created.";
+  chi_log.Log() << "MCParTra: Solver created with seed " << chi_mpi.location_id;
+}
+
+//###################################################################
+/**Constructor with seed.*/
+mcpartra::Solver::Solver(int seed) :
+  rng0(seed)
+{
+  chi_log.Log() << "MCParTra: Solver created with seed " << seed;
 }

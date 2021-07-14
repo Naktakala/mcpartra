@@ -12,7 +12,7 @@ void mcpartra::ResidualSourceB::
   DevelopRMCCollidedSource()
 {
   size_t num_local_cells = grid->local_cell_glob_indices.size();
-  const int G = ref_solver.num_grps;
+  const int G = ref_solver.num_groups;
 
   //============================================= Initialize sizes and integrals
   ref_solver.cdf_phi_unc_group.assign(G, 0.0);

@@ -18,7 +18,7 @@ end
 --############################################### Setup mesh
 chiMeshHandlerCreate()
 
-chiUnpartitionedMeshFromEnsightGold("RegressionTests/TopographicalMesh.case")
+chiUnpartitionedMeshFromEnsightGold("RegressionTests/Sphere.case")
 
 region1 = chiRegionCreate()
 chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED)
@@ -60,29 +60,42 @@ src={}
 for g=1,num_groups do
     src[g] = 0.0
 end
+src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 -- src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
-src[1] = 1.0
+-- src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[3],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 --############################################### Setup Physics
-phys1 = chiMonteCarlonCreateSolver()
+if (seed == nil) then seed=chi_location_id end
+phys1 = chiMonteCarlonCreateSolver(seed)
 chiSolverAddRegion(phys1,region1)
 
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,0.1e6)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
-chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
-chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0)
-chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
-chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1e6)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
+-- chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
+
+chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,1e6)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
+chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
+chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)
+chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
+chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys1,"UNCOLLIDED_ONLY"            ,true)
+chiMonteCarlonSetProperty2(phys1,"RUN_TAPE_BASE_NAME"         ,"ZRunTape")
 
 chiMonteCarlonInitialize(phys1)
+chiMonteCarlonReadRuntape(phys1, "ZRunTape0.r")
 chiMonteCarlonExecute(phys1)
 --
 -- --############################################### Setup LBS Physics

@@ -15,11 +15,29 @@ extern ChiPhysics&  chi_physics_handler;
 \author Jan*/
 int chiMonteCarlonCreateSolver(lua_State *L)
 {
-  mcpartra::Solver* new_solver = new mcpartra::Solver;
+  int num_args = lua_gettop(L);
 
-  chi_physics_handler.solver_stack.push_back(new_solver);
+  if (num_args == 0)
+  {
+    auto new_solver = new mcpartra::Solver;
 
-  lua_pushnumber(L,chi_physics_handler.solver_stack.size()-1);
+    chi_physics_handler.solver_stack.push_back(new_solver);
 
-  return 1;
+    auto stack_size = chi_physics_handler.solver_stack.size();
+    lua_pushinteger(L,static_cast<lua_Integer>(stack_size)-1);
+
+    return 1;
+  }
+  else
+  {
+    int seed = lua_tointeger(L,1);
+    auto new_solver = new mcpartra::Solver(seed);
+
+    chi_physics_handler.solver_stack.push_back(new_solver);
+
+    auto stack_size = chi_physics_handler.solver_stack.size();
+    lua_pushinteger(L,static_cast<lua_Integer>(stack_size)-1);
+
+    return 1;
+  }
 }

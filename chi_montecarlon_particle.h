@@ -16,11 +16,11 @@ struct mcpartra::Particle final
   double w = 1.0; //Weight
   int egrp = 0; //Energy group
 
-  uint64_t cur_cell_global_id = -1;
-  uint64_t pre_cell_global_id = -1;
+  uint64_t cur_cell_global_id = 0;
+  uint64_t pre_cell_global_id = 0;
 
-  uint64_t cur_cell_local_id = -1;
-  uint64_t pre_cell_local_id = -1;
+  uint64_t cur_cell_local_id = 0;
+  uint64_t pre_cell_local_id = 0;
 
   int ray_trace_method = 0; //STANDARD
   int tally_method = 0;     //STANDARD

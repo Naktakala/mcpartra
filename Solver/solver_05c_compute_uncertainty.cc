@@ -24,9 +24,9 @@ void mcpartra::Solver::ComputeUncertainty()
       {
         auto cell_fv_view = fv->MapFeView(cell.local_id);
 
-        for (int m=0; m<num_moms; ++m)
+        for (int m=0; m < num_moments; ++m)
         {
-          for (int g=0; g<num_grps; ++g)
+          for (int g=0; g < num_groups; ++g)
           {
             int ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
@@ -73,9 +73,9 @@ void mcpartra::Solver::ComputeUncertainty()
 
         for (int v=0; v<cell.vertex_ids.size(); ++v)
         {
-          for (int m=0; m<num_moms; ++m)
+          for (int m=0; m < num_moments; ++m)
           {
-            for (int g=0; g<num_grps; ++g)
+            for (int g=0; g < num_groups; ++g)
             {
               int ir = pwl->MapDOFLocal(cell, v, uk_man_pwld, m, g);
 
@@ -122,9 +122,9 @@ void mcpartra::Solver::ComputeUncertainty()
     new_chart.average.reserve(chart_size);
     new_chart.sigma  .reserve(chart_size);
 
-    for (int m=0; m<num_moms; ++m)
+    for (int m=0; m < num_moments; ++m)
     {
-      for (int g=0; g<num_grps; ++g)
+      for (int g=0; g < num_groups; ++g)
       {
         auto ir = uk_man_fv.MapUnknown(m, g);
 

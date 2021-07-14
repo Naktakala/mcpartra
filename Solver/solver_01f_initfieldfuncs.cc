@@ -15,7 +15,7 @@ void mcpartra::Solver::InitFieldFunctions()
   typedef SpatialDiscretization SD;
 
   auto fv_sd = std::dynamic_pointer_cast<SD>(fv);
-  for (int g=0; g<num_grps; g++)
+  for (int g=0; g < num_groups; g++)
   {
     std::string text_name = std::string("Flux_g") + std::to_string(g);
 
@@ -33,9 +33,9 @@ void mcpartra::Solver::InitFieldFunctions()
 //  if (make_pwld)
   {
     auto pwl_sd = std::dynamic_pointer_cast<SD>(pwl);
-    for (int g=0; g<num_grps; g++)
+    for (int g=0; g < num_groups; g++)
     {
-      for (int m=0; m<num_moms; m++)
+      for (int m=0; m < num_moments; m++)
       {
         std::string text_name = std::string("Flux_g") +
                                 std::to_string(g) +

@@ -17,11 +17,11 @@ void mcpartra::Solver::InitTallies()
   chi_log.Log() << "MCParTra: Initializing tallies";
 
   //=================================== Unknown Manager
-  for (size_t m=0; m<num_moms; ++m)
+  for (size_t m=0; m < num_moments; ++m)
   {
-    uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
-    uk_man_pwld.AddUnknown(chi_math::UnknownType::VECTOR_N, num_grps);
-    for (size_t g=0; g<num_grps; ++g)
+    uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_groups);
+    uk_man_pwld.AddUnknown(chi_math::UnknownType::VECTOR_N, num_groups);
+    for (size_t g=0; g < num_groups; ++g)
     {
       auto fv_comp_name = std::string("PhiFV");
       auto fem_comp_name = std::string("PhiFEM");

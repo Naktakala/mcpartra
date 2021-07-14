@@ -7,12 +7,10 @@ mcpartra::Solver* mcpartra::lua_utils::
   GetSolverByHandle(int handle, const std::string& function_name)
 {
   chi_physics::Solver* generic_solver;
-  try
-  {
+  try {
     generic_solver = chi_physics_handler.solver_stack.at(handle);
   }
-  catch(const std::out_of_range& o)
-  {
+  catch(const std::out_of_range& o) {
     throw std::logic_error(function_name + ": Invalid solver-handle (" +
                            std::to_string(handle) + ").");
   }

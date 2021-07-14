@@ -28,9 +28,9 @@ void mcpartra::Solver::ComputePWLDTransformations()
       {
         if (raw_tally.empty()) continue;
 
-        for (int m=0; m<num_moms; ++m)
+        for (int m=0; m < num_moments; ++m)
         {
-          for (int g=0; g<num_grps; ++g)
+          for (int g=0; g < num_groups; ++g)
           {
 
             for (int i=0; i<cell.vertex_ids.size(); ++i)

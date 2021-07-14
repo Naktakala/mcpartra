@@ -11,9 +11,6 @@ void mcpartra::Solver::ContributeTallyUNC(
   double sig_t)
 {
   auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
-  int cell_local_ind = cell.local_id;
-
-  int ir = fv->MapDOFLocal(cell, 0, uk_man_fv,/*m*/0, prtcl.egrp);
 
   double tracklength = (pf - prtcl.pos).Norm();
 
@@ -22,30 +19,44 @@ void mcpartra::Solver::ContributeTallyUNC(
 
   double w_exit = prtcl.w*exp(-sig_t*tracklength);
 
-  double tally_contrib = tracklength*avg_w;
+  double tlw = tracklength * avg_w; ///< Tracklength times average weight
+
+  //============================================= Custom tallies
+  for (auto& tally : custom_tallies)
+  {
+    if (tally.local_cell_tally_mask[cell.local_id])
+    {
+      for (size_t m=0; m < num_moments; ++m)
+      {
+        auto dof_map = uk_man_fv.MapUnknown(m,prtcl.egrp);
+
+        double tlw_Ylm = tlw * prtcl.moment_values[m];
+
+        tally.grid_tally.tally_local[dof_map]     += tlw_Ylm;
+        tally.grid_tally.tally_sqr_local[dof_map] += tlw_Ylm * tlw_Ylm;
+      }//for m
+    }//if cell part of tally
+  }//for custom tallies
 
   //============================================= FV Tallies
-  for (int t : fv_tallies)
+  for (unsigned int t : fv_tallies)
   {
     if (prtcl.tally_mask & (1 << t))
     {
-      grid_tally_blocks[t].tally_local[ir]     += tally_contrib;
-      grid_tally_blocks[t].tally_sqr_local[ir] += tally_contrib*
-                                                  tally_contrib;
+      for (size_t m=0; m < num_moments; ++m)
+      {
+        int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man_fv,m, prtcl.egrp);
+
+        double tlw_Ylm = tlw * prtcl.moment_values[m];
+
+        grid_tally_blocks[t].tally_local[dof_map]     += tlw_Ylm;
+        grid_tally_blocks[t].tally_sqr_local[dof_map] += tlw_Ylm * tlw_Ylm;
+      }//for m
     }//if tally applies
   }//for fv tallies
 
-  if (std::isnan(tracklength))
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "Tracklength corruption."
-      << " pos  " << prtcl.pos.PrintS()
-      << " posf " << pf.PrintS();
-    exit(EXIT_FAILURE);
-  }
-
   //============================================= PWL Tallies
-  for (int t : pwl_tallies)
+  for (unsigned int t : pwl_tallies)
   {
     if ( (prtcl.tally_mask & (1 << t)) && (options.make_pwld))
     {
@@ -55,7 +66,7 @@ void mcpartra::Solver::ContributeTallyUNC(
                                           segment_lengths,
                                           prtcl.pos, pf,prtcl.dir);
 
-      auto cell_pwl_view = pwl->GetCellMappingFE(cell_local_ind);
+      auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
 
       cell_pwl_view->ShapeValues(prtcl.pos, N_i);
 
@@ -68,22 +79,26 @@ void mcpartra::Solver::ContributeTallyUNC(
 
         cell_pwl_view->ShapeValues(p, N_f);
 
-        for (int dof=0; dof<cell_pwl_view->num_nodes; dof++)
+        for (int i=0; i < cell_pwl_view->num_nodes; i++)
         {
-          ir = pwl->MapDOFLocal(cell, dof, uk_man_pwld,/*m*/0, prtcl.egrp);
+          for (size_t m=0; m < num_moments; ++m)
+          {
+            int64_t dof_map = pwl->MapDOFLocal(cell, i,uk_man_pwld,m,prtcl.egrp);
 
-          double ell = segment_length;
+            double ell = segment_length;
 
-          double w_avg  = (N_i[dof]/sig_t)*(1.0-exp(-sig_t*ell));
-          w_avg += ((N_f[dof]-N_i[dof])/(sig_t*sig_t*ell))*
-                   (1.0 - (1+sig_t*ell)*exp(-sig_t*ell));
-          w_avg *= prtcl.w/ell;
+            double w_avg  = (N_i[i] / sig_t) * (1.0 - exp(-sig_t * ell));
+            w_avg += ((N_f[i] - N_i[i]) / (sig_t * sig_t * ell)) *
+                     (1.0 - (1+sig_t*ell)*exp(-sig_t*ell));
+            w_avg *= prtcl.w/ell;
 
-          double pwl_tally_contrib = segment_length * w_avg;
+            double pwl_tlw_Ylm = segment_length * w_avg *
+                                 prtcl.moment_values[m];
 
-          grid_tally_blocks[t].tally_local[ir]     += pwl_tally_contrib;
-          grid_tally_blocks[t].tally_sqr_local[ir] += pwl_tally_contrib*
-                                                      pwl_tally_contrib;
+            grid_tally_blocks[t].tally_local[dof_map]     += pwl_tlw_Ylm;
+            grid_tally_blocks[t].tally_sqr_local[dof_map] += pwl_tlw_Ylm *
+                                                             pwl_tlw_Ylm;
+          }
         }//for dof
 
         //reset for new segment
