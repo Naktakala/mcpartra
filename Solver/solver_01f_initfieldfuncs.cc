@@ -15,27 +15,32 @@ void mcpartra::Solver::InitFieldFunctions()
   typedef SpatialDiscretization SD;
 
   auto fv_sd = std::dynamic_pointer_cast<SD>(fv);
-  for (int g=0; g < num_groups; g++)
+  for (size_t g=0; g < num_groups; g++)
   {
-    std::string text_name = std::string("Flux_g") + std::to_string(g);
+    for (size_t m=0; m < num_moments; m++)
+    {
+      std::string text_name = std::string("Flux_g") +
+                              std::to_string(g) +
+                              std::string("_m") + std::to_string(m);
 
-    auto group_ff = std::make_shared<chi_physics::FieldFunction>(
-      text_name,                                     //Text name
-      fv_sd,                                         //Spatial Discretization
-      &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global,
-      uk_man_fv,                                     //Unknown manager
-      0, g);                                         //Reference unknown and component
+      auto group_ff = std::make_shared<chi_physics::FieldFunction>(
+        text_name,                                     //Text name
+        fv_sd,                                         //Spatial Discretization
+        &grid_tally_blocks[TallyMaskIndex[DEFAULT_FVTALLY]].tally_global,
+        uk_man_fv,                                     //Unknown manager
+        m, g);                                         //Reference unknown and component
 
-    chi_physics_handler.fieldfunc_stack.push_back(group_ff);
-    field_functions.push_back(group_ff);
-  }
+      chi_physics_handler.fieldfunc_stack.push_back(group_ff);
+      field_functions.push_back(group_ff);
+    }//for m
+  }//for g
 
 //  if (make_pwld)
   {
     auto pwl_sd = std::dynamic_pointer_cast<SD>(pwl);
-    for (int g=0; g < num_groups; g++)
+    for (size_t g=0; g < num_groups; g++)
     {
-      for (int m=0; m < num_moments; m++)
+      for (size_t m=0; m < num_moments; m++)
       {
         std::string text_name = std::string("Flux_g") +
                                 std::to_string(g) +

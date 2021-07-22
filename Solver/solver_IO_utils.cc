@@ -81,6 +81,7 @@ void mcpartra::Solver::WriteRunTape(const std::string &file_base_name)
   {
     for (unsigned int t : fv_tallies)
     {
+      size_t dof_counter = 0;
       const auto& tally = grid_tally_blocks[t];
       for (const auto& cell : grid->local_cells)
         for (unsigned int i=0; i<fv->GetCellNumNodes(cell); ++i)
@@ -91,16 +92,20 @@ void mcpartra::Solver::WriteRunTape(const std::string &file_base_name)
               double value     = tally.tally_global[dof_map];
               double value_sqr = tally.tally_sqr_global[dof_map];
 
-              file.write((char*)&cell.global_id,sizeof(size_t));
+              file.write((char*)&cell.global_id,sizeof(uint64_t));
               file.write((char*)&i             ,sizeof(unsigned int));
               file.write((char*)&m             ,sizeof(unsigned int));
               file.write((char*)&g             ,sizeof(unsigned int));
               file.write((char*)&value         ,sizeof(double));
               file.write((char*)&value_sqr     ,sizeof(double));
+              ++dof_counter;
             }
+      if (dof_counter != num_fv_local_dofs)
+        chi_log.Log() << "Dof-counter integrity test failed for FV tally.";
     }//for tally t
     for (unsigned int t : pwl_tallies)
     {
+      size_t dof_counter = 0;
       const auto& tally = grid_tally_blocks[t];
       for (const auto& cell : grid->local_cells)
         for (unsigned int i=0; i<pwl->GetCellNumNodes(cell); ++i)
@@ -111,13 +116,16 @@ void mcpartra::Solver::WriteRunTape(const std::string &file_base_name)
               double value     = tally.tally_global[dof_map];
               double value_sqr = tally.tally_sqr_global[dof_map];
 
-              file.write((char*)&cell.global_id,sizeof(size_t));
+              file.write((char*)&cell.global_id,sizeof(uint64_t));
               file.write((char*)&i             ,sizeof(unsigned int));
               file.write((char*)&m             ,sizeof(unsigned int));
               file.write((char*)&g             ,sizeof(unsigned int));
               file.write((char*)&value         ,sizeof(double));
               file.write((char*)&value_sqr     ,sizeof(double));
+              ++dof_counter;
             }
+      if (dof_counter != num_pwl_local_dofs)
+        chi_log.Log() << "Dof-counter integrity test failed for PWL tally.";
     }//for tally t
   }
   catch (const std::out_of_range& e)
@@ -224,10 +232,11 @@ void mcpartra::Solver::ReadRunTape(const std::string &file_name)
   {
     for (unsigned int t : fv_tallies)
     {
+      size_t dof_counter = 0;
       auto& tally = grid_tally_blocks[t];
       for (size_t dof=0; dof < num_fv_local_dofs; ++dof)
       {
-        size_t       cell_global_id = 0;
+        uint64_t     cell_global_id = 0;
         unsigned int node = 0;
         unsigned int moment = 0;
         unsigned int group = 0;
@@ -247,14 +256,18 @@ void mcpartra::Solver::ReadRunTape(const std::string &file_name)
 
         tally.tally_global    [dof_map] += value;
         tally.tally_sqr_global[dof_map] += value_sqr;
+        ++dof_counter;
       }//for dof
+      if (dof_counter != num_fv_local_dofs)
+        chi_log.Log() << "Dof-counter integrity test failed for FV tally.";
     }//for tally t
     for (unsigned int t : pwl_tallies)
     {
+      size_t dof_counter = 0;
       auto& tally = grid_tally_blocks[t];
-      for (size_t dof=0; dof < num_fv_local_dofs; ++dof)
+      for (size_t dof=0; dof < num_pwl_local_dofs; ++dof)
       {
-        size_t       cell_global_id = 0;
+        uint64_t     cell_global_id = 0;
         unsigned int node = 0;
         unsigned int moment = 0;
         unsigned int group = 0;
@@ -270,11 +283,14 @@ void mcpartra::Solver::ReadRunTape(const std::string &file_name)
 
         const auto& cell = grid->cells[cell_global_id];
 
-        size_t dof_map = pwl->MapDOFLocal(cell,node,uk_man_fv,moment,group);
+        size_t dof_map = pwl->MapDOFLocal(cell,node,uk_man_pwld,moment,group);
 
         tally.tally_global    [dof_map] += value;
         tally.tally_sqr_global[dof_map] += value_sqr;
+        ++dof_counter;
       }//for dof
+      if (dof_counter != num_pwl_local_dofs)
+        chi_log.Log() << "Dof-counter integrity test failed for PWL tally.";
     }//for tally t
   }
   catch (const std::out_of_range& e)

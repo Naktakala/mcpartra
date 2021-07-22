@@ -84,8 +84,8 @@ chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 -- chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 -- chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
 
-chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,1.0e6)
-chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
+chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,0.2e6)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,5e4)
 chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
 chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
@@ -96,9 +96,14 @@ if (run_tape_basename == nil) then run_tape_basename="ZRunTape" end
 chiMonteCarlonSetProperty2(phys1,"RUN_TAPE_BASE_NAME"         ,run_tape_basename)
 
 chiMonteCarlonInitialize(phys1)
-if (restart ~= nil) then
-    chiMonteCarlonReadRuntape(phys1, "ZRunTape0.r")
-end
+
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape00.r")
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape10.r")
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape20.r")
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape30.r")
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape40.r")
+-- chiMonteCarlonReadRuntape(phys1, "ZRunTape50.r")
+
 chiMonteCarlonExecute(phys1)
 --
 -- --############################################### Setup LBS Physics
