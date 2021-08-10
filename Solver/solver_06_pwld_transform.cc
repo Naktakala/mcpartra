@@ -21,30 +21,29 @@ void mcpartra::Solver::ComputePWLDTransformations()
       MatDbl Ainv = chi_math::Inverse(A);
       VecDbl b(cell_pwl_view.NumNodes(),0.0);
 
-//      for (int t : pwl_tallies)
       auto& raw_tally = grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]];
       auto& out_tally = grid_tally_blocks[TallyMaskIndex[DEFAULT_PWLTALLY]];
 
       {
         if (raw_tally.empty()) continue;
 
-        for (int m=0; m < num_moments; ++m)
+        for (size_t m=0; m < num_moments; ++m)
         {
-          for (int g=0; g < num_groups; ++g)
+          for (size_t g=0; g < num_groups; ++g)
           {
 
-            for (int i=0; i<cell.vertex_ids.size(); ++i)
+            for (size_t i=0; i<cell_pwl_view.NumNodes(); ++i)
             {
-              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, g);
+              size_t ir = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
               b[i] = raw_tally.tally_global[ir]*
                      cell_pwl_view.IntV_shapeI(i);
             }//for dof
 
             VecDbl x = chi_math::MatMul(Ainv,b);
 
-            for (int i=0; i<cell.vertex_ids.size(); ++i)
+            for (size_t i=0; i<cell_pwl_view.NumNodes(); ++i)
             {
-              int ir = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, g);
+              size_t ir = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
               out_tally.tally_global[ir] = x[i];
             }//for dof
 

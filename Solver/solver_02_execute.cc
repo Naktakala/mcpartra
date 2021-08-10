@@ -82,6 +82,20 @@ void mcpartra::Solver::Execute()
 
   //============================================= Post processing
   if (options.write_run_tape) WriteRunTape(options.run_tape_base_name);
+
+  chi_log.Log() << "MCParTra: Number of lost particles = "
+                << lost_particles.size();
+  if (chi_log.GetVerbosity() > LOG_0VERBOSE_2)
+  {
+    std::stringstream lost_particle_log;
+    for (const auto& lost_particle : lost_particles)
+      lost_particle_log << lost_particle << "\n";
+    chi_log.Log(LOG_ALLVERBOSE_2)
+    << "MCParTra: Lost particle log:" << lost_particle_log.str();
+  }
+
+
+
   NormalizeTallies();
   ComputePWLDTransformations();
 

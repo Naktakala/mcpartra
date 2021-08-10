@@ -11,6 +11,8 @@ struct RayTracerOutputInformation
   Vector3      pos_f;
   unsigned int destination_face_index = 0;
   uint64_t     destination_face_neighbor = 0;
+  bool         particle_lost = false;
+  std::string  lost_particle_info;
 };
 
 //###################################################################

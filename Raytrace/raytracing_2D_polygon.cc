@@ -14,7 +14,11 @@ void chi_mesh::RayTracer::TracePolygon(const Cell &cell,
 {
   chi_mesh::Vector3 ip; //intersection point
 
-  chi_mesh::Vector3 pos_f_line = pos_i + omega_i * extension_distance;
+  const double fabs_mu = std::fabs(omega_i.Dot(cell.faces[0].normal));
+
+  double d_extend = (fabs_mu<1.0e-15)? 1.0e15 : extension_distance/fabs_mu;
+
+  chi_mesh::Vector3 pos_f_line = pos_i + omega_i * d_extend;
 
   std::vector<RayTracerOutputInformation> face_intersections;
 

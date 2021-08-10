@@ -68,18 +68,20 @@ chiSolverAddRegion(phys1,region1)
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
 chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 
-chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1e6)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
-chiMonteCarlonSetProperty(phys1,MCProperties.SCATTERING_ORDER,0)
-chiMonteCarlonSetProperty(phys1,MCProperties.MONOENERGETIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.FORCE_ISOTROPIC,false)
-chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MULTIPLICATION_FACTOR,1.0)
-chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
-chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
+chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,10e6)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
+chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
+chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)
+chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
+chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys1,"UNCOLLIDED_ONLY"            ,false)
 
 chiMonteCarlonInitialize(phys1)
--- os.exit()
 chiMonteCarlonExecute(phys1)
+
+mc_pwl_ff = chiGetFieldFunctionHandleByName("MCParTra-PWLFlux_g0_m0")
+mc_pwl_ff_g1 = chiGetFieldFunctionHandleByName("MCParTra-PWLFlux_g1_m0")
 
 --############################################### Setup LBS Physics
 phys1 = chiLBSCreateSolver()
@@ -129,35 +131,56 @@ chiLBSSetProperty(phys1,SCATTERING_ORDER,0)
 chiLBSInitialize(phys1)
 chiLBSExecute(phys1)
 
-fflist,count = chiLBSGetScalarFieldFunctionList(phys1)
+--############################################### Get field functions
+lbs_pwl_ff = chiGetFieldFunctionHandleByName("Flux_g0_m0")
+lbs_pwl_ff_g1 = chiGetFieldFunctionHandleByName("Flux_g1_m0")
 
-
+--############################################### Line plot
 --Testing consolidated interpolation
 cline = chiFFInterpolationCreate(LINE)
 chiFFInterpolationSetProperty(cline,LINE_FIRSTPOINT,-0.01,-L/2, 0.0)
-chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,-0.01,-L/2, 0.0)
+chiFFInterpolationSetProperty(cline,LINE_SECONDPOINT,-0.01,L/2, 0.0)
 chiFFInterpolationSetProperty(cline,LINE_NUMBEROFPOINTS, 500)
 
--- for k=1,2 do
---     chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,k-1)
--- end
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,num_groups)
-chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist[1])
---chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,fflist[2])
-
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,mc_pwl_ff)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,lbs_pwl_ff)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,mc_pwl_ff_g1)
+chiFFInterpolationSetProperty(cline,ADD_FIELDFUNCTION,lbs_pwl_ff_g1)
 
 chiFFInterpolationInitialize(cline)
 chiFFInterpolationExecute(cline)
 chiFFInterpolationExportPython(cline)
 
+--############################################### Volume integrations
+ffi1 = chiFFInterpolationCreate(VOLUME)
+curffi = ffi1
+chiFFInterpolationSetProperty(curffi,OPERATION,OP_MAX)
+chiFFInterpolationSetProperty(curffi,LOGICAL_VOLUME,vol0)
+chiFFInterpolationSetProperty(curffi,ADD_FIELDFUNCTION,mc_pwl_ff)
 
---
+chiFFInterpolationInitialize(curffi)
+chiFFInterpolationExecute(curffi)
+maxval = chiFFInterpolationGetValue(curffi)
 
+chiLog(LOG_0,string.format("Max-value1=%.5f", maxval))
 
-if (chi_location_id == 0) then
+ffi2 = chiFFInterpolationCreate(VOLUME)
+curffi = ffi2
+chiFFInterpolationSetProperty(curffi,OPERATION,OP_MAX)
+chiFFInterpolationSetProperty(curffi,LOGICAL_VOLUME,vol1)
+chiFFInterpolationSetProperty(curffi,ADD_FIELDFUNCTION,mc_pwl_ff_g1)
+
+chiFFInterpolationInitialize(curffi)
+chiFFInterpolationExecute(curffi)
+maxval = chiFFInterpolationGetValue(curffi)
+
+chiLog(LOG_0,string.format("Max-value2=%.5e", maxval))
+
+--############################################### Exports
+chiExportFieldFunctionToVTKG(mc_pwl_ff,"ZPhiMCPWL")
+chiExportFieldFunctionToVTKG(lbs_pwl_ff,"ZPhiLBS")
+
+--############################################### Plots
+if (chi_location_id == 0 and master_export==nil) then
     local handle = io.popen("python ZLFFI00.py")
 end
-
-chiExportFieldFunctionToVTKG(0,"ZPhiMC")
-chiExportFieldFunctionToVTKG(num_groups,"ZPhiMCPWL")
-chiExportFieldFunctionToVTKG(fflist[1],"ZPhiLBS")

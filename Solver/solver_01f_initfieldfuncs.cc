@@ -19,7 +19,7 @@ void mcpartra::Solver::InitFieldFunctions()
   {
     for (size_t m=0; m < num_moments; m++)
     {
-      std::string text_name = std::string("Flux_g") +
+      std::string text_name = std::string("MCParTra-FVFlux_g") +
                               std::to_string(g) +
                               std::string("_m") + std::to_string(m);
 
@@ -42,7 +42,7 @@ void mcpartra::Solver::InitFieldFunctions()
     {
       for (size_t m=0; m < num_moments; m++)
       {
-        std::string text_name = std::string("Flux_g") +
+        std::string text_name = std::string("MCParTra-PWLFlux_g") +
                                 std::to_string(g) +
                                 std::string("_m") + std::to_string(m);
 

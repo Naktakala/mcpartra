@@ -132,11 +132,20 @@ def run_test(file_name, comment, num_procs,
                 search_strings_vals_tols)
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ MCParTra tests
+
+run_test(
+    file_name="MonteCarlo1D_1MatSource",
+    comment="1D Test - Material source",
+    num_procs=1,
+    search_strings_vals_tols=[["[0]  Max-value1=", 2.02976 , 1.0e-5],
+                              ["[0]  Max-value2=", 0.994566, 1.0e-5]])
+
 run_test(
     file_name="MonteCarlo2D_1Poly",
-    comment="2D Test - Distributed source",
+    comment="2D Test - Material source",
     num_procs=1,
-    search_strings_vals_tols=[["[0]  Max-value=", 2.5, 1.0e-10]])
+    search_strings_vals_tols=[["[0]  Max-value1=", 3.33722 , 1.0e-5],
+                              ["[0]  Max-value2=", 0.249672, 1.0e-6]])
 
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ END OF TESTS

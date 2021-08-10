@@ -302,3 +302,163 @@ void mcpartra::Solver::ReadRunTape(const std::string &file_name)
   file.close();
 }
 
+//###################################################################
+/**Write LBS-formatted source moments.*/
+void mcpartra::Solver::WriteLBSFluxMoments(const std::string &file_name)
+{
+  auto& chi_log = ChiLog::GetInstance();
+  auto& chi_mpi = ChiMPI::GetInstance();
+
+  //============================================= Get relevant items
+  auto NODES_ONLY = ChiMath::UNITARY_UNKNOWN_MANAGER;
+  uint64_t num_local_nodes = pwl->GetNumGlobalDOFs(NODES_ONLY);
+  uint64_t num_local_dofs  = pwl->GetNumGlobalDOFs(uk_man_pwld);
+  uint64_t num_local_cells = grid->GetGlobalNumberOfCells();
+
+  //============================================= Open file sequentially on
+  //                                              each processor
+  chi_log.Log() << "Writing flux-moments to " << file_name << ".";
+  std::ofstream file;
+  auto mode_all = std::ofstream::binary | std::ofstream::out;
+
+  //================================================== Write size quantities
+  //                                                   and cell nodal info
+  for (int location=0; location < chi_mpi.process_count; ++location)
+  {
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    //=========================================== If location does not have scope
+    //                                            it will go wait at the barrier
+    if (location != chi_mpi.location_id) continue;
+
+    //=========================================== Home location wipes file,
+    //                                            others append to it
+    if (location == 0 and chi_mpi.location_id == location)
+      file.open(file_name, mode_all | std::ofstream::trunc);
+    else
+      file.open(file_name, mode_all | std::ofstream::app);
+
+    //=========================================== Check file is open
+    if (not file.is_open())
+    {
+      chi_log.Log(LOG_ALLWARNING)
+        << __FUNCTION__ << "Failed to open " << file_name;
+      continue;
+    }
+
+    //=========================================== Home location writes header
+    if (location == 0 and chi_mpi.location_id == location)
+    {
+      std::string header_info =
+        "Chi-Tech LinearBoltzmann: Flux moments file\n"
+        "Header size: 500 bytes\n"
+        "Structure(type-info):\n"
+        "uint64_t num_local_nodes\n"
+        "uint64_t num_moments\n"
+        "uint64_t num_groups\n"
+        "uint64_t num_records\n"
+        "uint64_t num_cells\n"
+        "Each cell:\n"
+        "  uint64_t cell_global_id\n"
+        "  uint64_t   num_nodes\n"
+        "  Each node:\n"
+        "    double   x_position\n"
+        "    double   y_position\n"
+        "    double   z_position\n"
+        "Each record:\n"
+        "  uint64_t     cell_global_id\n"
+        "  unsigned int node_number\n"
+        "  unsigned int moment_num\n"
+        "  unsigned int group_num\n"
+        "  double       flux_moment_value\n";
+
+      int header_size = (int) header_info.length();
+
+      char header_bytes[500];
+      memset(header_bytes, '-', 500);
+      strncpy(header_bytes, header_info.c_str(), std::min(header_size, 499));
+      header_bytes[499] = '\0';
+
+      file << header_bytes;
+
+      //============================================= Write num_ quantities
+      uint64_t num_moments_t = num_moments;
+      uint64_t num_groups_t  = num_groups;
+      file.write((char*)&num_local_nodes,sizeof(uint64_t));
+      file.write((char*)&num_moments_t  ,sizeof(uint64_t));
+      file.write((char*)&num_groups_t   ,sizeof(uint64_t));
+      file.write((char*)&num_local_dofs ,sizeof(uint64_t));
+      file.write((char*)&num_local_cells,sizeof(uint64_t));
+    }
+
+    //============================================= Write nodal positions for
+    //                                              each cell
+    for (const auto& cell : grid->local_cells)
+    {
+      file.write((char *) &cell.global_id, sizeof(uint64_t));
+
+      uint64_t num_nodes = pwl->GetCellNumNodes(cell);
+      file.write((char *) &num_nodes, sizeof(uint64_t));
+
+      auto   node_locations = pwl->GetCellNodeLocations(cell);
+      for (const auto& node : node_locations)
+      {
+        file.write((char *) &node.x, sizeof(double));
+        file.write((char *) &node.y, sizeof(double));
+        file.write((char *) &node.z, sizeof(double));
+      }//for node
+    }//for cell
+
+    file.close();
+  }//for each location
+
+  //================================================== Write dof data
+  for (int location=0; location < chi_mpi.process_count; ++location)
+  {
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    //=========================================== If location does not have scope
+    //                                            it will go wait at the barrier
+    if (location != chi_mpi.location_id) continue;
+
+    //=========================================== All locations just append
+    file.open(file_name, mode_all | std::ofstream::app);
+
+    //=========================================== Check file is open
+    if (not file.is_open())
+    {
+      chi_log.Log(LOG_ALLWARNING)
+        << __FUNCTION__ << "Failed to open " << file_name << " again.";
+      continue;
+    }
+
+    //============================================= Write per dof data
+    auto& pwl_tally = grid_tally_blocks.at(pwl_tallies.front()).tally_global;
+    try {
+      for (const auto& cell : grid->local_cells)
+        for (unsigned int i=0; i<pwl->GetCellNumNodes(cell); ++i)
+          for (unsigned int m=0; m<num_moments; ++m)
+            for (unsigned int g=0; g<num_groups; ++g)
+            {
+              uint64_t dof_map = pwl->MapDOFLocal(cell,i,uk_man_pwld,m,g);
+              double value = pwl_tally.at(dof_map);
+
+              file.write((char*)&cell.global_id,sizeof(uint64_t));
+              file.write((char*)&i             ,sizeof(unsigned int));
+              file.write((char*)&m             ,sizeof(unsigned int));
+              file.write((char*)&g             ,sizeof(unsigned int));
+              file.write((char*)&value         ,sizeof(double));
+            }
+    }
+    catch (const std::out_of_range& e)
+    {
+      chi_log.Log(LOG_ALLWARNING) << __FUNCTION__ << ": The given flux_moments-"
+                                  << "vector was accessed out of range.";
+    }
+
+
+    file.close();
+  }//for each location
+
+}
+

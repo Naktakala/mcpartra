@@ -2,5 +2,3 @@ mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_
 mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_procs=false run_tape_basename=[["ZRunTape1"]] seed=1 > ZOut1.txt &
 mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_procs=false run_tape_basename=[["ZRunTape2"]] seed=2 > ZOut2.txt &
 mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_procs=false run_tape_basename=[["ZRunTape3"]] seed=3 > ZOut3.txt &
-mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_procs=false run_tape_basename=[["ZRunTape4"]] seed=4 > ZOut4.txt &
-mpiexec -np 1 build/mcpartra RegressionTests/MonteCarlo3D_5Cycles.lua check_num_procs=false run_tape_basename=[["ZRunTape5"]] seed=5 > ZOut5.txt &

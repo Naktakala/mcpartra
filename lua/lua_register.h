@@ -5,6 +5,7 @@ RegisterFunction(chiMonteCarlonInitialize);
 RegisterFunction(chiMonteCarlonExecute);
 
 RegisterFunction(chiMonteCarlonReadRuntape);
+RegisterFunction(chiMonteCarlonWriteLBSFluxMoments);
 
 RegisterNamespace(MCSrcTypes);
 AddNamedConstantToNamespace(POINT_SRC,             1,MCSrcTypes);

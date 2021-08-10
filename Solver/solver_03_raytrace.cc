@@ -91,6 +91,13 @@ void mcpartra::Solver::RaytraceSTD(Particle& prtcl)
   default_raytracer->SetTolerancesFromCellSize(cell_sizes[cell->local_id]);
   auto ray_dest_info = default_raytracer->TraceRay(*cell,prtcl.pos,prtcl.dir);
 
+  if (ray_dest_info.particle_lost)
+  {
+    lost_particles.emplace_back(ray_dest_info.lost_particle_info);
+    prtcl.alive = false;
+    return;
+  }
+
   d_to_surface = ray_dest_info.distance_to_surface;
   posf = ray_dest_info.pos_f;
 

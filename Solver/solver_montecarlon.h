@@ -164,6 +164,8 @@ private:
   std::vector<Particle>                 outbound_particle_bank;
   std::vector<Particle>                 particle_source_bank;
   unsigned int                          total_outbound_bank_size=0;
+
+  std::vector<std::string>              lost_particles;
 public:
   std::vector<std::pair<int,int>>       m_to_ell_em_map;
 
@@ -191,8 +193,8 @@ public:
 
 public:
   //00
-       Solver();
-  explicit Solver(int seed);
+  explicit Solver(const std::string& text_name);
+  explicit Solver(int seed, const std::string& text_name);
 
   //01
   bool Initialize();
@@ -276,6 +278,7 @@ public:
   //IO Utils
   void WriteRunTape(const std::string& file_base_name);
   void ReadRunTape(const std::string& file_name);
+  void WriteLBSFluxMoments(const std::string& file_name);
 
   friend class ResidualSourceB;
   friend class ResidualSourceA;

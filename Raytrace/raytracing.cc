@@ -23,19 +23,19 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
 
   if (cell.Type() == chi_mesh::CellType::SLAB)
     TraceSlab(cell, pos_i, omega_i,
-              intersection_found/*byRef*/,
+              intersection_found    /*byRef*/,
               backward_tolerance_hit/*byRef*/,
-              oi/*byRef*/);
+              oi                    /*byRef*/);
   else if (cell.Type() == chi_mesh::CellType::POLYGON)
     TracePolygon(cell, pos_i, omega_i,
-                 intersection_found/*byRef*/,
+                 intersection_found    /*byRef*/,
                  backward_tolerance_hit/*byRef*/,
-                 oi/*byRef*/);
+                 oi                    /*byRef*/);
   else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
     TracePolyhedron(cell, pos_i, omega_i,
-                    intersection_found/*byRef*/,
+                    intersection_found    /*byRef*/,
                     backward_tolerance_hit/*byRef*/,
-                    oi/*byRef*/);
+                    oi                    /*byRef*/);
   else
     throw std::logic_error("Unsupported cell type encountered in call to "
                            "chi_mesh::RayTrace.");
@@ -117,8 +117,10 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
       outstr << "\n";
     }
 
+    oi.particle_lost = true;
+    oi.lost_particle_info = outstr.str();
 
-    chi_log.Log(LOG_ALLERROR) << outstr.str();
+    std::cout << outstr.str();
     exit(EXIT_FAILURE);
   }
 

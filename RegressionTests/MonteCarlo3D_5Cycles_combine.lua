@@ -18,7 +18,7 @@ end
 --############################################### Setup mesh
 chiMeshHandlerCreate()
 
-chiUnpartitionedMeshFromEnsightGold("RegressionTests/TopographicalMesh.case")
+chiUnpartitionedMeshFromEnsightGold("RegressionTests/BLOCK_CITYV2a.case")
 
 region1 = chiRegionCreate()
 chiSurfaceMesherCreate(SURFACEMESHER_PREDEFINED)
@@ -38,23 +38,27 @@ materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");
 materials[3] = chiPhysicsAddMaterial("Test Material3");
+materials[4] = chiPhysicsAddMaterial("Test Material4");
 
 chiPhysicsMaterialAddProperty(materials[1],TRANSPORT_XSECTIONS)
 chiPhysicsMaterialAddProperty(materials[2],TRANSPORT_XSECTIONS)
 chiPhysicsMaterialAddProperty(materials[3],TRANSPORT_XSECTIONS)
+chiPhysicsMaterialAddProperty(materials[4],TRANSPORT_XSECTIONS)
 
 chiPhysicsMaterialAddProperty(materials[1],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[2],ISOTROPIC_MG_SOURCE)
 chiPhysicsMaterialAddProperty(materials[3],ISOTROPIC_MG_SOURCE)
+chiPhysicsMaterialAddProperty(materials[4],ISOTROPIC_MG_SOURCE)
 
-
-num_groups = 168
+num_groups = 116
 chiPhysicsMaterialSetProperty(materials[1],TRANSPORT_XSECTIONS,
-        CHI_XSFILE,"RegressionTests/xs_air50RH.cxs")
+        PDT_XSFILE,"RegressionTests/xs_air_50rh_116La.data")
 chiPhysicsMaterialSetProperty(materials[2],TRANSPORT_XSECTIONS,
-        CHI_XSFILE,"RegressionTests/xs_air50RH.cxs")
+        PDT_XSFILE,"RegressionTests/xs_ss304_116.data")
 chiPhysicsMaterialSetProperty(materials[3],TRANSPORT_XSECTIONS,
-        CHI_XSFILE,"RegressionTests/xs_air50RH.cxs")
+        PDT_XSFILE,"RegressionTests/xs_ss304_116.data")
+chiPhysicsMaterialSetProperty(materials[4],TRANSPORT_XSECTIONS,
+        PDT_XSFILE,"RegressionTests/xs_air_50rh_116La.data")
 
 src={}
 for g=1,num_groups do
@@ -64,8 +68,10 @@ end
 chiPhysicsMaterialSetProperty(materials[1],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 -- src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[2],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
-src[1] = 1.0
+-- src[1] = 1.0
 chiPhysicsMaterialSetProperty(materials[3],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
+src[1] = 1.0
+chiPhysicsMaterialSetProperty(materials[4],ISOTROPIC_MG_SOURCE,FROM_ARRAY,src)
 
 --############################################### Setup Physics
 if (seed == nil) then seed=chi_location_id end
@@ -84,8 +90,8 @@ chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
 -- chiMonteCarlonSetProperty(phys1,MCProperties.MAKE_PWLD_SOLUTION,true)
 -- chiMonteCarlonSetProperty(phys1,MCProperties.UNCOLLIDED_ONLY,true)
 
-chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,0.2e6)
-chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,5e4)
+chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,0.1e5)
+chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e4)
 chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
 chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
@@ -97,14 +103,14 @@ chiMonteCarlonSetProperty2(phys1,"RUN_TAPE_BASE_NAME"         ,run_tape_basename
 
 chiMonteCarlonInitialize(phys1)
 
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape00.r")
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape10.r")
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape20.r")
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape30.r")
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape40.r")
--- chiMonteCarlonReadRuntape(phys1, "ZRunTape50.r")
+chiMonteCarlonReadRuntape(phys1, "ZRunTape00.r")
+chiMonteCarlonReadRuntape(phys1, "ZRunTape10.r")
+chiMonteCarlonReadRuntape(phys1, "ZRunTape20.r")
+chiMonteCarlonReadRuntape(phys1, "ZRunTape30.r")
 
 chiMonteCarlonExecute(phys1)
+
+chiMonteCarlonWriteLBSFluxMoments(phys1, "ZMoments.data");
 --
 -- --############################################### Setup LBS Physics
 -- phys1 = chiLBSCreateSolver()
