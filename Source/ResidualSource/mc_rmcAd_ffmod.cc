@@ -1,7 +1,7 @@
 #include "mc_rmcA_source.h"
 
-#include "FiniteElement/PiecewiseLinear/pwl.h"
-#include "FiniteElement/PiecewiseLinear/pwlc.h"
+#include "ChiMath/SpatialDiscretization/FiniteElement/PiecewiseLinear/pwl.h"
+#include "ChiMath/SpatialDiscretization/FiniteElement/PiecewiseLinear/pwlc.h"
 #include "ChiMath/PETScUtils/petsc_utils.h"
 
 #include "chi_log.h"

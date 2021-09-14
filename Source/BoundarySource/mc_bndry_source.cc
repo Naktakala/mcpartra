@@ -7,10 +7,10 @@
 #include <ChiMesh/Cell/cell_polygon.h>
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
-#include <FiniteVolume/fv.h>
-#include <FiniteVolume/CellViews/fv_slab.h>
-#include <FiniteVolume/CellViews/fv_polygon.h>
-#include <FiniteVolume/CellViews/fv_polyhedron.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/fv.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_slab.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polygon.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polyhedron.h>
 
 #include <ChiMath/Statistics/cdfsampler.h>
 

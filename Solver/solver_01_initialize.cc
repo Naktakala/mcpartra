@@ -13,7 +13,7 @@ extern ChiConsole&  chi_console;
 
 //###################################################################
 /**Initialize the solver.*/
-bool mcpartra::Solver::Initialize()
+void mcpartra::Solver::Initialize()
 {
   chi_log.Log(LOG_0) << "\nInitializing MCParTra solver.\n\n";
 
@@ -119,5 +119,4 @@ bool mcpartra::Solver::Initialize()
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  return true;
 }

@@ -51,7 +51,7 @@ chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1b,1)
 
 
 
-----############################################### Add materials
+--############################################### Add materials
 materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");

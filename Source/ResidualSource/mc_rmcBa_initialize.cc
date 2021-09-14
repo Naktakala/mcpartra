@@ -2,7 +2,7 @@
 
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
-#include <FiniteVolume/fv.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/fv.h>
 
 #include <ChiMesh/FieldFunctionInterpolation/chi_ffinterpolation.h>
 

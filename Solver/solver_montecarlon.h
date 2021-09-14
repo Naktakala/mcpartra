@@ -18,8 +18,8 @@
 #include "ChiPhysics/SolverBase/chi_solver.h"
 #include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
 
-#include "FiniteVolume/fv.h"
-#include "FiniteElement/PiecewiseLinear/pwl.h"
+#include "ChiMath/SpatialDiscretization/FiniteVolume/fv.h"
+#include "ChiMath/SpatialDiscretization/FiniteElement/PiecewiseLinear/pwl.h"
 
 #include <iostream>
 #include <iomanip>
@@ -197,7 +197,7 @@ public:
   explicit Solver(int seed, const std::string& text_name);
 
   //01
-  bool Initialize();
+  void Initialize() override;
   void InitRaytracing();
   void InitMaterials(); //01a
   void InitCellImportances(); //01b
@@ -279,6 +279,7 @@ public:
   void WriteRunTape(const std::string& file_base_name);
   void ReadRunTape(const std::string& file_name);
   void WriteLBSFluxMoments(const std::string& file_name);
+  void ReadImportanceMap(const std::string& file_name);
 
   friend class ResidualSourceB;
   friend class ResidualSourceA;

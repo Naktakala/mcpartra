@@ -3,6 +3,8 @@
 #include "chi_log.h"
 #include "chi_mpi.h"
 
+#include "../Utils/mc_importance_info.h"
+
 //###################################################################
 /**Writes a run tape to file.*/
 void mcpartra::Solver::WriteRunTape(const std::string &file_base_name)
@@ -462,3 +464,32 @@ void mcpartra::Solver::WriteLBSFluxMoments(const std::string &file_name)
 
 }
 
+//###################################################################
+/**Reads a binary cell-wise importance map associated with a certain QOI.*/
+void mcpartra::Solver::ReadImportanceMap(const std::string &file_name)
+{
+  const std::string fname = __FUNCTION__;
+  auto& chi_log = ChiLog::GetInstance();
+
+  chi_log.Log() << "MCParTra: Reading importance map.";
+
+  //============================================= Open file
+  std::ifstream file(file_name, std::ios_base::in | std::ios_base::binary);
+
+  //============================================= Check file is open
+  if (not file.is_open())
+    throw std::logic_error(fname + ": Could not open file " + file_name);
+
+  //============================================= Read header
+  char header_bytes[400]; header_bytes[399] = '\0';
+  file.read(header_bytes,399);
+
+  size_t num_local_cells = grid->local_cells.size();
+
+
+
+
+  file.close();
+
+  chi_log.Log() << "MCParTra: Done reading importance map.";
+}

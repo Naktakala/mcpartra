@@ -2,8 +2,8 @@
 
 #include <ChiMesh/Cell/cell_polyhedron.h>
 
-#include <FiniteVolume/fv.h>
-#include <FiniteVolume/CellViews/fv_polyhedron.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/fv.h>
+#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polyhedron.h>
 
 #include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
 #include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
