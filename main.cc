@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   auto L = console.consoleState;
   #include "ChiMacros/lua_register_macro.h"
-  #include "lua/lua_register.h"
+  #include "SourceDrivenSolver/lua/lua_register.h"
   RegisterFunction(chiPrintStatus);
 
   ChiTech::RunBatch(argc,argv);
