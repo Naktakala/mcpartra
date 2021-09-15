@@ -12,9 +12,9 @@ file (GLOB_RECURSE MORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
 #        ENDIF(${item} MATCHES "lua/mesh_maindoc_page.cc")
 #    ENDFOREACH(item)
 FOREACH(item ${MORE_SOURCES})
-    IF(${item} MATCHES "MCParTra/lua/mcpartra_maindoc_page.cc")
+    IF(${item} MATCHES "MCParTra/lua/sdsolver_maindoc_page.cc")
         LIST(REMOVE_ITEM MORE_SOURCES ${item})
-    ENDIF(${item} MATCHES "MCParTra/lua/mcpartra_maindoc_page.cc")
+    ENDIF(${item} MATCHES "MCParTra/lua/sdsolver_maindoc_page.cc")
 ENDFOREACH(item)
 
 # The command below adds the list "MORE_SOURCES" to

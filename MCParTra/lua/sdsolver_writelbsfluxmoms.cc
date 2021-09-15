@@ -1,6 +1,6 @@
 #include "ChiLua/chi_lua.h"
 
-#include "mcpartra_lua_utils.h"
+#include "sdsolver_lua_utils.h"
 
 //###################################################################
 /**Writes LBS formatted flux moments from the pwl tally.*/

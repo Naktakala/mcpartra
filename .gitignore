@@ -9,6 +9,7 @@ ZL*
 chi_build/
 bin/
 Makefile
+scratch/
 
 # Latex compile files
 *.aux
