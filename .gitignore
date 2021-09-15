@@ -6,6 +6,9 @@ cmake-build-debug
 build/
 __pycache__/
 ZL*
+chi_build/
+bin/
+Makefile
 
 # Latex compile files
 *.aux
@@ -18,6 +21,6 @@ ZL*
 # All vtk mesh files
 *.vtu
 *.pvtu
-whitepapers/MichiganMCbook.pdf
+MCParTra/Documentation/MichiganMCbook.pdf
 
-whitepapers/Alireza Haghighat - Monte Carlo Methods for Particle Transport-CRC Press (2020).pdf
+MCParTra/Documentation/Alireza Haghighat - Monte Carlo Methods for Particle Transport-CRC Press (2020).pdf

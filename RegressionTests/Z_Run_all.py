@@ -16,7 +16,7 @@ import sys
 
 kscript_path = os.path.dirname(os.path.abspath(__file__))
 kchi_src_pth = kscript_path + '/../'
-kpath_to_exe = kchi_src_pth + '/build/mcpartra'
+kpath_to_exe = kchi_src_pth + '/bin/mcpartra'
 tests_to_run = []
 print_only   = False
 

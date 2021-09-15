@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.2)
 
-SET(TARGET mcpartra)
-project(${TARGET} C CXX)
+#================================================ Change these
+SET(EXE_TARGET mcpartra)
+SET(LIB_TARGET mcpartralib)
+SET(CHI_MODULE_DIR MCParTra)
+SET(PROJECT_NAME MCParTra)
 
+#------------------------------------------------ DEPENDENCIES
 if (NOT DEFINED CHI_TECH_DIR)
     if (NOT (DEFINED ENV{CHI_TECH_DIR}))
         message(FATAL_ERROR "***** CHI_TECH_DIR is not set *****")
@@ -12,22 +16,42 @@ if (NOT DEFINED CHI_TECH_DIR)
 endif()
 message(STATUS "CHI_TECH_DIR set to ${CHI_TECH_DIR}")
 
+#================================================ Set project targets
+project(${PROJECT_NAME} C CXX)
+
+#================================================ Set cmake variables
+if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+    set(CONFIG_FILE_NAME "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config.cmake")
+endif()
+
+#================================================ Include macros
 include(${CHI_TECH_DIR}/ChiResources/Macros/Downstream.cmake)
 include(${CHI_TECH_DIR}/ChiResources/Macros/Filter.cmake)
 
-set(SOURCES "mcpartra.cc")
-file (GLOB_RECURSE MORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
+#================================================ Default include directories
+include_directories(${PROJECT_SOURCE_DIR}/${CHI_MODULE_DIR})
 
-FOREACH(item ${MORE_SOURCES})
-    IF(${item} MATCHES "lua/mcpartra_maindoc_page.cc")
-        LIST(REMOVE_ITEM MORE_SOURCES ${item})
-    ENDIF(${item} MATCHES "lua/mcpartra_maindoc_page.cc")
-ENDFOREACH(item)
+#================================================ Library directories
+# Link to external dependencies other than ChiTech
+# Example:
+# link_directories("${LBSOLVER_DIR}/chi_build")
 
-set(SOURCES ${SOURCES} ${MORE_SOURCES})
+#================================================ Define source directories
+# The directory added below will need to populate
+# the variable ${SOURCES}
+add_subdirectory(${PROJECT_SOURCE_DIR}/${CHI_MODULE_DIR})
 
-set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O3")
+#================================================ Set Misc flags
+# set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O3")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3")
 
-add_executable(${TARGET} "${SOURCES}")
-target_link_libraries(${TARGET} ${CHI_LIBS})
+#================================================ Create executable
+add_library(${LIB_TARGET} ${SOURCES})
+add_executable(${EXE_TARGET} "main.cc")
+target_link_libraries(${LIB_TARGET} ${CHI_LIBS})
+target_link_libraries(${EXE_TARGET} ${LIB_TARGET})
+
+# |------------ Write Makefile to root directory
+file(WRITE ${PROJECT_SOURCE_DIR}/Makefile "subsystem:\n" "\t$(MAKE) -C chi_build \n\n"
+        "clean:\n\t$(MAKE) -C chi_build clean\n")
