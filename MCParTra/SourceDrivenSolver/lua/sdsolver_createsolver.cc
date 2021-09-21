@@ -8,6 +8,10 @@ extern ChiMPI& chi_mpi;
 #include"ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
+namespace mcpartra
+{
+namespace lua_utils
+{
 
 //#############################################################################
 /** Creates a MonteCarlon solver.
@@ -47,3 +51,7 @@ int chiMonteCarlonCreateSolver(lua_State *L)
 
   return 1;
 }
+
+
+}//namespace lua_utils
+}//namespace mcpartra

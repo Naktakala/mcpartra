@@ -36,11 +36,26 @@ namespace mcpartra
     static const int RMC_CHAR_RAY = 1;
   };
 
+  //mc_utils_01
   chi_mesh::Vector3 SampleRandomDirection(chi_math::RandomNumberGenerator& rng);
   std::pair<double,double> OmegaToPhiThetaSafe(const chi_mesh::Vector3& omega);
   size_t SampleCDF(const std::vector<double>& cdf, chi_math::RandomNumberGenerator& rng);
-  void ComputeDiscreteScatteringAngles(size_t G,
-                                       const std::vector<chi_math::SparseMatrix>& transfer_matrices);
+
+  //mc_utils_02
+  typedef std::vector<std::vector<double>> MatDbl;
+
+  MatDbl ComputeGroupToGroupScatteringCDFs(
+      size_t G,
+      const chi_math::SparseMatrix& isotropic_transfer_matrix);
+
+  typedef std::pair<double,double> MuCP; //Cosine and cumulative probability pairs
+  typedef std::vector<MuCP> CosineCDF;   //CDF of cosines
+  typedef std::vector<CosineCDF> VecCosineCDFs; //Vector of CDFs
+
+  std::vector<VecCosineCDFs> ComputeDiscreteScatteringAngles(
+    size_t G,
+    const std::vector<chi_math::SparseMatrix>& transfer_matrices,
+    size_t num_moments_to_support);
 }
 
 #endif //MCPARTRA_H

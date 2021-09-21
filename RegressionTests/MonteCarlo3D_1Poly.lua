@@ -66,7 +66,7 @@ phys1 = chiMonteCarlonCreateSolver()
 chiSolverAddRegion(phys1,region1)
 
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
-chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
+chiMonteCarlonCreateSource(phys1,"MATERIAL_SRC");
 
 chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,10e6)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
@@ -77,8 +77,8 @@ chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
 chiMonteCarlonSetProperty2(phys1,"UNCOLLIDED_ONLY"            ,false)
 
-chiMonteCarlonInitialize(phys1)
-chiMonteCarlonExecute(phys1)
+chiSolverInitialize(phys1)
+chiSolverExecute(phys1)
 
 mc_pwl_ff = chiGetFieldFunctionHandleByName("MCParTra-PWLFlux_g0_m0")
 mc_pwl_ff_g1 = chiGetFieldFunctionHandleByName("MCParTra-PWLFlux_g1_m0")

@@ -10,6 +10,13 @@ extern ChiLog& chi_log;
 #include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
+
+namespace mcpartra
+{
+namespace lua_utils
+{
+
+
 //#############################################################################
 /** Creates a simple point source at [0 0 0].*/
 int chiMonteCarlonAddCustomVolumeTally(lua_State *L)
@@ -61,3 +68,6 @@ int chiMonteCarlonAddCustomVolumeTally(lua_State *L)
   lua_pushnumber(L,new_handle);
   return 1;
 }
+
+}//namespace lua_utils
+}//namespace mcpartra

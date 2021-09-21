@@ -2,6 +2,12 @@
 
 #include "sdsolver_lua_utils.h"
 
+namespace mcpartra
+{
+namespace lua_utils
+{
+
+
 //###################################################################
 /**Writes LBS formatted flux moments from the pwl tally.*/
 int chiMonteCarlonWriteLBSFluxMoments(lua_State* L)
@@ -26,3 +32,6 @@ int chiMonteCarlonWriteLBSFluxMoments(lua_State* L)
 
   return 0;
 }
+
+}//namespace lua_utils
+}//namespace mcpartra

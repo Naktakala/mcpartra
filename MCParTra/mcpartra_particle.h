@@ -170,7 +170,7 @@ struct mcpartra::Particle final
     MPI_Type_commit(&prtcl_data_type);
   }
 
-
+  void Kill() {alive = false;}
 };
 
 

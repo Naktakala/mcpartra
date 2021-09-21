@@ -11,6 +11,13 @@ extern ChiPhysics&  chi_physics_handler;
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
+
+namespace mcpartra
+{
+namespace lua_utils
+{
+
+
 //###################################################################
 /**Sets the importances of certain cells using a logical volume.
 
@@ -84,3 +91,6 @@ int chiMonteCarlonSetImportances(lua_State *L)
 
   return 0;
 }
+
+}//namespace lua_utils
+}//namespace mcpartra

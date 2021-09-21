@@ -24,3 +24,22 @@ mcpartra::SourceDrivenSolver* mcpartra::lua_utils::
 
   return mcpartra_solver;
 }
+
+void mcpartra::lua_utils::RegisterLuaEntities(lua_State *L)
+{
+  lua_register(L, "chiMonteCarlonCreateSolver",
+               mcpartra::lua_utils::chiMonteCarlonCreateSolver);
+  lua_register(L, "chiMonteCarlonCreateSource",
+               mcpartra::lua_utils::chiMonteCarlonCreateSource);
+
+  lua_register(L, "chiMonteCarlonReadRuntape",
+               mcpartra::lua_utils::chiMonteCarlonReadRuntape);
+  lua_register(L, "chiMonteCarlonWriteLBSFluxMoments",
+               mcpartra::lua_utils::chiMonteCarlonWriteLBSFluxMoments);
+  lua_register(L, "chiMonteCarlonSetImportances",
+               mcpartra::lua_utils::chiMonteCarlonSetImportances);
+  lua_register(L, "chiMonteCarlonSetProperty2",
+               mcpartra::lua_utils::chiMonteCarlonSetProperty2);
+  lua_register(L, "chiMonteCarlonAddCustomVolumeTally",
+               mcpartra::lua_utils::chiMonteCarlonAddCustomVolumeTally);
+}

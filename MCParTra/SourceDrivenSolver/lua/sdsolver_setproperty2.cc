@@ -9,6 +9,12 @@ extern ChiLog& chi_log;
 extern ChiPhysics&  chi_physics_handler;
 
 
+namespace mcpartra
+{
+namespace lua_utils
+{
+
+
 //#############################################################################
 /** Sets a property of a MonteCarlon solver.
 
@@ -182,3 +188,6 @@ int chiMonteCarlonSetProperty2(lua_State *L)
 
   return 0;
 }
+
+}//namespace lua_utils
+}//namespace mcpartra

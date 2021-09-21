@@ -16,6 +16,11 @@ extern ChiLog& chi_log;
 extern ChiPhysics&  chi_physics_handler;
 
 
+namespace mcpartra
+{
+namespace lua_utils
+{
+
 
 //#############################################################################
 /** Creates a simple point source at [0 0 0].
@@ -59,18 +64,20 @@ int chiMonteCarlonCreateSource(lua_State *L)
   LuaCheckNilValue(__FUNCTION__,L,1);
   LuaCheckNilValue(__FUNCTION__,L,2);
 
-  int solver_handle = lua_tonumber(L, 1);
-  int source_type   = lua_tonumber(L, 2);
+  LuaCheckNumberValue(__FUNCTION__, L, 1);
+  LuaCheckStringValue(__FUNCTION__, L, 2);
+
+  const int         solver_handle = lua_tonumber(L, 1);
+  const std::string source_type   = lua_tostring(L, 2);
 
   auto solver = mcpartra::lua_utils::
                   GetSolverByHandle(solver_handle, function_name);
 
   //============================================= Boundary source
-  if (source_type == mcpartra::SourceType::BNDRY_SRC)
+  if (source_type == "BNDRY_SRC")
   {
     if (num_args < 3)
-      LuaPostArgAmountError((function_name +
-                            ": With SourceType=BOUNDARY_SOURCE").c_str(),
+      LuaPostArgAmountError((function_name + ": With SourceType=BOUNDARY_SOURCE"),
                             3,num_args);
 
     int ref_boundary = lua_tonumber(L,3);
@@ -92,7 +99,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     chi_log.Log(LOG_0) << "MCParTra: Created boundary source.";
   }
   //============================================= Material source
-  else if (source_type == mcpartra::SourceType::MATERIAL_SRC)
+  else if (source_type == "MATERIAL_SRC")
   {
     if (num_args < 2)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -106,7 +113,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
 
     chi_log.Log(LOG_0) << "MCParTra: Created material source.";
   }
-  else if (source_type == mcpartra::SourceType::RESIDUAL_TYPE_A)
+  else if (source_type == "RESIDUAL_TYPE_A")
   {
     if (num_args != 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -139,7 +146,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
   //============================================= Improved Residual source
   //                                              MOC Uniform sampling
-  else if (source_type == mcpartra::SourceType::RESIDUAL_TYPE_B)
+  else if (source_type == "RESIDUAL_TYPE_B")
   {
     if (num_args < 5)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
@@ -193,3 +200,6 @@ int chiMonteCarlonCreateSource(lua_State *L)
 
   return 1;
 }
+
+}//namespace lua_utils
+}//namespace mcpartra

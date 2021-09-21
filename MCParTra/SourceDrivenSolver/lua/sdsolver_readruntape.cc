@@ -4,6 +4,13 @@
 
 #include "chi_log.h"
 
+
+namespace mcpartra
+{
+namespace lua_utils
+{
+
+
 //###################################################################
 /**Reads a runtape file given by the file_name.
  *
@@ -33,3 +40,7 @@ int chiMonteCarlonReadRuntape(lua_State* L)
 
   return 0;
 }
+
+
+}//namespace lua_utils
+}//namespace mcpartra

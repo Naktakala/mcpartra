@@ -3,6 +3,8 @@
 #include "ChiConsole/chi_console.h"
 #include "chi_log.h"
 
+#include "MCParTra/SourceDrivenSolver/lua/sdsolver_lua_utils.h"
+
 int main(int argc, char* argv[])
 {
   ChiLog&     log     = ChiLog::GetInstance();
@@ -11,12 +13,9 @@ int main(int argc, char* argv[])
 
   ChiTech::Initialize(argc,argv);
 
-  ChiConsole& console = ChiConsole::GetInstance();
+  auto& lua_console = ChiConsole::GetInstance();
 
-  auto L = console.consoleState;
-  #include "ChiMacros/lua_register_macro.h"
-  #include "SourceDrivenSolver/lua/lua_register.h"
-  RegisterFunction(chiPrintStatus);
+  mcpartra::lua_utils::RegisterLuaEntities(lua_console.consoleState);
 
   ChiTech::RunBatch(argc,argv);
 

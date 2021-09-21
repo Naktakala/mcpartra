@@ -7,6 +7,7 @@
 #include "Utils/CustomVolumeTally/customvolumetally.h"
 #include "Raytracing/raytracing.h"
 #include "Sources/mc_base_source.h"
+#include "MGScatteringCDFs/mg_scattering_cdfs.h"
 
 #include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
 #include "ChiMesh/Raytrace/raytracing.h"
@@ -68,6 +69,8 @@ private:
   // Materials related members
   std::vector<int>                      matid_xs_map;
   std::vector<int>                      matid_q_map;
+  std::map<int, std::shared_ptr<chi_physics::TransportCrossSections>> matid_xs_map2;
+  std::map<int, MultigroupScatteringCDFs> matid_scattering_cdfs;
 
   // Tally related members
   SDMFVPtr                              fv;
@@ -198,6 +201,13 @@ private:
   std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
                     std::shared_ptr<chi_physics::TransportCrossSections> xs);
+  std::pair<int,chi_mesh::Vector3>
+  ProcessScattering(Particle& prtcl,
+                    const MultigroupScatteringCDFs& xs);
+  static std::pair<double, double>
+  GetMaterialSigmas(const chi_physics::TransportCrossSections& xs,
+                    unsigned int energy_group) ;
+
   void ProcessImportanceChange(Particle& prtcl);
 
   //05a
@@ -220,9 +230,9 @@ private:
                              double tracklength,
                              double weight);
 
-  void ContributeTallyUNC(Particle& prtcl,
-                          const chi_mesh::Vector3& pf,
-                          double sig_t=0.0);
+  double ContributeTallyUNC(const Particle& prtcl,
+                            const chi_mesh::Vector3& pf,
+                            double sig_t=0.0);
 
   //05b
   void RendesvouzTallies();

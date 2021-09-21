@@ -5,19 +5,20 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Makes a contribution to tallies*/
-void mcpartra::SourceDrivenSolver::ContributeTallyUNC(
-  mcpartra::Particle &prtcl,
+double mcpartra::SourceDrivenSolver::ContributeTallyUNC(
+  const mcpartra::Particle& prtcl,
   const chi_mesh::Vector3& pf,
   double sig_t)
 {
+  double weight = prtcl.w;
   auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
 
   double tracklength = (pf - prtcl.pos).Norm();
 
-  double avg_w = (sig_t<1.0e-16)? prtcl.w :
-                 prtcl.w*(1.0 - exp(-sig_t*tracklength))/sig_t/tracklength;
+  double avg_w = (sig_t<1.0e-16)? weight :
+                 weight*(1.0 - exp(-sig_t*tracklength))/sig_t/tracklength;
 
-  double w_exit = prtcl.w*exp(-sig_t*tracklength);
+  double w_exit = weight*exp(-sig_t*tracklength);
 
   double tlw = tracklength * avg_w; ///< Tracklength times average weight
 
@@ -90,7 +91,7 @@ void mcpartra::SourceDrivenSolver::ContributeTallyUNC(
             double w_avg  = (N_i[i] / sig_t) * (1.0 - exp(-sig_t * ell));
             w_avg += ((N_f[i] - N_i[i]) / (sig_t * sig_t * ell)) *
                      (1.0 - (1+sig_t*ell)*exp(-sig_t*ell));
-            w_avg *= prtcl.w/ell;
+            w_avg *= weight/ell;
 
             double pwl_tlw_Ylm = segment_length * w_avg *
                                  prtcl.moment_values[m];
@@ -103,11 +104,12 @@ void mcpartra::SourceDrivenSolver::ContributeTallyUNC(
 
         //reset for new segment
         N_i = N_f;
-        prtcl.w *= exp(-sig_t*segment_length);
+        weight *= exp(-sig_t*segment_length);
       }//for segment_length
     }//if make pwld
     else
-      prtcl.w = w_exit;
+      weight = w_exit;
   }//for t
 
+  return weight;
 }

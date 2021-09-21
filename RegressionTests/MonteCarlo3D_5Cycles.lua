@@ -79,7 +79,7 @@ phys1 = chiMonteCarlonCreateSolver(seed)
 chiSolverAddRegion(phys1,region1)
 
 -- chiMonteCarlonCreateSource(phys1,MCSrcTypes.BNDRY_SRC,1);
-chiMonteCarlonCreateSource(phys1,MCSrcTypes.MATERIAL_SRC);
+chiMonteCarlonCreateSource(phys1,"MATERIAL_SRC");
 
 -- chiMonteCarlonSetProperty(phys1,MCProperties.NUM_PARTICLES,1e6)
 -- chiMonteCarlonSetProperty(phys1,MCProperties.TALLY_MERGE_INTVL,1e5)
@@ -101,11 +101,11 @@ chiMonteCarlonSetProperty2(phys1,"UNCOLLIDED_ONLY"            ,true)
 if (run_tape_basename == nil) then run_tape_basename="ZRunTape" end
 chiMonteCarlonSetProperty2(phys1,"RUN_TAPE_BASE_NAME"         ,run_tape_basename)
 
-chiMonteCarlonInitialize(phys1)
+chiSolverInitialize(phys1)
 if (restart ~= nil) then
     chiMonteCarlonReadRuntape(phys1, "ZRunTape0.r")
 end
-chiMonteCarlonExecute(phys1)
+chiSolverExecute(phys1)
 
 chiExportFieldFunctionToVTKG(0,"ZPhiMC")
 chiExportFieldFunctionToVTKG(num_groups,"ZPhiMCPWL")
