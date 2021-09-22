@@ -67,7 +67,7 @@ chiSolverAddRegion(phys1,region1)
 
 chiMonteCarlonCreateSource(phys1,"MATERIAL_SRC");
 
-chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,10e6)
+chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,1e6)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
 chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
 chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)

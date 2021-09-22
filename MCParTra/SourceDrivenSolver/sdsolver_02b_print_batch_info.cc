@@ -5,7 +5,6 @@
 #include "ChiTimer/chi_timer.h"
 
 #include "Sources/ResidualSource/mc_rmcA_source.h"
-#include "Sources/ResidualSource/mc_rmcB_source.h"
 
 extern ChiLog& chi_log;
 extern ChiMPI& chi_mpi;

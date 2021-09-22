@@ -1,5 +1,5 @@
-#ifndef _mc_rmc3_source_h
-#define _mc_rmc3_source_h
+#ifndef MCPARTRA_RMC_SOURCE_A_H
+#define MCPARTRA_RMC_SOURCE_A_H
 
 #include "../mc_base_source.h"
 
@@ -76,7 +76,6 @@ public:
 
   const bool sample_uniformly;
 public:
-  //a
   explicit
   ResidualSourceA(mcpartra::SourceDrivenSolver& solver,
                   std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff,
@@ -86,6 +85,7 @@ public:
     sample_uniformly(use_uniform_sampling)
   {}
 
+  //a
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
                   std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
 
@@ -128,12 +128,10 @@ public:
   mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng) override;
 
-//  double GetParallelRelativeSourceWeight() override;
-
   //d
   void RemoveFFDiscontinuities();
 
-};
+}; //MCPARTRA_RMC_SOURCE_A_H
 
 
 

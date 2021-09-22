@@ -24,9 +24,6 @@ void mcpartra::ResidualSourceA::BuildCellVolInfo(
   chi_mesh::MeshContinuumPtr ref_grid,
   std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm)
 {
-//  for (auto cell_g_index : ref_grid->local_cell_glob_indices)
-//  {
-//    auto& cell = ref_grid->cells[cell_g_index];
   for (auto& cell : ref_grid->local_cells)
   {
     auto fv_view = ref_fv_sdm->MapFeView(cell.local_id);

@@ -7,7 +7,6 @@
 #include "Sources/BoundarySource/mc_bndry_source.h"
 #include "Sources/MaterialSource/mc_material_source.h"
 #include "Sources/ResidualSource/mc_rmcA_source.h"
-#include "Sources/ResidualSource/mc_rmcB_source.h"
 
 #include "chi_log.h"
 extern ChiLog& chi_log;
@@ -26,30 +25,22 @@ namespace lua_utils
 /** Creates a simple point source at [0 0 0].
  *
 \param SolverHandle int Handle to an existing montecarlo solver.
-\param SourceType int Source type identifier. See SourceType below.
+\param SourceType string Source type identifier. See SourceType below.
 
 ##_
 
 ###PropertyIndex\n
-MCSrcTypes.BNDRY_SRC\n
+BNDRY_SRC\n
  Source on a surface boundary. Expects to be followed by the boundary number.\n\n
 
-MCSrcTypes.MATERIAL_SRC\n
+MATERIAL_SRC\n
  Source from material defined isotropic source. No value follows.\n\n
 
-MCSrcTypes.RESIDUAL_TYPE_A\n
+RESIDUAL_TYPE_A\n
  Generates source particles from a multigroup transport residual. The residual
  is computed from the flux contained in a specified field-function.
  Expects to be followed by a handle to a field-function containing flux
  moments of the approximate solution..\n\n
-
-MCSrcTypes.RESIDUAL_TYPE_B\n
- Generates characteristic source rays from a multigroup transport residual.
- The residual
- is computed from the flux contained in a specified field-function.
- Expects to be followed by a handle to a field-function containing flux
- moments of the approximate solution..\n\n
-
 
 \return Handle int Handle to the created source.
 \ingroup LuaMonteCarlon
@@ -144,59 +135,12 @@ int chiMonteCarlonCreateSource(lua_State *L)
     chi_log.Log(LOG_0) << "MCParTra: Created residual type A source.";
 
   }
-  //============================================= Improved Residual source
-  //                                              MOC Uniform sampling
-  else if (source_type == "RESIDUAL_TYPE_B")
-  {
-    if (num_args < 5)
-      LuaPostArgAmountError("chiMonteCarlonCreateSource-"
-                            "MCSrcTypes.RESIDUAL",
-                            5,num_args);
-
-    int ref_boundary = lua_tonumber(L,3);
-    if (ref_boundary == 0)
-    {
-      chi_log.Log(LOG_ALLERROR)
-        << "Invalid boundary number supplied in call to "
-        << "chiMonteCarlonCreateSource-MC_BNDRY_SRC. Expected a positive number"
-           " or a predefined identifier.";
-      exit(EXIT_FAILURE);
-    }
-
-    int ff_handle = lua_tonumber(L,4);
-
-    double bndry_value = lua_tonumber(L,5);
-
-    std::shared_ptr<chi_physics::FieldFunction> ff;
-    try {
-      ff = chi_physics_handler.fieldfunc_stack.at(ff_handle);
-    }
-
-    catch (std::out_of_range& o)
-    {
-      chi_log.Log(LOG_ALLERROR)
-        << "Invalid field function handle supplied in call to "
-           "chiMonteCarlonCreateSource-MC_RESID_MOC_SU";
-      exit(EXIT_FAILURE);
-    }
-
-    auto new_source =
-      new mcpartra::ResidualSourceB(*solver, ff, false, bndry_value);
-    new_source->ref_bndry = ref_boundary;
-
-    solver->sources.push_back(new_source);
-    lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
-
-    chi_log.Log(LOG_0) << "MCParTra: Created residual type B source.";
-
-  }
   else
   {
     chi_log.Log(LOG_ALLERROR)
       << "Invalid boundary type supplied in call to chiMonteCarlonCreateSource";
     exit(EXIT_FAILURE);
   }
-
 
   return 1;
 }

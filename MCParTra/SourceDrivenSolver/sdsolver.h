@@ -114,13 +114,13 @@ public:
   std::shared_ptr<chi_mesh::RayTracer>  default_raytracer = nullptr;
   std::vector<double>                   cell_sizes;
 
-  //======================== RMC quantities
-public:
-  std::vector<double>                   cdf_phi_unc_group;
-  std::vector<std::vector<double>>      cdf_phi_unc_group_cell;
-  std::vector<std::vector<double>>      IntVk_phi_unc_g;
-  double                                IntVSumG_phi_unc=0.0;
-  std::vector<double>                   IntV_phi_unc_g;
+//  //======================== RMC quantities
+//public:
+//  std::vector<double>                   cdf_phi_unc_group;
+//  std::vector<std::vector<double>>      cdf_phi_unc_group_cell;
+//  std::vector<std::vector<double>>      IntVk_phi_unc_g;
+//  double                                IntVSumG_phi_unc=0.0;
+//  std::vector<double>                   IntV_phi_unc_g;
 
   //========================= Runtime quantities
 private:
@@ -194,8 +194,6 @@ public:
 private:
   //03
   void Raytrace(Particle& prtcl);
-  void RaytraceSTD(Particle& prtcl);
-  void RaytraceUNC(Particle& prtcl);
 
   //04
   std::pair<int,chi_mesh::Vector3>
@@ -213,22 +211,6 @@ private:
   //05a
   void ContributeTally(Particle& prtcl,
                        const chi_mesh::Vector3& pf);
-  double
-  GetResidualFFPhi(std::vector<double>& N_in,
-                   int dofs, int rmap,
-                   ResidualSourceB* rsrc,
-                   int egrp);
-  chi_mesh::Vector3
-  GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
-                       int dofs, int rmap,
-                       ResidualSourceB* rsrc,
-                       int egrp);
-  void ContributeTallyRMC(Particle& prtcl,
-                          const chi_mesh::Vector3& pf,
-                          chi_mesh::RayDestinationInfo& ray_dest_info);
-  Particle MakeScatteredParticle(Particle& prtcl,
-                             double tracklength,
-                             double weight);
 
   double ContributeTallyUNC(const Particle& prtcl,
                             const chi_mesh::Vector3& pf,
