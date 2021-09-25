@@ -1,5 +1,5 @@
-#ifndef _montecarlon_bndry_source_h
-#define _montecarlon_bndry_source_h
+#ifndef MCPARTRA_BNDRY_SOURCE_H
+#define MCPARTRA_BNDRY_SOURCE_H
 
 #include "../mc_base_source.h"
 
@@ -26,12 +26,12 @@ public:
   {}
 
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
+                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+                  size_t ref_num_groups,
+                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map) override;
 
   mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng) override;
-
-//  double GetParallelRelativeSourceWeight() override;
 };
 
-#endif
+#endif //MCPARTRA_BNDRY_SOURCE_H

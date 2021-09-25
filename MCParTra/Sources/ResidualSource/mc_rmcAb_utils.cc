@@ -7,7 +7,6 @@
 #include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
 #include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
 
-#include <ChiMath/Statistics/cdfsampler.h>
 
 #include <ChiPhysics/chi_physics.h>
 #include "chi_log.h"
@@ -16,13 +15,11 @@
 extern ChiLog& chi_log;
 extern ChiPhysics&  chi_physics_handler;
 
-#include <tuple>
-
 //###################################################################
 /**Build cell volume information.*/
 void mcpartra::ResidualSourceA::BuildCellVolInfo(
-  chi_mesh::MeshContinuumPtr ref_grid,
-  std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm)
+  const chi_mesh::MeshContinuumPtr& ref_grid,
+  const std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm)
 {
   for (auto& cell : ref_grid->local_cells)
   {
@@ -178,19 +175,13 @@ void mcpartra::ResidualSourceA::BuildCellVolInfo(
 void mcpartra::ResidualSourceA::
   PopulateMaterialData(int mat_id, int group_g, MaterialData &mat_data)
 {
-  int  xs_prop_id     = ref_solver.matid_xs_map[mat_id];
-  int  src_prop_id    = ref_solver.matid_q_map[mat_id];
-  auto material = chi_physics_handler.material_stack[mat_id];
-  auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
-    material->properties[xs_prop_id]);
-
+  auto xs = ref_solver.matid_xs_map2[mat_id];
   double siga = xs->sigma_a[group_g];
+
   double Q    = 0.0;
-  if (src_prop_id >= 0)
+  if (ref_solver.matid_has_q_flags[mat_id])
   {
-    auto prop = material->properties[src_prop_id];
-    auto q_prop =
-      std::static_pointer_cast<chi_physics::IsotropicMultiGrpSource>(prop);
+    auto q_prop = ref_solver.matid_q_map2[mat_id];
     Q = q_prop->source_value_g[group_g];
   }
 
@@ -357,8 +348,8 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
 /**Obtains a field function interpolant of the flux.*/
 double mcpartra::ResidualSourceA::
 GetResidualFFPhi(std::vector<double> &N_in,
-                 int dofs,
-                 int cell_local_id,
+                 size_t dofs,
+                 uint64_t cell_local_id,
                  int egrp)
 {
   auto& cell = grid->local_cells[cell_local_id];
@@ -376,7 +367,7 @@ GetResidualFFPhi(std::vector<double> &N_in,
   double phi = 0.0;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
+    int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
     phi += (*resid_ff->field_vector_local)[ir]*N_in[dof];
   }//for dof
@@ -388,8 +379,8 @@ GetResidualFFPhi(std::vector<double> &N_in,
 /**Obtains a field function interpolant of the flux-gradient.*/
 chi_mesh::Vector3 mcpartra::ResidualSourceA::
 GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
-                     int dofs,
-                     int cell_local_id,
+                     size_t dofs,
+                     uint64_t cell_local_id,
                      int egrp)
 {
   auto& cell = grid->local_cells[cell_local_id];
@@ -407,7 +398,7 @@ GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
   chi_mesh::Vector3 gradphi;
   for (int dof=0; dof<dofs; dof++)
   {
-    int ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
+    int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
     gradphi = gradphi + (Grad_in[dof]*(*resid_ff->field_vector_local)[ir]);
   }//for dof

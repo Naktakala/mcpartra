@@ -8,35 +8,16 @@ extern ChiTimer chi_program_timer;
 
 #include "Sources/ResidualSource/mc_rmcA_source.h"
 
-//#########################################################
+//###################################################################
 /**Executes the solver*/
 void mcpartra::SourceDrivenSolver::Execute()
 {
   chi_log.Log(LOG_0) << "\nExecuting MCParTra solver\n";
 
-  mcpartra::SourceBase* src = sources.back();
-
-  //#######################################################
-  /**Short lambda to deplete bank.*/
-  auto DepleteBank = [this]()
-  {
-    mcpartra::Particle prtcl;
-    while (not particle_source_bank.empty())
-    {
-      prtcl = particle_source_bank.back();
-      particle_source_bank.pop_back();
-
-      prtcl.alive = true;
-      prtcl.banked = false;
-
-      while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
-    }
-  };
-
   //============================================= Start batch processing
-  std::vector<Particle> inbound_particles;
   double start_time = chi_program_timer.GetTime()/1000.0;
   size_t start_nps_global = nps_global;
+
   for (size_t b=0; b<batch_sizes_per_loc.size(); b++)
   {
     nps = 0;
@@ -48,26 +29,12 @@ void mcpartra::SourceDrivenSolver::Execute()
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
-      DepleteBank();
+      DepleteSourceParticleBank();
     }//for pi in batch
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    //================================= Communicate and deplete banks
-    GetOutboundBankSize();
-    while (total_outbound_bank_size>0)
-    {
-      ReceiveIncomingParticles(inbound_particles);
-      for (auto& prtcl : inbound_particles)
-      {
-        prtcl.alive = true;
-        prtcl.banked = false;
-        while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
-
-        DepleteBank();
-      }
-      GetOutboundBankSize();
-    }
+    //================================= Communicate inbound/outbound particles
+    //                                  and deplete banks
+    CommAndSimOutboundInboundParticles();
 
     //================================= Rendesvouz and housekeeping
     RendesvouzTallies();
@@ -94,8 +61,6 @@ void mcpartra::SourceDrivenSolver::Execute()
     << "MCParTra: Lost particle log:" << lost_particle_log.str();
   }
 
-
-
   NormalizeTallies();
   ComputePWLDTransformations();
 
@@ -114,6 +79,7 @@ void mcpartra::SourceDrivenSolver::Execute()
 
     int comp_counter = -1;
     for (size_t m=0; m < num_moments; ++m)
+    {
       for (size_t g=0; g < num_groups; ++g)
       {
         outstr << "Component " << ++comp_counter << ":\n";
@@ -130,13 +96,64 @@ void mcpartra::SourceDrivenSolver::Execute()
             << tfc.sigma[dof_map] * correction << "\n";
         }
       }//for g
+    }//for m
     outstr << "\n";
 
     chi_log.Log() << outstr.str();
   }
 
-  if (src->CheckForReExecution())
-    Execute();
-  else
-    chi_log.Log(LOG_0) << "Done executing Montecarlo solver";
+  //============================================= Accumulated source importances
+  double accumulated_src_importances_global;
+  MPI_Allreduce(&accumulated_src_importances,        //sendbuf
+                &accumulated_src_importances_global, //recvbuf
+                1,                                   //count
+                MPI_DOUBLE,                          //datatype
+                MPI_SUM,                             //operation
+                MPI_COMM_WORLD);                     //communicator
+  chi_log.Log() << "MCParTra: average source particle importance = "
+                << std::scientific
+                << accumulated_src_importances_global/
+                   static_cast<double>(nps_global);
+
+  chi_log.Log(LOG_0) << "Done executing Montecarlo solver";
+}
+
+//###################################################################
+/**Short method to deplete bank.*/
+void mcpartra::SourceDrivenSolver::DepleteSourceParticleBank()
+{
+  mcpartra::Particle prtcl;
+  while (not particle_source_bank.empty())
+  {
+    prtcl = particle_source_bank.back();
+    particle_source_bank.pop_back();
+
+    prtcl.alive = true;
+    prtcl.banked = false;
+
+    while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+  }
+}
+
+//###################################################################
+/**Communicate outbound and inbound particles, then
+ * deplete the inbound banks.*/
+void mcpartra::SourceDrivenSolver::CommAndSimOutboundInboundParticles()
+{
+  std::vector<Particle> inbound_particle_bank;
+
+  GetOutboundBankSize();
+  while (total_outbound_bank_size>0)
+  {
+    ReceiveIncomingParticles(inbound_particle_bank);
+    for (auto& prtcl : inbound_particle_bank)
+    {
+      prtcl.alive = true;
+      prtcl.banked = false;
+      while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
+
+      DepleteSourceParticleBank();
+    }
+    GetOutboundBankSize();
+  }
 }

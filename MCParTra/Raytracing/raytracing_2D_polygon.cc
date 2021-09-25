@@ -12,6 +12,7 @@ void chi_mesh::RayTracer::TracePolygon(const Cell &cell,
                                        bool& backward_tolerance_hit,
                                        RayTracerOutputInformation& oi)
 {
+  const auto& grid = Grid();
   chi_mesh::Vector3 ip; //intersection point
 
   const double fabs_mu = std::fabs(omega_i.Dot(cell.faces[0].normal));

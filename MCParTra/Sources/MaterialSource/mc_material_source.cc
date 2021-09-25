@@ -16,30 +16,41 @@ extern ChiLog& chi_log;
 /**Initialize material source.*/
 void mcpartra::MaterialSource::
   Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
-             std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm)
+             std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+             size_t ref_num_groups,
+             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map)
 {
+  chi_log.Log(LOG_0) << "Initializing Material Sources";
+
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
+  num_groups = ref_num_groups;
+  m_to_ell_em_map = ref_m_to_ell_em_map;
+
+  size_t num_materials = chi_physics_handler.material_stack.size();
 
   //============================================= List cells with mat-sources
   std::map<uint64_t, chi_mesh::Cell*> mat_src_cells;
+  matid_has_q_flags.assign(num_materials, false);
   for (auto& cell : ref_grid->local_cells)
   {
-    auto mat_id = static_cast<unsigned long>(cell.material_id);
+    auto mat_id = static_cast<int>(cell.material_id);
     auto mat = chi_physics_handler.material_stack[mat_id];
-    for (auto& prop : mat->properties)
+    for (const auto& prop : mat->properties)
       if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
       {
         mat_src_cells.insert(std::make_pair(cell.local_id,&cell));
         cell_elements.insert(
           std::make_pair(cell.local_id, GetCellVolumeSourceElements(cell,grid)));
+
+        matid_has_q_flags[mat_id] = true;
+        matid_q_map[mat_id] = std::static_pointer_cast<IsoMGSrc>(prop);
         break;
       }
   }
 
   //============================================= Determine group-wise
   //                                              source weights
-  typedef chi_physics::IsotropicMultiGrpSource IsoMGSrc;
   IntV_Q_g.clear();
   IntV_Q_g.resize(ref_solver.num_groups, 0.0);
   group_sources.resize(ref_solver.num_groups);
@@ -48,26 +59,25 @@ void mcpartra::MaterialSource::
     auto& cell = *cell_index_ptr_pair.second;
     auto fv_view = ref_fv_sdm->MapFeView(cell.local_id);
 
-    auto mat_id = static_cast<unsigned long>(cell.material_id);
+    auto mat_id = static_cast<int>(cell.material_id);
     auto mat = chi_physics_handler.material_stack[mat_id];
 
-    for (auto& prop : mat->properties)
-      if (prop->Type() == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
+    if (matid_has_q_flags[mat_id])
+    {
+      auto src = matid_q_map[mat_id];
+      for (size_t g=0; g<src->source_value_g.size(); ++g)
       {
-        auto src = std::static_pointer_cast<IsoMGSrc>(prop);
-        for (size_t g=0; g<src->source_value_g.size(); ++g)
-        {
-          double Q_g = src->source_value_g[g];
+        double Q_g = src->source_value_g[g];
 
-          if (not (std::fabs(Q_g) > 0.0)) continue;
+        if (not (std::fabs(Q_g) > 0.0)) continue;
 
-          IntV_Q_g[g] += fv_view->volume*Q_g;
+        IntV_Q_g[g] += fv_view->volume*Q_g;
 
-          auto& v_elements = cell_elements.at(cell.local_id);
-          for (auto& element : v_elements)
-            group_sources[g].emplace_back(Q_g * element.Volume(), &element);
-        }//for g
-      }//if src prop
+        auto& v_elements = cell_elements.at(cell.local_id);
+        for (auto& element : v_elements)
+          group_sources[g].emplace_back(Q_g * element.Volume(), &element);
+      }//for g
+    }//if has source
   }//for cell
 
   //============================================= Checking group sources integrity

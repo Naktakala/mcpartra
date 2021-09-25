@@ -29,11 +29,16 @@ extern ChiLog& chi_log;
  * that needs to be sampled.*/
 void mcpartra::BoundarySource::
   Initialize(chi_mesh::MeshContinuumPtr&    ref_grid,
-             std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm)
+             std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+             size_t ref_num_groups,
+             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map)
 {
   chi_log.Log(LOG_0) << "Initializing Boundary Source";
+
   grid = ref_grid;
   fv_sdm = ref_fv_sdm;
+  num_groups = ref_num_groups;
+  m_to_ell_em_map = ref_m_to_ell_em_map;
 
   const int ALL_BOUNDRIES = -1;
 

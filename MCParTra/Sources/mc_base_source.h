@@ -34,11 +34,14 @@ class SourceBase
 {
 private:
   SourceType type_index;
-public:
+protected:
   chi_mesh::MeshContinuumPtr grid = nullptr;
   std::shared_ptr<SpatialDiscretization_FV> fv_sdm = nullptr;
 
   mcpartra::SourceDrivenSolver& ref_solver;
+
+  size_t num_groups=0;
+  std::vector<std::pair<int,int>> m_to_ell_em_map;
 
 private:
   double local_source_rate = 0.0;
@@ -56,7 +59,9 @@ public:
 
   //01
   virtual void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
-                          std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm);
+                          std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+                          size_t ref_num_groups,
+                          const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map);
 
   virtual mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng);

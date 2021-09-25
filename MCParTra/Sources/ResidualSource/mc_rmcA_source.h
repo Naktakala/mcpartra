@@ -44,7 +44,7 @@ private:
   /**Structure to store cell-face pairs.*/
   struct RCellFace
   {
-    int cell_local_id=-1;
+    uint64_t cell_local_id=0;
     int ass_face=-1;
     double average_rstar=0.0;
     double maximum=-1.0e32;
@@ -55,7 +55,7 @@ private:
 
 public:
   std::vector<double> r_abs_cellk_interior_average;
-  std::vector<double> r_cellk_interior_max;
+  std::vector<double> r_abs_cellk_interior_max;
   std::vector<double> r_cellk_interior_min;
   std::vector<double> R_abs_cellk_interior;
 
@@ -65,33 +65,29 @@ public:
   double R_abs_globaldomain_interior = 0.0;
   double R_abs_globaldomain_surface = 0.0;
 
-  double relative_weight = 1.0;
-
   double domain_volume = 0.0;
   double source_volume = 0.0;
 
   std::vector<double> domain_cdf;
   std::vector<double> surface_cdf;
 
-
-  const bool sample_uniformly;
 public:
   explicit
   ResidualSourceA(mcpartra::SourceDrivenSolver& solver,
-                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff,
-                  bool use_uniform_sampling=false) :
+                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff) :
     SourceBase(SourceType::RESIDUAL_TYPE_A, solver),
-    resid_ff(in_resid_ff),
-    sample_uniformly(use_uniform_sampling)
+    resid_ff(in_resid_ff)
   {}
 
   //a
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
+                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+                  size_t ref_num_groups,
+                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map) override;
 
   //b
-  void BuildCellVolInfo(chi_mesh::MeshContinuumPtr  ref_grid,
-                        std::shared_ptr<SpatialDiscretization_FV> ref_fv_sdm);
+  void BuildCellVolInfo(const chi_mesh::MeshContinuumPtr&  ref_grid,
+                        const std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm);
 
   void PopulateMaterialData(int mat_id, int group_g,
                             MaterialData& mat_data);
@@ -107,20 +103,20 @@ public:
     int* face_sampled= nullptr);
 
   double GetResidualFFPhi(std::vector<double> &N_in,
-                          int dofs,
-                          int cell_local_id,
+                          size_t dofs,
+                          uint64_t cell_local_id,
                           int egrp);
 
   chi_mesh::Vector3 GetResidualFFGradPhi(
                           std::vector<chi_mesh::Vector3>& Grad_in,
-                          int dofs,
-                          int cell_local_id,
+                          size_t dofs,
+                          uint64_t cell_local_id,
                           int egrp);
 
-  chi_mesh::Vector3 RandomDirection(
+  static chi_mesh::Vector3 RandomDirection(
     chi_math::RandomNumberGenerator& rng);
 
-  chi_mesh::Vector3 RandomCosineLawDirection(
+  static chi_mesh::Vector3 RandomCosineLawDirection(
     chi_math::RandomNumberGenerator& rng,
     const chi_mesh::Vector3& normal);
 

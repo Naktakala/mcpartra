@@ -10,6 +10,7 @@ void mcpartra::SourceDrivenSolver::InitRaytracing()
 {
   chi_log.Log() << "MCPartra: Initializing Raytracing items.";
 
+
   /**Lambda to get cell bounding box.*/
   auto GetCellApproximateSize = [this](const chi_mesh::Cell& cell)
   {
@@ -31,8 +32,11 @@ void mcpartra::SourceDrivenSolver::InitRaytracing()
             chi_mesh::Vector3(xmax, ymax, zmax)).Norm();
   };
 
-  cell_sizes.assign(grid->local_cells.size(), 0.0);
+  std::vector<double> cell_sizes(grid->local_cells.size(), 0.0);
+
   for (const auto& cell : grid->local_cells)
     cell_sizes[cell.local_id] = GetCellApproximateSize(cell);
 
+  default_raytracer.SetGrid(grid);
+  default_raytracer.SetCellSizes(cell_sizes);
 }

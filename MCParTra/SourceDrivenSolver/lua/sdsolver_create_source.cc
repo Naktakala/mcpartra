@@ -127,7 +127,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
     }
 
     auto new_source =
-      new mcpartra::ResidualSourceA(*solver, ff, false);
+      new mcpartra::ResidualSourceA(*solver, ff);
 
     solver->sources.push_back(new_source);
     lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));

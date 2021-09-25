@@ -4,14 +4,15 @@
 extern ChiLog& chi_log;
 
 //###################################################################
-/**Makes a contribution to tallies*/
-double mcpartra::SourceDrivenSolver::ContributeTallyUNC(
-  const mcpartra::Particle& prtcl,
-  const chi_mesh::Vector3& pf,
-  double sig_t)
+/**Makes a contribution to tallies applying an exponential attenuation
+ * to the particle weight. The final weight is returned.*/
+double mcpartra::SourceDrivenSolver::
+  ContributeTallyUNC(const chi_mesh::Cell& cell,
+                     const mcpartra::Particle& prtcl,
+                     const chi_mesh::Vector3& pf,
+                     double sig_t)
 {
   double weight = prtcl.w;
-  auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
 
   double tracklength = (pf - prtcl.pos).Norm();
 

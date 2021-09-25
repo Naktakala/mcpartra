@@ -107,8 +107,14 @@ ProcessScattering(mcpartra::Particle &prtcl,
 //###################################################################
 /**Processes a change in importance by either playing a game of
  * Russian-Roulette or by splitting the particle.*/
-void mcpartra::SourceDrivenSolver::ProcessImportanceChange(Particle& prtcl)
+void mcpartra::SourceDrivenSolver::
+  ProcessImportanceChange(Particle& prtcl, double current_cell_importance)
 {
+  prtcl.cur_cell_importance = current_cell_importance;
+  prtcl.pre_cell_importance = prtcl.cur_cell_importance;
+  if (prtcl.cur_cell_global_id == prtcl.pre_cell_global_id) return;
+
+
   //=================================== Particle splitting
   if (prtcl.cur_cell_importance > prtcl.pre_cell_importance)
   {

@@ -178,6 +178,30 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     chi_log.Log() << "MCParTra: Run-tape base name set to " << base_name
                   << ", and flag to write run tape, set to true.";
   }
+  else if (property_index == "IMPORTANCE_DURING_RAYTRACING")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.importances_during_raytracing = flag;
+    if (flag) mcsolver->options.apply_source_importance_sampling = false;
+
+    chi_log.Log() << "MCParTra: Flag to use importances during raytracing set "
+                  << "to " << flag << ".";
+  }
+  else if (property_index == "APPLY_SOURCE_IMPORTANCE_SAMPLING")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.apply_source_importance_sampling = flag;
+    if (flag) mcsolver->options.importances_during_raytracing = false;
+
+    chi_log.Log() << "MCParTra: Flag to apply importance biased source "
+                  << "sampling set to " << flag << ".";
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

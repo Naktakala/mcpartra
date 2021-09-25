@@ -10,10 +10,10 @@ typedef unsigned long long TULL;
 //###################################################################
 /**Makes a contribution to tallies*/
 void mcpartra::SourceDrivenSolver::
-  ContributeTally(mcpartra::Particle &prtcl, const chi_mesh::Vector3& pf)
+  ContributeTally(const chi_mesh::Cell& cell,
+                  const mcpartra::Particle &prtcl,
+                  const chi_mesh::Vector3& pf)
 {
-  auto& cell = grid->local_cells[prtcl.cur_cell_local_id];
-
   double tracklength = (pf - prtcl.pos).Norm();
 
   double tlw = tracklength * prtcl.w; ///< Tracklength times weight
@@ -94,6 +94,5 @@ void mcpartra::SourceDrivenSolver::
   }//for t
 
 }
-
 
 

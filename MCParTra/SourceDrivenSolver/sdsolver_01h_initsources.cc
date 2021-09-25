@@ -14,7 +14,7 @@ void mcpartra::SourceDrivenSolver::InitSources()
 
   for (auto& source : sources)
   {
-    source->Initialize(grid, fv);
+    source->Initialize(grid, fv, num_groups, m_to_ell_em_map);
 
     total_globl_source_rate += source->GlobalSourceRate();
     total_local_source_rate += source->LocalSourceRate();
@@ -32,7 +32,7 @@ void mcpartra::SourceDrivenSolver::InitSources()
   size_t num_sources = sources.size();
   local_source_cdf.assign(num_sources, 0.0);
   double running_total = 0.0;
-  for (int s=0; s<num_sources; ++s)
+  for (size_t s=0; s<num_sources; ++s)
   {
     running_total += sources[s]->LocalSourceRate();
     local_source_cdf[s] = running_total/total_local_source_rate;

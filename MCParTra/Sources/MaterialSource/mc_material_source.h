@@ -4,6 +4,8 @@
 #include "../mc_base_source.h"
 #include "../mc_volume_src_element.h"
 
+#include "ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h"
+
 //###################################################################
 /**Material source class.*/
 class mcpartra::MaterialSource : public mcpartra::SourceBase
@@ -46,7 +48,9 @@ private:
   std::vector<GrpSrc> group_sources;
   std::vector<std::vector<double>> group_element_cdf;
 
-
+  std::vector<bool> matid_has_q_flags;
+  typedef chi_physics::IsotropicMultiGrpSource IsoMGSrc;
+  std::map<int, std::shared_ptr<IsoMGSrc>> matid_q_map;
 
 public:
   explicit
@@ -55,7 +59,9 @@ public:
   {};
 
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
-                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm) override;
+                  std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
+                  size_t ref_num_groups,
+                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map) override;
 
   mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng) override;

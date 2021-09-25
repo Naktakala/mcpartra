@@ -16,5 +16,10 @@ mcpartra::Particle mcpartra::SourceDrivenSolver::
 
   auto& source = sources[src_index];
 
-  return source->CreateParticle(rng);
+  auto prtcl = source->CreateParticle(rng);
+
+  double importance = local_cell_importance[prtcl.cur_cell_local_id];
+  accumulated_src_importances += importance;
+
+  return prtcl;
 }

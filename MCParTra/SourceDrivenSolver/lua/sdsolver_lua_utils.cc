@@ -38,6 +38,8 @@ void mcpartra::lua_utils::RegisterLuaEntities(lua_State *L)
                mcpartra::lua_utils::chiMonteCarlonWriteLBSFluxMoments);
   lua_register(L, "chiMonteCarlonSetImportances",
                mcpartra::lua_utils::chiMonteCarlonSetImportances);
+  lua_register(L, "chiMonteCarlonReadImportanceMap",
+               mcpartra::lua_utils::chiMonteCarlonReadImportanceMap);
   lua_register(L, "chiMonteCarlonSetProperty2",
                mcpartra::lua_utils::chiMonteCarlonSetProperty2);
   lua_register(L, "chiMonteCarlonAddCustomVolumeTally",

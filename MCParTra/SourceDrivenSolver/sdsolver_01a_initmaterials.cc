@@ -16,6 +16,7 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
   chi_log.Log() << "MCParTra: Initializing Materials.";
 
   typedef chi_physics::TransportCrossSections TrXS;
+  typedef chi_physics::IsotropicMultiGrpSource IsoMGSrc;
 
   //=================================== Check materials exist
   if (chi_physics_handler.material_stack.empty())
@@ -40,12 +41,14 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
 
   //=================================== Initialize Materials and make property
   //                                    mappings
-  matid_xs_map.resize(num_mat,-1);
-  matid_q_map.resize(num_mat,-1);
+//  matid_xs_map.assign(num_mat,-1);
+//  matid_q_map.assign(num_mat,-1);
+  matid_has_q_flags.assign(num_mat, false);
   for (size_t m=0; m<num_mat; m++)
   {
     auto cur_mat = chi_physics_handler.material_stack[m];
     bool material_xs_mapped = false;
+    int mat_id = static_cast<int>(m);
 
     //======================= Only first xs will be used
     size_t num_props = cur_mat->properties.size();
@@ -59,13 +62,11 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
       {
         auto transp_xs = std::static_pointer_cast<TrXS>(property);
 
-        transp_xs->ComputeDiscreteScattering(options.scattering_order);
-
         if (transp_xs->num_groups > num_groups)
           num_groups = transp_xs->num_groups;
 
-        matid_xs_map[m] = static_cast<int>(p);
-        matid_xs_map2[m] = transp_xs;
+        matid_xs_map2[mat_id] = transp_xs;
+
         auto L = options.scattering_order;
         matid_scattering_cdfs.insert(
           std::make_pair(m,MultigroupScatteringCDFs(*transp_xs, L+1)));
@@ -73,12 +74,16 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
       }
 
       if (property_type == chi_physics::PropertyType::ISOTROPIC_MG_SOURCE)
-        matid_q_map[m] = static_cast<int>(p);
+      {
+        auto iso_mg_src = std::static_pointer_cast<IsoMGSrc>(property);
+        matid_has_q_flags[mat_id] = true;
+        matid_q_map2[mat_id]      = iso_mg_src;
+      }
     }//for prop
 
     using namespace std;
 
-    if (matid_xs_map[m]<0)
+    if (not material_xs_mapped)
       throw invalid_argument(
         "The mapping of material " + to_string(m) + " to a cross section "
         "property failed. This indicates that the given material might not "

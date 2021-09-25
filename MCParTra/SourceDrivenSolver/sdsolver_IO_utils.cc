@@ -472,6 +472,11 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
 
   chi_log.Log() << "MCParTra: Reading importance map.";
 
+  //============================================= Check grid is available
+  if (grid == nullptr)
+    throw std::logic_error(fname + ": Grid not available yet. This function"
+                                   " must be called after initialization.");
+
   //============================================= Open file
   std::ifstream file(file_name, std::ios_base::in | std::ios_base::binary);
 
@@ -483,10 +488,73 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   char header_bytes[400]; header_bytes[399] = '\0';
   file.read(header_bytes,399);
 
+  uint64_t file_num_global_cells;
+  uint64_t file_num_groups      ;
+  uint64_t file_num_records     ;
+
+  file.read((char*)&file_num_global_cells, sizeof(uint64_t));
+  file.read((char*)&file_num_groups      , sizeof(uint64_t));
+  file.read((char*)&file_num_records     , sizeof(uint64_t));
+
+  //============================================= Error check
+  size_t sim_num_global_cells = grid->GetGlobalNumberOfCells();
+  if (file_num_global_cells != sim_num_global_cells)
+    throw std::logic_error(fname + ": Data contained in " + file_name +
+    " is not compatible with the current simulation.  The cell count is "
+    "not equal " + std::to_string(file_num_global_cells) + " (file) vs " +
+    std::to_string(sim_num_global_cells) + " (sim).");
+
+  if (file_num_groups != num_groups)
+    throw std::logic_error(fname + ": Data contained in " + file_name +
+    " is not compatible with the current simulation. The number of groups are "
+    "not equal " + std::to_string(file_num_groups) + " (file) vs " +
+    std::to_string(num_groups) + " (sim).");
+
+
+  //============================================= Size importance data structs
   size_t num_local_cells = grid->local_cells.size();
+  importance_num_groups = file_num_groups;
+  typedef chi_mesh::Vector3 vec3;
 
+  size_t num_importances = num_local_cells * file_num_groups;
+  local_cell_importance.assign(num_importances, 1.0);
+  local_cell_importance_setting.assign(num_importances, 1.0);
+  local_cell_importance_directions.assign(num_importances, vec3(0.0,0.0,0.0));
+  local_cell_importance_exp_coeffs.assign(num_importances, {0.0,0.0});
 
+  //============================================= Read records
+  for (uint64_t r=0; r < file_num_records; ++r)
+  {
+    uint64_t cell_global_id;
+    unsigned int group_id;
+    std::array<double,4> p1_moments = {0.0,0.0,0.0,0.0};
+    double coeff_a;
+    double coeff_b;
 
+    file.read((char*)&cell_global_id       , sizeof(uint64_t));
+    file.read((char*)&group_id             , sizeof(unsigned int));
+    file.read((char*)p1_moments.data()     , sizeof(double)*4);
+    file.read((char*)&coeff_a              , sizeof(double));
+    file.read((char*)&coeff_b              , sizeof(double));
+
+    if (grid->IsCellLocal(cell_global_id))
+    {
+      const auto& cell = grid->cells[cell_global_id];
+
+      size_t dof_map = cell_global_id * importance_num_groups + group_id;
+
+      double phi = p1_moments[0];
+      chi_mesh::Vector3 omega_J(p1_moments[1],
+                                p1_moments[2],
+                                p1_moments[3]);
+      omega_J.Normalize();
+
+      local_cell_importance[dof_map]            = phi;
+      local_cell_importance_setting[dof_map]    = phi;
+      local_cell_importance_directions[dof_map] = omega_J;
+      local_cell_importance_exp_coeffs[dof_map] = std::make_pair(coeff_a,coeff_b);
+    }
+  }//for record
 
   file.close();
 

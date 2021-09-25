@@ -16,7 +16,9 @@ void mcpartra::SourceDrivenSolver::InitTallies()
 {
   chi_log.Log() << "MCParTra: Initializing tallies";
 
-  //=================================== Unknown Manager
+  uk_man_fv.unknowns.clear();
+  uk_man_pwld.unknowns.clear();
+  //=================================== Unknown Managers moments and groups
   for (size_t m=0; m < num_moments; ++m)
   {
     uk_man_fv .AddUnknown(chi_math::UnknownType::VECTOR_N, num_groups);
@@ -36,6 +38,18 @@ void mcpartra::SourceDrivenSolver::InitTallies()
       uk_man_pwld.SetUnknownComponentTextName(m, g, fem_comp_name);
     }//for g
   }//for m
+
+  //=================================== Unknown Manager groups only
+  uk_man_fv_importance.unknowns.clear();
+  uk_man_fv_importance.AddUnknown(chi_math::UnknownType::VECTOR_N, num_groups);
+  for (size_t g=0; g < num_groups; ++g)
+  {
+    auto imp_comp_name = std::string("CellImportance");
+
+    imp_comp_name += std::string("_g") + std::to_string(g);
+
+    uk_man_fv_importance.SetUnknownComponentTextName(0, g, imp_comp_name);
+  }//for g
 
   //=================================== Estimating total size requirement
   //                                    for tallies only

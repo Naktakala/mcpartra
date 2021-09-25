@@ -137,15 +137,15 @@ run_test(
     file_name="MonteCarlo1D_1MatSource",
     comment="1D Test - Material source",
     num_procs=1,
-    search_strings_vals_tols=[["[0]  Max-value1=", 2.02976 , 1.0e-5],
-                              ["[0]  Max-value2=", 0.994566, 1.0e-5]])
+    search_strings_vals_tols=[["[0]  Max-value1=", 2.02307 , 1.0e-5],
+                              ["[0]  Max-value2=", 9.92226e-01, 1.0e-5]])
 
 run_test(
     file_name="MonteCarlo2D_1Poly",
     comment="2D Test - Material source",
     num_procs=1,
-    search_strings_vals_tols=[["[0]  Max-value1=", 3.33722 , 1.0e-5],
-                              ["[0]  Max-value2=", 0.249672, 1.0e-6]])
+    search_strings_vals_tols=[["[0]  Max-value1=", 3.40302 , 1.0e-5],
+                              ["[0]  Max-value2=", 2.61521e-01, 1.0e-6]])
 
 
 # $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ END OF TESTS

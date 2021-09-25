@@ -12,6 +12,7 @@ void chi_mesh::RayTracer::TraceSlab(const Cell &cell,
                                     bool& backward_tolerance_hit,
                                     RayTracerOutputInformation& oi)
 {
+  const auto& grid = Grid();
   chi_mesh::Vector3 intersection_point;
   std::pair<double,double> weights;
 

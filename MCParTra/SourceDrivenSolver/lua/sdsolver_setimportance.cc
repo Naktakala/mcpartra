@@ -1,6 +1,6 @@
 #include <ChiLua/chi_lua.h>
 
-#include"SourceDrivenSolver/sdsolver.h"
+#include "sdsolver_lua_utils.h"
 
 #include "ChiMesh/MeshHandler/chi_meshhandler.h"
 #include "ChiPhysics/chi_physics.h"
@@ -27,40 +27,20 @@ namespace lua_utils
 \param Importance float Value of the importance to set to all cells
                   within the volume.
 
-
 \author Jan
  */
 int chiMonteCarlonSetImportances(lua_State *L)
 {
-  int num_args = lua_gettop(L);
+  const std::string fname = __FUNCTION__;
+  const int num_args = lua_gettop(L);
   if (num_args < 3)
     LuaPostArgAmountError("chiMonteCarlonSetImportances",3,num_args);
 
-  chi_physics::Solver* solver = nullptr;
-  try{
-    solver = chi_physics_handler.solver_stack.at(lua_tonumber(L,1));
-  }
-  catch (const std::out_of_range& o)
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "chiMonteCarlonSetImportances: Invalid solver handle. "
-      << lua_tonumber(L,1);
-    exit(EXIT_FAILURE);
-  }
+  int solver_handle = lua_tonumber(L, 1);
+  int volume_hndl   = lua_tonumber(L, 2);
+  double importance = lua_tonumber(L, 3);
 
-  mcpartra::SourceDrivenSolver* mcsolver;
-  if (typeid(*solver) == typeid(mcpartra::SourceDrivenSolver))
-    mcsolver = (mcpartra::SourceDrivenSolver*)solver;
-  else
-  {
-    chi_log.Log(LOG_ALLERROR)
-      << "chiMonteCarlonSetProperty: Solver pointed to by solver handle is "
-      << " not a MonteCarlo solver.";
-    exit(EXIT_FAILURE);
-  }
-
-  int volume_hndl = lua_tonumber(L,2);
-  double importance = lua_tonumber(L,3);
+  auto mcsolver = mcpartra::lua_utils::GetSolverByHandle(solver_handle,fname);
 
   //============================================= Get current mesh handler
   chi_mesh::MeshHandler* cur_hndlr = chi_mesh::GetCurrentHandler();
@@ -88,6 +68,34 @@ int chiMonteCarlonSetImportances(lua_State *L)
   for (auto& cell : grid->local_cells)
     if (volume_ptr->Inside(cell.centroid))
       mcsolver->local_cell_importance_setting[cell.local_id] = importance;
+
+  return 0;
+}
+
+//###################################################################
+/**Sets the importances of all cells from a file.
+
+\param SolverHandle int Handle to the montecarlo solver.
+\param FileName string Name of the file to read the importances from.
+
+\author Jan
+ */
+int chiMonteCarlonReadImportanceMap(lua_State *L)
+{
+  const std::string fname = __FUNCTION__;
+  const int num_args = lua_gettop(L);
+  if (num_args < 2)
+    LuaPostArgAmountError("chiMonteCarlonSetImportances",3,num_args);
+
+  LuaCheckNilValue(fname, L, 1);
+  LuaCheckNilValue(fname, L, 2);
+
+  const int solver_handle = lua_tonumber(L, 1);
+  const std::string file_name = lua_tostring(L, 2);
+
+  auto mcsolver = mcpartra::lua_utils::GetSolverByHandle(solver_handle,fname);
+
+  mcsolver->ReadImportanceMap(file_name);
 
   return 0;
 }

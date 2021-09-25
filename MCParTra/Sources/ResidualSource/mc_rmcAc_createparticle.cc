@@ -1,227 +1,56 @@
 #include "mc_rmcA_source.h"
 
-
-#include <ChiMesh/Cell/cell_polyhedron.h>
-
-#include <ChiMath/SpatialDiscretization/FiniteVolume/fv.h>
-
-#include <ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h>
-#include <ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h>
-
-#include <ChiPhysics/chi_physics.h>
-#include "chi_log.h"
 #include "SourceDrivenSolver/sdsolver.h"
 
+#include "chi_log.h"
 extern ChiLog& chi_log;
+
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 #include "chi_mpi.h"
 extern ChiMPI& chi_mpi;
 
-////###################################################################
-///**Executes a source sampling for the residual source.*/
-//chi_montecarlon::Particle chi_montecarlon::ResidualSourceA::
-//CreateParticle(chi_math::RandomNumberGenerator* rng)
-//{
-//  const double FOUR_PI = 4.0*M_PI;
-//  chi_montecarlon::Particle new_particle;
-//
-//  std::vector<double>            shape_values;
-//  std::vector<chi_mesh::Vector3> grad_shape_values;
-//
-//  //======================================== Choose interior or surface
-//  bool sample_interior = false;
-//  if (rng->Rand() < R_abs_localdomain_interior / (R_abs_localdomain_interior + R_abs_localdomain_surface))
-//    sample_interior = true;
-//
-//  //################################################## INTERIOR
-//  if (sample_interior)
-//  {
-//    int cell_local_id = std::lower_bound(
-//      domain_cdf.begin(),
-//      domain_cdf.end(),
-//      rng->Rand()) - domain_cdf.begin();
-//
-//    //======================================== Randomly Sample Cell
-//    auto& cell = ref_solver->grid->local_cells[cell_local_id];
-//    auto cell_pwl_view =
-//      ref_solver->pwl->MapFeViewL(cell_local_id);
-//
-//    //======================================== Sample energy group
-//    int e_group = 0;
-//    new_particle.egrp = e_group;
-//
-//    //======================================== Get material properties
-//    int  mat_id         = cell.material_id;
-//    int  xs_prop_id     = ref_solver->matid_xs_map[mat_id];
-//    int  src_prop_id    = ref_solver->matid_q_map[mat_id];
-//    auto material = chi_physics_handler.material_stack[mat_id];
-//    auto xs = (chi_physics::TransportCrossSections*)material->properties[xs_prop_id];
-//
-//    double siga = xs->sigma_ag[e_group];
-//    double Q    = 0.0;
-//    if (src_prop_id >= 0)
-//    {
-//      auto prop = material->properties[src_prop_id];
-//      auto q_prop = (chi_physics::IsotropicMultiGrpSource*)prop;
-//      Q = q_prop->source_value_g[e_group];
-//    }
-//    //==================================== Sample position
-//    chi_mesh::Vector3 pos =
-//      GetRandomPositionInCell(*rng, cell_geometry_info[cell.local_id]);
-//
-//    new_particle.pos = pos;
-//
-//    //==================================== Sample direction
-//    chi_mesh::Vector3 omega = RandomDirection(*rng);
-//    new_particle.dir = omega;
-//
-//    //==================================== Populate shape values
-//    cell_pwl_view->ShapeValues(pos, shape_values);
-//    cell_pwl_view->GradShapeValues(pos,grad_shape_values);
-//
-//    //==================================== Get Residual
-//    double phi = GetResidualFFPhi(shape_values,
-//                                  cell_pwl_view->dofs,
-//                                  cell.local_id,
-//                                  e_group);
-//    auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
-//                                         cell_pwl_view->dofs,
-//                                         cell.local_id,
-//                                         e_group);
-//
-//    double r = (1.0/FOUR_PI)*
-//               ( Q - siga*phi - omega.Dot(grad_phi) );
-//
-//    //======================================== Determine weight
-//    if (std::fabs(r) > 1.0e-14)
-//      new_particle.w = r / r_abs_cellk_interior_average[cell.local_id];
-//    else
-//    {
-//      new_particle.w = 0.0;
-//      new_particle.alive = false;
-//    }
-//
-//    new_particle.cur_cell_local_id  = cell.local_id;
-//    new_particle.cur_cell_global_id = cell.global_id;
-//  }//interior
-//  //################################################## SURFACE
-//  else
-//  {
-//    int cf = std::lower_bound(
-//      surface_cdf.begin(),
-//      surface_cdf.end(),
-//      rng->Rand()) - surface_cdf.begin();
-//
-//    auto& rcellface = r_abs_cellk_facef_surface_average[cf];
-//
-//    auto& cell = ref_solver->grid->local_cells[rcellface.cell_local_id];
-//    auto cell_pwl_view =
-//      ref_solver->pwl->MapFeViewL(rcellface.cell_local_id);
-//
-//    //==================================== Sample position
-//    int f=rcellface.ass_face;
-//    chi_mesh::Vector3 pos =
-//      GetRandomPositionOnCellSurface(*rng,
-//                                     cell_geometry_info[cell.local_id],
-//                                     f);
-//
-//    auto& face = cell.faces[f];
-//    auto& n = face.normal;
-//
-//    //======================================== Sample energy group
-//    int e_group = 0;
-//    new_particle.egrp = e_group;
-//
-//    new_particle.pos = pos;
-//
-//    //==================================== Sample direction
-//    chi_mesh::Vector3 omega = RandomCosineLawDirection(*rng,-1.0*n);
-//    new_particle.dir = omega;
-//
-//    //==================================== Populate shape values
-//    cell_pwl_view->ShapeValues(pos, shape_values);
-//
-//    //==================================== Get Residual
-//    double phi_P = GetResidualFFPhi(shape_values,
-//                                    cell_pwl_view->dofs,
-//                                    cell.local_id,
-//                                    e_group);
-//
-//    double phi_N = phi_P;
-//    if (not face.has_neighbor)
-//      phi_N = 0.0; //TODO: Specialize for bndries
-//
-//    double r = (1.0/FOUR_PI)*(phi_N - phi_P);
-//
-//    //======================================== Determine weight
-//    if (std::fabs(r) > 1.0e-14)
-//      new_particle.w = r / rcellface.average_rstar;
-//    else
-//    {
-//      new_particle.w = 0.0;
-//      new_particle.alive = false;
-//    }
-//
-//    new_particle.cur_cell_local_id  = cell.local_id;
-//    new_particle.cur_cell_global_id = cell.global_id;
-//
-//  }//surface
-//
-//
-//  return new_particle;
-//}
-
 //###################################################################
 /**Executes a source sampling for the residual source.*/
 mcpartra::Particle mcpartra::ResidualSourceA::
-CreateParticle(chi_math::RandomNumberGenerator& rng)
+  CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
-  const double FOUR_PI = 4.0*M_PI;
+  constexpr double FOUR_PI = 4.0*M_PI;
   mcpartra::Particle new_particle;
 
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
+  //======================================== Sample energy group
+  int e_group = 0;
+  new_particle.egrp = e_group;
+
   //======================================== Choose interior or surface
   bool sample_interior = false;
-  if (rng.Rand() < R_abs_localdomain_interior / (R_abs_localdomain_interior + R_abs_localdomain_surface))
-    sample_interior = true;
+  if (rng.Rand() < R_abs_localdomain_interior /
+          (R_abs_localdomain_interior + R_abs_localdomain_surface))
+  {sample_interior = true;}
 
   //################################################## INTERIOR
   if (sample_interior)
   {
     //======================================== Randomly Sample Cell
-    int cell_local_id = std::lower_bound(
-      domain_cdf.begin(),
-      domain_cdf.end(),
-      rng.Rand()) - domain_cdf.begin();
+    int64_t cell_local_id = std::lower_bound(domain_cdf.begin(),
+                                             domain_cdf.end(),
+                                             rng.Rand()) - domain_cdf.begin();
 
-    auto& cell = ref_solver.grid->local_cells[cell_local_id];
-    auto cell_pwl_view =
-      ref_solver.pwl->GetCellMappingFE(cell_local_id);
+    const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
+    const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
+    const auto&  cell_geom_info = cell_geometry_info[cell_local_id];
+    const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
-    //======================================== Sample energy group
-    int e_group = 0;
-    new_particle.egrp = e_group;
+    //====================================== Get material properties
+    MaterialData mat_data;
+    PopulateMaterialData(cell.material_id,e_group,mat_data);
 
-    //======================================== Get material properties
-    int  mat_id         = cell.material_id;
-    int  xs_prop_id     = ref_solver.matid_xs_map[mat_id];
-    int  src_prop_id    = ref_solver.matid_q_map[mat_id];
-    auto material = chi_physics_handler.material_stack[mat_id];
-    auto xs = std::static_pointer_cast<chi_physics::TransportCrossSections>(
-      material->properties[xs_prop_id]);
-
-    double siga = xs->sigma_a[e_group];
-    double Q    = 0.0;
-    if (src_prop_id >= 0)
-    {
-      auto prop = material->properties[src_prop_id];
-      auto q_prop =
-        std::static_pointer_cast<chi_physics::IsotropicMultiGrpSource>(prop);
-      Q = q_prop->source_value_g[e_group];
-    }
+    auto siga = mat_data.siga;
+    auto Q    = mat_data.Q;
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -231,33 +60,29 @@ CreateParticle(chi_math::RandomNumberGenerator& rng)
       new_particle.alive = true;
 
       //==================================== Sample position
-      chi_mesh::Vector3 pos =
-        GetRandomPositionInCell(rng, cell_geometry_info[cell.local_id]);
-
-      new_particle.pos = pos;
+      new_particle.pos = GetRandomPositionInCell(rng, cell_geom_info);
 
       //==================================== Sample direction
       chi_mesh::Vector3 omega = RandomDirection(rng);
       new_particle.dir = omega;
 
       //==================================== Populate shape values
-      cell_pwl_view->ShapeValues(pos, shape_values);
-      cell_pwl_view->GradShapeValues(pos,grad_shape_values);
+      cell_pwl_view->ShapeValues(new_particle.pos, shape_values);
+      cell_pwl_view->GradShapeValues(new_particle.pos, grad_shape_values);
 
       //==================================== Get Residual
       double phi = GetResidualFFPhi(shape_values,
-                                    cell_pwl_view->num_nodes,
-                                    cell.local_id,
+                                    cell_num_nodes,
+                                    cell_local_id,
                                     e_group);
       auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
-                                           cell_pwl_view->num_nodes,
-                                           cell.local_id,
+                                           cell_num_nodes,
+                                           cell_local_id,
                                            e_group);
 
-      double r = (1.0/FOUR_PI)*
-                 ( Q - siga*phi - omega.Dot(grad_phi) );
+      double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
 
-      double rrandom = rng.Rand()*r_cellk_interior_max[cell.local_id];
+      double rrandom = rng.Rand() * r_abs_cellk_interior_max[cell_local_id];
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
@@ -269,7 +94,7 @@ CreateParticle(chi_math::RandomNumberGenerator& rng)
         particle_rejected = true;
       }
 
-      new_particle.cur_cell_local_id  = cell.local_id;
+      new_particle.cur_cell_local_id  = cell_local_id;
       new_particle.cur_cell_global_id = cell.global_id;
     }//while particle rejected
   }//interior
@@ -277,16 +102,21 @@ CreateParticle(chi_math::RandomNumberGenerator& rng)
   else
   {
     //==================================== Randomly sample face
-    int cf = std::lower_bound(
-      surface_cdf.begin(),
-      surface_cdf.end(),
-      rng.Rand()) - surface_cdf.begin();
+    int64_t cf = std::lower_bound(surface_cdf.begin(),
+                                  surface_cdf.end(),
+                                  rng.Rand()) - surface_cdf.begin();
 
-    auto& rcellface = r_abs_cellk_facef_surface_average[cf];
+    const auto& rcellface = r_abs_cellk_facef_surface_average[cf];
 
-    auto& cell = ref_solver.grid->local_cells[rcellface.cell_local_id];
-    auto cell_pwl_view =
-      ref_solver.pwl->GetCellMappingFE(rcellface.cell_local_id);
+    const uint64_t cell_local_id  = rcellface.cell_local_id;
+    const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
+    const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
+    const auto&    cell_geom_info = cell_geometry_info[cell_local_id];
+    const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
+
+    const int   f    = rcellface.ass_face;
+    const auto& face = cell.faces[f];
+    const auto& n    = face.normal;
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -296,37 +126,24 @@ CreateParticle(chi_math::RandomNumberGenerator& rng)
       new_particle.alive = true;
 
       //==================================== Sample position
-      int f=rcellface.ass_face;
-      chi_mesh::Vector3 pos =
-        GetRandomPositionOnCellSurface(rng,
-                                       cell_geometry_info[cell.local_id],
-                                       f);
-
-      auto& face = cell.faces[f];
-      auto& n = face.normal;
-
-      //======================================== Sample energy group
-      int e_group = 0;
-      new_particle.egrp = e_group;
-
-      new_particle.pos = pos;
+      new_particle.pos = GetRandomPositionOnCellSurface(rng, cell_geom_info, f);
 
       //==================================== Sample direction
+
       chi_mesh::Vector3 omega = RandomCosineLawDirection(rng,-1.0*n);
       new_particle.dir = omega;
 
       //==================================== Populate shape values
-      cell_pwl_view->ShapeValues(pos, shape_values);
+      cell_pwl_view->ShapeValues(new_particle.pos, shape_values);
 
       //==================================== Get Residual
       double phi_P = GetResidualFFPhi(shape_values,
-                                      cell_pwl_view->num_nodes,
-                                      cell.local_id,
+                                      cell_num_nodes,
+                                      cell_local_id,
                                       e_group);
 
       double phi_N = phi_P;
-      if (not face.has_neighbor)
-        phi_N = 0.0; //TODO: Specialize for bndries
+      if (not face.has_neighbor) phi_N = 0.0; //TODO: Specialize for bndries
 
       double r = (1.0/FOUR_PI)*(phi_N - phi_P);
 
@@ -346,7 +163,6 @@ CreateParticle(chi_math::RandomNumberGenerator& rng)
       new_particle.cur_cell_global_id = cell.global_id;
     }//while particle rejected
   }//surface
-
 
   return new_particle;
 }

@@ -18,6 +18,7 @@
 
 #include "ChiPhysics/SolverBase/chi_solver.h"
 #include "ChiPhysics/PhysicsMaterial/transportxsections/material_property_transportxsections.h"
+#include "ChiPhysics/PhysicsMaterial/material_property_isotropic_mg_src.h"
 
 #include "ChiMath/SpatialDiscretization/FiniteVolume/fv.h"
 #include "ChiMath/SpatialDiscretization/FiniteElement/PiecewiseLinear/pwl.h"
@@ -49,7 +50,6 @@ public:
     DEFAULT_PWLTALLY      = 1 << 1, //0000 0010
     UNCOLLIDED_FVTALLY    = 1 << 2, //0000 0100
     UNCOLLIDED_PWLTALLY   = 1 << 3, //0000 1000
-    MAKE_DIRECT_PARTICLES = 1 << 4, //0001 0000
   };
 
   /**Maps a bit-wise tally identifier to an actual index.*/
@@ -67,9 +67,9 @@ private:
   chi_mesh::MeshContinuumPtr            grid = nullptr;
 
   // Materials related members
-  std::vector<int>                      matid_xs_map;
-  std::vector<int>                      matid_q_map;
   std::map<int, std::shared_ptr<chi_physics::TransportCrossSections>> matid_xs_map2;
+  std::vector<bool>                       matid_has_q_flags;
+  std::map<int, std::shared_ptr<chi_physics::IsotropicMultiGrpSource>> matid_q_map2;
   std::map<int, MultigroupScatteringCDFs> matid_scattering_cdfs;
 
   // Tally related members
@@ -80,19 +80,22 @@ private:
   std::vector<MultigroupTally>          grid_tally_blocks;
   std::vector<CustomVolumeTally>        custom_tallies;
 
-  // Ghost information
-  std::map<uint64_t, uint64_t>          cell_neighbor_nonlocal_local_id;
-
   // Variance reduction quantities
 public:
+  chi_math::UnknownManager              uk_man_fv_importance;
+  size_t                                importance_num_groups=0;
   std::vector<double>                   local_cell_importance_setting;
+  std::vector<chi_mesh::Vector3>        local_cell_importance_directions;
+  std::vector<std::pair<double,double>> local_cell_importance_exp_coeffs;
 private:
   std::vector<double>                   local_cell_importance;
 
   // Source information
 public:
   std::vector<SourceBase*>    sources;
+
 private:
+  double                                accumulated_src_importances = 0.0;
   double                                total_local_source_rate = 0.0;
   double                                total_globl_source_rate = 0.0;
   std::vector<double>                   local_source_cdf;
@@ -111,22 +114,13 @@ public:
 
 public:
   chi_math::RandomNumberGenerator       rng0;
-  std::shared_ptr<chi_mesh::RayTracer>  default_raytracer = nullptr;
-  std::vector<double>                   cell_sizes;
+  chi_mesh::RayTracer                   default_raytracer;
 
-//  //======================== RMC quantities
-//public:
-//  std::vector<double>                   cdf_phi_unc_group;
-//  std::vector<std::vector<double>>      cdf_phi_unc_group_cell;
-//  std::vector<std::vector<double>>      IntVk_phi_unc_g;
-//  double                                IntVSumG_phi_unc=0.0;
-//  std::vector<double>                   IntV_phi_unc_g;
 
   //========================= Runtime quantities
 private:
   std::vector<double>                   segment_lengths;
-  std::vector<double>                   N_f,N_i;
-  std::vector<chi_mesh::Vector3>        Grad;
+  std::vector<double>                   N_f, N_i;
   unsigned long long                    nps=0;
   unsigned long long                    nps_global=0;
 
@@ -162,6 +156,8 @@ public:
     double             tally_multipl_factor = 1.0;
     bool               make_pwld = false;
     bool               uncollided_only = false;
+    bool               importances_during_raytracing = false;
+    bool               apply_source_importance_sampling = false;
 
     bool               write_run_tape = false;
     std::string        run_tape_base_name;
@@ -180,12 +176,13 @@ public:
   void InitMomentIndices(); //01d
   void InitTallies(); //01e
   void InitFieldFunctions(); //01f
-  void InitGhostIDs(); //01g
   void InitSources(); //01h
   void InitParticleBatches(); //01i
 
   //02
   void Execute() override;
+  void DepleteSourceParticleBank();
+  void CommAndSimOutboundInboundParticles();
   //02a
   Particle SampleSources(chi_math::RandomNumberGenerator& rng);
   //02b
@@ -206,13 +203,15 @@ private:
   GetMaterialSigmas(const chi_physics::TransportCrossSections& xs,
                     unsigned int energy_group) ;
 
-  void ProcessImportanceChange(Particle& prtcl);
+  void ProcessImportanceChange(Particle& prtcl, double current_cell_importance);
 
   //05a
-  void ContributeTally(Particle& prtcl,
+  void ContributeTally(const chi_mesh::Cell& cell,
+                       const Particle& prtcl,
                        const chi_mesh::Vector3& pf);
 
-  double ContributeTallyUNC(const Particle& prtcl,
+  double ContributeTallyUNC(const chi_mesh::Cell& cell,
+                            const Particle& prtcl,
                             const chi_mesh::Vector3& pf,
                             double sig_t=0.0);
 

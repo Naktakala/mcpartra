@@ -1,12 +1,16 @@
 #include "raytracing.h"
 
-#include "ChiMesh/Cell/cell.h"
-#include "ChiMesh/Cell/cell_polygon.h"
 #include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
 
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
+const chi_mesh::MeshContinuum& chi_mesh::RayTracer::Grid() const
+{
+  if (reference_grid == nullptr)
+    throw std::logic_error("chi_mesh::RayTracer::reference_grid not set.");
+  return *reference_grid;
+}
 
 //###################################################################
 /**Parent raytracing routine.*/
@@ -16,6 +20,9 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
            Vector3 &omega_i,
            int function_depth/*=0*/)
 {
+  if (not cell_sizes.empty())
+    SetTolerancesFromCellSize(cell_sizes[cell.local_id]);
+
   RayTracerOutputInformation oi;
 
   bool intersection_found = false;
@@ -76,6 +83,8 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
       << " " << extension_distance
       << " in cell " << cell.global_id
       << " with vertices: \n";
+
+    const auto& grid = Grid();
 
     for (auto vi : cell.vertex_ids)
       outstr << grid.vertices[vi].PrintS() << "\n";

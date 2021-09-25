@@ -20,12 +20,6 @@ void mcpartra::SourceDrivenSolver::Initialize()
   //=================================== Obtain grid reference
   grid = chi_mesh::GetCurrentHandler()->GetGrid();
 
-  default_raytracer = std::make_shared<chi_mesh::RayTracer>(*grid,
-                                                            1.0e-8,
-                                                            1.0e-10,
-                                                            1.0e5,
-                                                            false);
-
   InitRaytracing();
   InitMaterials();
   InitMomentIndices();
@@ -51,7 +45,6 @@ void mcpartra::SourceDrivenSolver::Initialize()
   }
 
   InitFieldFunctions();
-  InitGhostIDs();
   InitCellImportances();
 
   {
