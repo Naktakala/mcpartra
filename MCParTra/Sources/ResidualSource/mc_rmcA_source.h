@@ -28,16 +28,6 @@ private:
 
   std::unique_ptr<std::vector<CellGeometryData>> cell_geometry_info;
 
-  /**Structure to store cell-face pairs.*/
-  struct RCellFace
-  {
-    uint64_t cell_local_id=0;
-    int ass_face=0;
-    double maximum_rstar_absolute=-1.0e32;
-    double Rstar_absolute=0.0;
-  };
-  std::vector<RCellFace> residual_info_cell_bndry_faces;
-
   /**Structure to store cell interior residual info.*/
   struct RCellInterior
   {
@@ -46,8 +36,19 @@ private:
     double maximum_rstar_absolute=-1.0e32;
     double Rstar_absolute=0.0;
   };
+  typedef std::vector<RCellInterior> VecRCellInterior;
+  std::vector<VecRCellInterior> residual_info_cell_interiors;
 
-  std::vector<RCellInterior> residual_info_cell_interiors;
+  /**Structure to store cell-face pairs.*/
+  struct RCellFace
+  {
+    uint64_t cell_local_id=0;
+    int ass_face=0;
+    double maximum_rstar_absolute=-1.0e32;
+    double Rstar_absolute=0.0;
+  };
+  typedef std::vector<RCellFace> VecRCellFace;
+  std::vector<VecRCellFace> residual_info_cell_bndry_faces;
 
 private: //CDFs
   std::vector<double> group_cdf;
@@ -56,13 +57,13 @@ private: //CDFs
   std::vector<std::vector<double>> group_element_cdf;
 
 private:
-  std::vector<double> R_abs_cellk_interior;
+  std::vector<double> R_abs_cellk_interior; //for field function
 
-  double R_abs_localdomain_interior = 0.0;
-  double R_abs_localdomain_surface = 0.0;
+  std::vector<double> R_abs_localdomain_interior; ///< Per group
+  std::vector<double> R_abs_localdomain_surface;  ///< Per group
 
-  std::vector<double> domain_cdf;
-  std::vector<double> surface_cdf;
+  std::vector<std::vector<double>> domain_cdf; ///< Per group
+  std::vector<std::vector<double>> surface_cdf; ///< Per group
 
 public:
   explicit

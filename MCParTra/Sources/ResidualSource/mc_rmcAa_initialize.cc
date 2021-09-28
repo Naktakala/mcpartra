@@ -48,7 +48,9 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
   //============================================= Initialize data vectors
   //                                              (for efficiency)
-  R_abs_cellk_interior.assign(num_local_cells, 0.0);
+  R_abs_cellk_interior.assign(num_local_cells * num_groups, 0.0);
+  residual_info_cell_interiors.resize(num_groups, VecRCellInterior(num_local_cells));
+  residual_info_cell_bndry_faces.resize(num_groups);
 
   //============================================= Sample each cell
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -58,7 +60,6 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
-  residual_info_cell_interiors.resize(num_local_cells);
   for (const auto& cell : grid->local_cells)
   {
     const uint64_t k = cell.local_id;
@@ -69,14 +70,12 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
     int group_g = 0;
 
-    //====================================== Get material properties
     MaterialData mat_data;
     PopulateMaterialData(cell.material_id,group_g,mat_data);
 
     auto siga = mat_data.siga;
     auto Q    = mat_data.Q;
 
-    //====================================== Determine absolute Residual Interior
     double cell_average_rstar_absolute=0.0;
     double cell_maximum_rstar_absolute=-1.0e-32;
     int num_points = 1000; //Number of points to sample
@@ -104,7 +103,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
     R_abs_cellk_interior[k] = cell_average_rstar_absolute * FOUR_PI * V;
 
-    RCellInterior& rcellinterior = residual_info_cell_interiors[cell.local_id];
+    RCellInterior& rcellinterior = residual_info_cell_interiors[group_g][cell.local_id];
     rcellinterior.cell_local_id          = cell.local_id;
     rcellinterior.average_rstar_absolute = cell_average_rstar_absolute;
     rcellinterior.maximum_rstar_absolute = cell_maximum_rstar_absolute;
@@ -119,7 +118,6 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
 
-    int group_g = 0;
 
     int f=-1;
     for (auto& face : cell.faces)
@@ -128,6 +126,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
       double A_f = cell_FV_view->face_area[f];
       auto&  n   = face.normal;
 
+      int group_g = 0;
 
       double face_average_rstar_absolute=0.0;
       double face_maximum_rstar_absolute = -1.0e32;
@@ -159,74 +158,94 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
       rcellface.maximum_rstar_absolute = face_maximum_rstar_absolute;
       rcellface.Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
 
-      residual_info_cell_bndry_faces.push_back(rcellface);
+      residual_info_cell_bndry_faces[group_g].push_back(rcellface);
     }//for face
   }//for cell
+  chi_log.Log(LOG_0) << "Preparing CDFs.";
 
   //============================================= Integrate sources locally
-  R_abs_localdomain_interior = 0.0;
-  for (const auto& cell_r_info : residual_info_cell_interiors)
-    R_abs_localdomain_interior += cell_r_info.Rstar_absolute;
+  R_abs_localdomain_interior.assign(num_groups, 0.0);
+  R_abs_localdomain_surface.assign(num_groups, 0.0);
+  for (size_t g=0; g < num_groups; ++g)
+  {
+    R_abs_localdomain_interior[g] = 0.0;
+    for (const auto& cell_r_info : residual_info_cell_interiors[g])
+      R_abs_localdomain_interior[g] += cell_r_info.Rstar_absolute;
 
-  chi_log.Log(LOG_ALL) << "Total local interior source: "
-                       << R_abs_localdomain_interior;
+    chi_log.Log(LOG_ALL) << "Total local interior source: group " << g << " "
+                         << R_abs_localdomain_interior[g];
 
-  R_abs_localdomain_surface = 0.0;
-  for (auto& rcellface : residual_info_cell_bndry_faces)
-    R_abs_localdomain_surface += rcellface.Rstar_absolute;
 
-  chi_log.Log(LOG_ALL) << "Total local surface source: "
-                       << R_abs_localdomain_surface;
+    R_abs_localdomain_surface[g] = 0.0;
+    for (auto& rcellface : residual_info_cell_bndry_faces[g])
+      R_abs_localdomain_surface[g] += rcellface.Rstar_absolute;
+
+    chi_log.Log(LOG_ALL) << "Total local surface source: group " << g << " "
+                         << R_abs_localdomain_surface[g];
+  }//for g
 
   //============================================= Integrate residual sources
   //                                              globally
-  double R_abs_globaldomain_interior;
-  MPI_Allreduce(&R_abs_localdomain_interior,
-                &R_abs_globaldomain_interior,
-                1,
-                MPI_DOUBLE,
-                MPI_SUM,
-                MPI_COMM_WORLD);
+  std::vector<double> R_abs_globaldomain_interior(num_groups, 0.0);
+  std::vector<double> R_abs_globaldomain_surface(num_groups, 0.0);
 
-  double R_abs_globaldomain_surface;
-  MPI_Allreduce(&R_abs_localdomain_surface,
-                &R_abs_globaldomain_surface,
-                1,
-                MPI_DOUBLE,
-                MPI_SUM,
-                MPI_COMM_WORLD);
+  double sumG_R_abs_localdomain = 0.0;
+  double sumG_R_abs_globaldomain = 0.0;
 
-  chi_log.Log(LOG_0) << "Total interior source: " << R_abs_globaldomain_interior;
-  chi_log.Log(LOG_0) << "Total surface source: " << R_abs_globaldomain_surface;
+  for (size_t g=0; g < num_groups; ++g)
+  {
+    MPI_Allreduce(&R_abs_localdomain_interior[g],
+                  &R_abs_globaldomain_interior[g],
+                  1,
+                  MPI_DOUBLE,
+                  MPI_SUM,
+                  MPI_COMM_WORLD);
+
+    MPI_Allreduce(&R_abs_localdomain_surface[g],
+                  &R_abs_globaldomain_surface[g],
+                  1,
+                  MPI_DOUBLE,
+                  MPI_SUM,
+                  MPI_COMM_WORLD);
+
+    chi_log.Log(LOG_0) << "Total interior source: " << R_abs_globaldomain_interior[g];
+    chi_log.Log(LOG_0) << "Total surface source: " << R_abs_globaldomain_surface[g];
+
+    sumG_R_abs_localdomain += R_abs_localdomain_interior[g];
+    sumG_R_abs_globaldomain += R_abs_globaldomain_interior[g];
+  }//for g
+
+//  SetSourceRates(R_abs_localdomain_interior + R_abs_localdomain_surface,
+//                 R_abs_globaldomain_interior + R_abs_globaldomain_surface);
+  SetSourceRates(sumG_R_abs_localdomain, sumG_R_abs_globaldomain);
 
   //============================================= Compute interior local cdf
+  domain_cdf.resize(num_groups);
+  for (size_t g=0; g < num_groups; ++g)
   {
-    domain_cdf.clear();
-    domain_cdf.resize(num_local_cells, 0.0);
+    domain_cdf[g].assign(num_local_cells, 0.0);
     double running_total = 0.0;
     for (uint64_t c = 0; c < num_local_cells; ++c)
     {
-      running_total += R_abs_cellk_interior[c];
-      domain_cdf[c] = running_total / R_abs_localdomain_interior;
+      running_total += residual_info_cell_interiors[g][c].Rstar_absolute;
+      domain_cdf[g][c] = running_total / R_abs_localdomain_interior[g];
     }
-  }
+  }// for g
 
   //============================================= Compute surface local cdf
+  surface_cdf.resize(num_groups);
+  for (size_t g=0; g < num_groups; ++g)
   {
-    surface_cdf.clear();
-    surface_cdf.resize(residual_info_cell_bndry_faces.size(), 0.0);
+    surface_cdf[g].resize(residual_info_cell_bndry_faces[g].size(), 0.0);
     double running_total = 0.0;
-    for (size_t cf = 0; cf < residual_info_cell_bndry_faces.size(); ++cf)
+    for (size_t cf = 0; cf < residual_info_cell_bndry_faces[g].size(); ++cf)
     {
-      auto& rcellface = residual_info_cell_bndry_faces[cf];
+      auto& rcellface = residual_info_cell_bndry_faces[g][cf];
       running_total += rcellface.Rstar_absolute;
-      surface_cdf[cf] = running_total / R_abs_localdomain_surface;
+      surface_cdf[g][cf] = running_total / R_abs_localdomain_surface[g];
     }
-  }
+  }//for g
   chi_log.Log(LOG_0) << "Done initializing Residual Sources";
-
-  SetSourceRates(R_abs_localdomain_interior + R_abs_localdomain_surface,
-                 R_abs_globaldomain_interior + R_abs_globaldomain_surface);
 
   //============================================= Export interior source
   //                                              as FieldFunction

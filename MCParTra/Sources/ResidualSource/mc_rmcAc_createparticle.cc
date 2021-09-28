@@ -23,32 +23,32 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
   //======================================== Sample energy group
-  int e_group = 0;
-  new_particle.egrp = e_group;
+  int g = 0;
+  new_particle.egrp = g;
 
   //======================================== Choose interior or surface
   bool sample_interior = false;
-  if (rng.Rand() < R_abs_localdomain_interior /
-          (R_abs_localdomain_interior + R_abs_localdomain_surface))
+  if (rng.Rand() < R_abs_localdomain_interior[g] /
+          (R_abs_localdomain_interior[g] + R_abs_localdomain_surface[g]))
   {sample_interior = true;}
 
   //################################################## INTERIOR
   if (sample_interior)
   {
     //======================================== Randomly Sample Cell
-    int64_t cell_local_id = std::lower_bound(domain_cdf.begin(),
-                                             domain_cdf.end(),
-                                             rng.Rand()) - domain_cdf.begin();
+    int64_t cell_local_id = std::lower_bound(domain_cdf[g].begin(),
+                                             domain_cdf[g].end(),
+                                             rng.Rand()) - domain_cdf[g].begin();
 
     const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
     const auto&  cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
-    const auto&  cell_r_info    = residual_info_cell_interiors[cell_local_id];
+    const auto&  cell_r_info    = residual_info_cell_interiors[g][cell_local_id];
 
     //====================================== Get material properties
     MaterialData mat_data;
-    PopulateMaterialData(cell.material_id,e_group,mat_data);
+    PopulateMaterialData(cell.material_id, g, mat_data);
 
     auto siga = mat_data.siga;
     auto Q    = mat_data.Q;
@@ -75,15 +75,13 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       double phi = GetResidualFFPhi(shape_values,
                                     cell_num_nodes,
                                     cell_local_id,
-                                    e_group);
+                                    g);
       auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
                                            cell_num_nodes,
                                            cell_local_id,
-                                           e_group);
+                                           g);
 
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
-
-//      double rrandom = rng.Rand() * r_abs_cellk_interior_max[cell_local_id];
 
       double rrandom = rng.Rand() * cell_r_info.maximum_rstar_absolute;
 
@@ -105,11 +103,11 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   else
   {
     //==================================== Randomly sample face
-    int64_t cf = std::lower_bound(surface_cdf.begin(),
-                                  surface_cdf.end(),
-                                  rng.Rand()) - surface_cdf.begin();
+    int64_t cf = std::lower_bound(surface_cdf[g].begin(),
+                                  surface_cdf[g].end(),
+                                  rng.Rand()) - surface_cdf[g].begin();
 
-    const auto& rcellface = residual_info_cell_bndry_faces[cf];
+    const auto& rcellface = residual_info_cell_bndry_faces[g][cf];
 
     const uint64_t cell_local_id  = rcellface.cell_local_id;
     const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
@@ -143,7 +141,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       double phi_P = GetResidualFFPhi(shape_values,
                                       cell_num_nodes,
                                       cell_local_id,
-                                      e_group);
+                                      g);
 
       double phi_N = phi_P;
       if (not face.has_neighbor) phi_N = 0.0; //TODO: Specialize for bndries
