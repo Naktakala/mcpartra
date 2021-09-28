@@ -7,6 +7,8 @@
 #include "Utils/CustomVolumeTally/customvolumetally.h"
 #include "Raytracing/raytracing.h"
 #include "Sources/mc_base_source.h"
+#include "Sources/mc_volume_src_element.h"
+#include "Sources/mc_surface_src_element.h"
 #include "MGScatteringCDFs/mg_scattering_cdfs.h"
 
 #include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
@@ -92,7 +94,8 @@ private:
 
   // Source information
 public:
-  std::vector<SourceBase*>    sources;
+  std::vector<CellGeometryData>         cell_geometry_info;
+  std::vector<SourceBase*>              sources;
 
 private:
   double                                accumulated_src_importances = 0.0;
@@ -176,6 +179,7 @@ public:
   void InitMomentIndices(); //01d
   void InitTallies(); //01e
   void InitFieldFunctions(); //01f
+  void InitCellGeometryData();
   void InitSources(); //01h
   void InitParticleBatches(); //01i
 

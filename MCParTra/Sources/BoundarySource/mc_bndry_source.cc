@@ -31,7 +31,8 @@ void mcpartra::BoundarySource::
   Initialize(chi_mesh::MeshContinuumPtr&    ref_grid,
              std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
              size_t ref_num_groups,
-             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map)
+             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
+             const std::vector<CellGeometryData>& ref_cell_geometry_info)
 {
   chi_log.Log(LOG_0) << "Initializing Boundary Source";
 

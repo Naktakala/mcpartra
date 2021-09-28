@@ -28,7 +28,8 @@ public:
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
                   std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
                   size_t ref_num_groups,
-                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map) override;
+                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
+                  const std::vector<CellGeometryData>& ref_cell_geometry_info) override;
 
   mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng) override;

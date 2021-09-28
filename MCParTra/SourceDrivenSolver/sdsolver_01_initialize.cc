@@ -66,6 +66,7 @@ void mcpartra::SourceDrivenSolver::Initialize()
                        << program_memory << "Mb\n";
   }
 
+  InitCellGeometryData();
   InitSources();
 
   {

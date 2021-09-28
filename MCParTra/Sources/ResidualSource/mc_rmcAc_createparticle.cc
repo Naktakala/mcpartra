@@ -42,8 +42,9 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
     const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
-    const auto&  cell_geom_info = cell_geometry_info[cell_local_id];
+    const auto&  cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
+    const auto&  cell_r_info    = residual_info_cell_interiors[cell_local_id];
 
     //====================================== Get material properties
     MaterialData mat_data;
@@ -63,7 +64,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       new_particle.pos = GetRandomPositionInCell(rng, cell_geom_info);
 
       //==================================== Sample direction
-      chi_mesh::Vector3 omega = RandomDirection(rng);
+      chi_mesh::Vector3 omega = SampleRandomDirection(rng);
       new_particle.dir = omega;
 
       //==================================== Populate shape values
@@ -106,12 +107,12 @@ mcpartra::Particle mcpartra::ResidualSourceA::
                                   surface_cdf.end(),
                                   rng.Rand()) - surface_cdf.begin();
 
-    const auto& rcellface = r_abs_cellk_facef_surface_average[cf];
+    const auto& rcellface = residual_info_cell_bndry_faces[cf];
 
     const uint64_t cell_local_id  = rcellface.cell_local_id;
     const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
-    const auto&    cell_geom_info = cell_geometry_info[cell_local_id];
+    const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
     const int   f    = rcellface.ass_face;
@@ -126,7 +127,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       new_particle.alive = true;
 
       //==================================== Sample position
-      new_particle.pos = GetRandomPositionOnCellSurface(rng, cell_geom_info, f);
+      new_particle.pos = GetRandomPositionOnCellFace(rng, cell_geom_info, f);
 
       //==================================== Sample direction
 
@@ -147,7 +148,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       double r = (1.0/FOUR_PI)*(phi_N - phi_P);
 
-      double rrandom = rng.Rand()*rcellface.maximum;
+      double rrandom = rng.Rand()*rcellface.maximum_rstar_absolute;
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))

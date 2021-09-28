@@ -30,7 +30,7 @@ public:
                       const chi_mesh::Vector3& in_ref_point,
                       std::vector<chi_mesh::Vector3> in_geom_legs);
 
-  chi_mesh::Vector3 SampleRandomPosition(chi_math::RandomNumberGenerator& rng);
+  chi_mesh::Vector3 SampleRandomPosition(chi_math::RandomNumberGenerator& rng) const;
 
   double Volume() const {return volume;}
   uint64_t ParentCellLocalID() const {return parent_cell_local_id;}
@@ -41,8 +41,8 @@ public:
 //###################################################################
 /**Make a list of VolumeSourceElement-type elements for a given cell.*/
 std::vector<VolumeSourceElement>
-  GetCellVolumeSourceElements(chi_mesh::Cell& cell,
-                              chi_mesh::MeshContinuumPtr& grid);
+  GetCellVolumeSourceElements(const chi_mesh::Cell& cell,
+                              const chi_mesh::MeshContinuumPtr& grid);
 
 }//namespace mcpartra
 

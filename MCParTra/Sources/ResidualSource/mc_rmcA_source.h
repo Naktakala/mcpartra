@@ -1,7 +1,9 @@
 #ifndef MCPARTRA_RMC_SOURCE_A_H
 #define MCPARTRA_RMC_SOURCE_A_H
 
-#include "../mc_base_source.h"
+#include "Sources/mc_base_source.h"
+#include "Sources/mc_volume_src_element.h"
+#include "Sources/mc_surface_src_element.h"
 
 #include <ChiPhysics/chi_physics.h>
 
@@ -14,44 +16,44 @@ class mcpartra::ResidualSourceA : public mcpartra::SourceBase
 public:
   std::shared_ptr<chi_physics::FieldFunction> resid_ff;
 private:
+  typedef std::pair<double, VolumeSourceElement&> ElementSrc;
+  typedef std::vector<ElementSrc> GrpSrc;
+
   /**Simplified material structure that can be passed around.*/
   struct MaterialData
   {
     double siga=0.0;
     double Q=0.0;
   };
-  /**Structure to hold a cell's constitute primitive info.
-   * - For a slab this is just a duality to get points on each face.
-   * - For a polygon this is the constituent triangles.
-   * - For a polyhedron this is the constituent tetrahedrons.*/
-  struct CellSideGeometryData
-  {
-    double volume=0.0;
-    double area=0.0;
-    int    associated_face=-1;
-    chi_mesh::Vector3 ref_point;
-    std::vector<chi_mesh::Vector3> legs;
-  };
-  /**Structure to hold all of the constituents.*/
-  struct CellGeometryData
-  {
-    double total_volume=0.0;
-    double total_area=0.0;
-    std::vector<CellSideGeometryData> sides;
-  };
-  std::vector<CellGeometryData> cell_geometry_info;
+
+  std::unique_ptr<std::vector<CellGeometryData>> cell_geometry_info;
 
   /**Structure to store cell-face pairs.*/
   struct RCellFace
   {
     uint64_t cell_local_id=0;
-    int ass_face=-1;
-    double average_rstar=0.0;
-    double maximum=-1.0e32;
-    double minimum= 1.0e32;
-    double area=0.0;
+    int ass_face=0;
+    double maximum_rstar_absolute=-1.0e32;
+    double Rstar_absolute=0.0;
   };
-  std::vector<RCellFace> r_abs_cellk_facef_surface_average;
+  std::vector<RCellFace> residual_info_cell_bndry_faces;
+
+  /**Structure to store cell interior residual info.*/
+  struct RCellInterior
+  {
+    uint64_t cell_local_id=0;
+    double average_rstar_absolute=0.0;
+    double maximum_rstar_absolute=-1.0e32;
+    double Rstar_absolute=0.0;
+  };
+
+  std::vector<RCellInterior> residual_info_cell_interiors;
+
+private: //CDFs
+  std::vector<double> group_cdf;
+
+  std::vector<GrpSrc> group_sources;
+  std::vector<std::vector<double>> group_element_cdf;
 
 public:
   std::vector<double> r_abs_cellk_interior_average;
@@ -83,24 +85,12 @@ public:
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
                   std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
                   size_t ref_num_groups,
-                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map) override;
+                  const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
+                  const std::vector<CellGeometryData>& ref_cell_geometry_info) override;
 
   //b
-  void BuildCellVolInfo(const chi_mesh::MeshContinuumPtr&  ref_grid,
-                        const std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm);
-
   void PopulateMaterialData(int mat_id, int group_g,
                             MaterialData& mat_data);
-
-  static chi_mesh::Vector3 GetRandomPositionInCell(
-    chi_math::RandomNumberGenerator& rng,
-    const CellGeometryData& cell_info);
-
-  static chi_mesh::Vector3 GetRandomPositionOnCellSurface(
-    chi_math::RandomNumberGenerator& rng,
-    const CellGeometryData& cell_info,
-    const int face_mask=-1,
-    int* face_sampled= nullptr);
 
   double GetResidualFFPhi(std::vector<double> &N_in,
                           size_t dofs,
@@ -112,13 +102,6 @@ public:
                           size_t dofs,
                           uint64_t cell_local_id,
                           int egrp);
-
-  static chi_mesh::Vector3 RandomDirection(
-    chi_math::RandomNumberGenerator& rng);
-
-  static chi_mesh::Vector3 RandomCosineLawDirection(
-    chi_math::RandomNumberGenerator& rng,
-    const chi_mesh::Vector3& normal);
 
   //c
   mcpartra::Particle

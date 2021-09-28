@@ -18,7 +18,6 @@ namespace mcpartra
   class BoundarySource;
   class MaterialSource;
   class ResidualSourceA;
-  class ResidualSourceB;
 
   class SourceDrivenSolver;
 
@@ -30,16 +29,40 @@ namespace mcpartra
     UNCOLLIDED = 1
   };
 
-  struct TallyMethod
+  class VolumeSourceElement;
+  class SurfaceSourceElement;
+
+  /**Structure to hold all of the constituents of non-curvilinear cells.*/
+  struct CellGeometryData
   {
-    static const int STANDARD     = 0;
-    static const int RMC_CHAR_RAY = 1;
+    double total_volume=0.0;
+    std::vector<VolumeSourceElement> volume_elements;
+    std::vector<double> volume_elements_cdf;
+
+    double total_area=0.0;
+    std::vector<double> faces_total_area;
+    std::vector<double> faces_cdf;
+
+    std::vector<std::vector<SurfaceSourceElement>> faces_surface_elements;
+    std::vector<std::vector<double>> faces_surface_elements_cdf;
   };
 
   //mc_utils_01
   chi_mesh::Vector3 SampleRandomDirection(chi_math::RandomNumberGenerator& rng);
+  chi_mesh::Vector3 RandomCosineLawDirection(chi_math::RandomNumberGenerator& rng,
+                                             const chi_mesh::Vector3& normal);
   std::pair<double,double> OmegaToPhiThetaSafe(const chi_mesh::Vector3& omega);
   size_t SampleCDF(const std::vector<double>& cdf, chi_math::RandomNumberGenerator& rng);
+
+  chi_mesh::Vector3 GetRandomPositionInCell(chi_math::RandomNumberGenerator& rng,
+                                            const CellGeometryData& cell_info);
+
+  chi_mesh::Vector3 GetRandomPositionOnCellFace(
+    chi_math::RandomNumberGenerator& rng,
+    const CellGeometryData& cell_info,
+    size_t face_index,
+    int* face_sampled = nullptr,
+    bool random_face = false);
 
   //mc_utils_02
   typedef std::vector<std::vector<double>> MatDbl;

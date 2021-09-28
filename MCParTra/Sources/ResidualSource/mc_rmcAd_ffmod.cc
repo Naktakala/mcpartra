@@ -9,52 +9,7 @@ extern ChiLog& chi_log;
 
 void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
 {
-//  size_t num_verts = resid_ff->grid->vertices.size();
-//
-//  //======================================== Contribute averages
-//  std::vector<double> vertex_totals(num_verts,0.0);
-//  std::vector<int>    vertex_count(num_verts,0);
-//  for (auto& cell : resid_ff->grid->local_cells)
-//  {
-//    int rmap = (*resid_ff->local_cell_dof_array_address)[cell.local_id];
-//    for (int dof=0; dof<cell.vertex_ids.size(); ++dof)
-//    {
-//      int egrp = 0;
-//      int ir = rmap +
-//               dof * resid_ff->num_components * resid_ff->num_sets +
-//               resid_ff->num_components * 0 +
-//               egrp;
-//      double phi = (*resid_ff->field_vector_local)[ir];
-//
-//      vertex_totals[cell.vertex_ids[dof]] += phi;
-//      vertex_count[cell.vertex_ids[dof]] += 1;
-//    }//for v
-//  }//for c
-//
-//  //======================================== Compute average
-//  for (int v=0; v<num_verts; ++v)
-//    vertex_totals[v] /= std::max(1,vertex_count[v]);
-//
-//  //======================================== Reassign field function
-//  for (auto& cell : resid_ff->grid->local_cells)
-//  {
-//    int rmap = (*resid_ff->local_cell_dof_array_address)[cell.local_id];
-//    for (int dof=0; dof<cell.vertex_ids.size(); ++dof)
-//    {
-//      int egrp = 0;
-//      int ir = rmap +
-//               dof * resid_ff->num_components * resid_ff->num_sets +
-//               resid_ff->num_components * 0 +
-//               egrp;
-//      double phi = vertex_totals[cell.vertex_ids[dof]];
-//
-//      (*resid_ff->field_vector_local)[ir] = phi;
-//    }//for v
-//  }//for c
-
-
-
-
+  typedef SpatialDiscretization_PWLD PWLD;
   //======================================== Check correct ff type
   if (resid_ff->spatial_discretization->type !=
       chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
@@ -66,7 +21,7 @@ void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
   }
 
   auto pwl    =
-    std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(resid_ff->spatial_discretization);
+    std::dynamic_pointer_cast<PWLD>(resid_ff->spatial_discretization);
   auto uk_man = resid_ff->unknown_manager;
 
   auto pwl_cfem = SpatialDiscretization_PWLC::New(grid,
@@ -75,8 +30,10 @@ void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
   auto cfem_num_local_dofs = pwl_cfem->GetNumLocalDOFs(uk_man);
   auto cfem_num_globl_dofs = pwl_cfem->GetNumGlobalDOFs(uk_man);
 
-  Vec x = chi_math::PETScUtils::CreateVector(static_cast<int64_t>(cfem_num_local_dofs),
-                                             static_cast<int64_t>(cfem_num_globl_dofs));
+  Vec x = chi_math::PETScUtils::CreateVector(
+    static_cast<int64_t>(cfem_num_local_dofs),
+    static_cast<int64_t>(cfem_num_globl_dofs));
+
   VecSet(x,0.0);
   Vec x_count;
   VecDuplicate(x,&x_count);

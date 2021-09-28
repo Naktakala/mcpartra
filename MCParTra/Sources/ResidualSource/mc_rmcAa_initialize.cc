@@ -21,7 +21,8 @@ void mcpartra::ResidualSourceA::
 Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
            std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
            size_t ref_num_groups,
-           const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map)
+           const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
+           const std::vector<CellGeometryData>& ref_cell_geometry_info)
 {
   chi_log.Log(LOG_0) << "Initializing Residual3 Sources";
 
@@ -30,15 +31,16 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   num_groups = ref_num_groups;
   m_to_ell_em_map = ref_m_to_ell_em_map;
 
-  const double FOUR_PI   = 4.0*M_PI;
+  cell_geometry_info =
+    std::make_unique<std::vector<CellGeometryData>>(ref_cell_geometry_info);
+  auto& cell_geom_info = *cell_geometry_info;
+
   auto& rng              = ref_solver.rng0;
-  size_t num_local_cells = grid->local_cells.size();
   auto& pwl              = ref_solver.pwl;
   auto& fv               = fv_sdm;
 
-  //============================================= Build cell composition data
-  //This info is basically constituent side triangles/tetrahedrons
-  BuildCellVolInfo(ref_grid,ref_fv_sdm);
+  const double FOUR_PI   = 4.0*M_PI;
+  const size_t num_local_cells = grid->local_cells.size();
 
   //============================================= Transform tilde_phi to
   //                                              tilde_phi_star
@@ -47,16 +49,14 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   //============================================= Initialize data vectors
   //                                              (for efficiency)
   r_abs_cellk_interior_average.      clear();
-  r_abs_cellk_interior_max.              clear();
+  r_abs_cellk_interior_max.          clear();
   r_cellk_interior_min.              clear();
   R_abs_cellk_interior.              clear();
-//  R_abs_cellk_surface.               clear();
 
   r_abs_cellk_interior_average.      resize(num_local_cells, 0.0);
-  r_abs_cellk_interior_max.              resize(num_local_cells, -1.0e32);
+  r_abs_cellk_interior_max.          resize(num_local_cells, -1.0e32);
   r_cellk_interior_min.              resize(num_local_cells,  1.0e32);
   R_abs_cellk_interior.              resize(num_local_cells, 0.0);
-//  R_abs_cellk_surface.               resize(num_local_cells, 0.0);
 
   //============================================= Sample each cell
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -67,12 +67,13 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
 
-  for (auto& cell : ref_solver.grid->local_cells)
+  for (const auto& cell : grid->local_cells)
   {
-    const int k = cell.local_id;
+    const uint64_t k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
     size_t num_nodes = pwl->GetCellNumNodes(cell);
+    const double V = cell_FV_view->volume;
 
     int group_g = 0;
 
@@ -85,10 +86,13 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
     //====================================== Determine absolute Residual Interior
     int N_p = 1000; //Number of points to sample
+    double cell_average_rstar_absolute=0.0;
+    double cell_maximum_rstar_absolute=-1.0e-32;
+    double cell_Rstar_absolute=0.0;
     for (int i=0; i < N_p; ++i)
     {
-      auto x_i   = GetRandomPositionInCell(rng, cell_geometry_info[k]);
-      auto omega = RandomDirection(rng);
+      auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
+      auto omega = SampleRandomDirection(rng);
 
       cell_pwl_view->ShapeValues(x_i, shape_values);
       cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
@@ -104,11 +108,24 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
       r_abs_cellk_interior_average[k] += std::fabs(r);
       r_abs_cellk_interior_max[k] = std::fmax(r_abs_cellk_interior_max[k], std::fabs(r));
       r_cellk_interior_min[k] = std::fmin(r_cellk_interior_min[k], r);
+
+      cell_average_rstar_absolute += std::fabs(r);
+      cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute, std::fabs(r));
     }//for i
     r_abs_cellk_interior_average[k]  /= N_p;
+    cell_average_rstar_absolute /= N_p;
 
-    R_abs_cellk_interior[k] = FOUR_PI * cell_FV_view->volume *
+    R_abs_cellk_interior[k] = FOUR_PI * V *
                               r_abs_cellk_interior_average[k];
+
+    cell_Rstar_absolute = cell_average_rstar_absolute * FOUR_PI * V;
+
+    RCellInterior rcellinterior;
+    rcellinterior.cell_local_id          = cell.local_id;
+    rcellinterior.average_rstar_absolute = cell_average_rstar_absolute;
+    rcellinterior.maximum_rstar_absolute = cell_maximum_rstar_absolute;
+    rcellinterior.Rstar_absolute         = cell_Rstar_absolute;
+    residual_info_cell_interiors.push_back(rcellinterior);
 
     domain_volume     += cell_FV_view->volume;
 
@@ -120,7 +137,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
   //============================================= Sample surfaces
   chi_log.Log(LOG_0) << "Integrating surface source.";
-  for (auto& cell : ref_solver.grid->local_cells)
+  for (auto& cell : grid->local_cells)
   {
     const uint64_t k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
@@ -136,13 +153,12 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
       auto&  n   = face.normal;
 
 
-      double face_ave_surface_pstar=0.0;
+      double face_average_rstar_absolute=0.0;
       int num_points = (face.has_neighbor)? 0 : 1000;
-      double face_max_r = -1.0e32;
-      double face_min_r = 1.0e32;
+      double face_maximum_rstar_absolute = -1.0e32;
       for (int i=0; i<num_points; ++i)
       {
-        auto x_i = GetRandomPositionOnCellSurface(rng, cell_geometry_info[k], f);
+        auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
 
         cell_pwl_view->ShapeValues(x_i, shape_values);
 
@@ -155,22 +171,19 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
         double r = (1.0/FOUR_PI)*(phi_N - phi);
 
         //==================================== Contribute to avg
-        face_ave_surface_pstar += std::fabs(r);
-        face_max_r = std::fmax(face_max_r,std::fabs(r));
-        face_min_r = std::fmin(face_min_r,r);
+        face_average_rstar_absolute += std::fabs(r);
+        face_maximum_rstar_absolute  = std::fmax(face_maximum_rstar_absolute, std::fabs(r));
 
       }//for i
-      face_ave_surface_pstar /= std::max(1,num_points);
+      face_average_rstar_absolute /= std::max(1, num_points);
 
       RCellFace rcellface;
-      rcellface.cell_local_id = cell.local_id;
-      rcellface.ass_face      = f;
-      rcellface.average_rstar = face_ave_surface_pstar;
-      rcellface.maximum       = face_max_r;
-      rcellface.minimum       = face_min_r;
-      rcellface.area          = A_f;
+      rcellface.cell_local_id          = cell.local_id;
+      rcellface.ass_face               = f;
+      rcellface.maximum_rstar_absolute = face_maximum_rstar_absolute;
+      rcellface.Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
 
-      r_abs_cellk_facef_surface_average.push_back(rcellface);
+      residual_info_cell_bndry_faces.push_back(rcellface);
     }//for face
   }//for cell
 
@@ -182,8 +195,8 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   chi_log.Log(LOG_ALL) << "Total local interior source: " << R_abs_localdomain_interior;
 
   R_abs_localdomain_surface = 0.0;
-  for (auto& rcellface : r_abs_cellk_facef_surface_average)
-    R_abs_localdomain_surface += rcellface.average_rstar * rcellface.area * M_PI;
+  for (auto& rcellface : residual_info_cell_bndry_faces)
+    R_abs_localdomain_surface += rcellface.Rstar_absolute;
 
   chi_log.Log(LOG_ALL) << "Total local surface source: " << R_abs_localdomain_surface;
 
@@ -221,12 +234,12 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   //============================================= Compute surface local cdf
   {
     surface_cdf.clear();
-    surface_cdf.resize(r_abs_cellk_facef_surface_average.size(), 0.0);
+    surface_cdf.resize(residual_info_cell_bndry_faces.size(), 0.0);
     double running_total = 0.0;
-    for (size_t cf = 0; cf < r_abs_cellk_facef_surface_average.size(); ++cf)
+    for (size_t cf = 0; cf < residual_info_cell_bndry_faces.size(); ++cf)
     {
-      auto& rcellface = r_abs_cellk_facef_surface_average[cf];
-      running_total += rcellface.average_rstar*rcellface.area*M_PI;
+      auto& rcellface = residual_info_cell_bndry_faces[cf];
+      running_total += rcellface.Rstar_absolute;
       surface_cdf[cf] = running_total / R_abs_localdomain_surface;
     }
   }

@@ -52,7 +52,7 @@ mcpartra::VolumeSourceElement::
 //###################################################################
 /**Sample a random position within an elment.*/
 chi_mesh::Vector3 mcpartra::VolumeSourceElement::
-  SampleRandomPosition(chi_math::RandomNumberGenerator& rng)
+  SampleRandomPosition(chi_math::RandomNumberGenerator& rng) const
 {
   if (geom_legs.size() == 1) //Line
   {
@@ -87,8 +87,8 @@ chi_mesh::Vector3 mcpartra::VolumeSourceElement::
 //###################################################################
 /**Makes VolumeSourceElements for a given cell.*/
 std::vector<mcpartra::VolumeSourceElement> mcpartra::
-  GetCellVolumeSourceElements(chi_mesh::Cell &cell,
-                              chi_mesh::MeshContinuumPtr& grid)
+  GetCellVolumeSourceElements(const chi_mesh::Cell &cell,
+                              const chi_mesh::MeshContinuumPtr& grid)
 {
   std::vector<VolumeSourceElement> elements;
 
@@ -124,9 +124,9 @@ std::vector<mcpartra::VolumeSourceElement> mcpartra::
     for (auto& face : cell.faces)
     {
       size_t num_face_verts = face.vertex_ids.size();
-      for (int fv=0; fv<num_face_verts; ++fv)
+      for (size_t fv=0; fv<num_face_verts; ++fv)
       {
-        int fvp1 = (fv<(num_face_verts-1))? fv+1 : 0;
+        size_t fvp1 = (fv<(num_face_verts-1))? fv+1 : 0;
         const auto& v0 = grid->vertices[face.vertex_ids[fv]];
         const auto& v1 = grid->vertices[face.vertex_ids[fvp1]];
         const auto& v2 = face.centroid;

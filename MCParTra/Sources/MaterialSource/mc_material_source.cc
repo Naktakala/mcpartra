@@ -18,7 +18,8 @@ void mcpartra::MaterialSource::
   Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
              std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
              size_t ref_num_groups,
-             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map)
+             const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
+             const std::vector<CellGeometryData>& ref_cell_geometry_info)
 {
   chi_log.Log(LOG_0) << "Initializing Material Sources";
 
@@ -51,8 +52,7 @@ void mcpartra::MaterialSource::
 
   //============================================= Determine group-wise
   //                                              source weights
-  IntV_Q_g.clear();
-  IntV_Q_g.resize(ref_solver.num_groups, 0.0);
+  std::vector<double> IntV_Q_g(ref_solver.num_groups, 0.0);
   group_sources.resize(ref_solver.num_groups);
   for (auto& cell_index_ptr_pair : mat_src_cells)
   {
@@ -75,7 +75,7 @@ void mcpartra::MaterialSource::
 
         auto& v_elements = cell_elements.at(cell.local_id);
         for (auto& element : v_elements)
-          group_sources[g].emplace_back(Q_g * element.Volume(), &element);
+          group_sources[g].emplace_back(Q_g * element.Volume(), element);
       }//for g
     }//if has source
   }//for cell
@@ -83,7 +83,7 @@ void mcpartra::MaterialSource::
   //============================================= Checking group sources integrity
   for (const auto& group_source : group_sources)
     for (const auto& source_item : group_source)
-      if (source_item.second->TypeIndex() == 0)
+      if (source_item.second.TypeIndex() == 0)
         throw std::logic_error(std::string(__FUNCTION__) +
                                ": Group source integrity failed.");
 
@@ -175,7 +175,7 @@ mcpartra::Particle mcpartra::MaterialSource::
   auto& src_element = group_sources[g][elem].second;
 
   //======================================== Sample position
-  new_particle.pos = src_element->SampleRandomPosition(rng);
+  new_particle.pos = src_element.SampleRandomPosition(rng);
 
   //======================================== Sample direction
   new_particle.dir = SampleRandomDirection(rng);
@@ -183,8 +183,8 @@ mcpartra::Particle mcpartra::MaterialSource::
   //======================================== Determine weight
   new_particle.w = 1.0;
 
-  new_particle.cur_cell_local_id  = src_element->ParentCellLocalID();
-  new_particle.cur_cell_global_id = src_element->ParentCellGlobalID();
+  new_particle.cur_cell_local_id  = src_element.ParentCellLocalID();
+  new_particle.cur_cell_global_id = src_element.ParentCellGlobalID();
 
   if (ref_solver.options.uncollided_only)
     new_particle.ray_trace_method = mcpartra::RayTraceMethod::UNCOLLIDED;

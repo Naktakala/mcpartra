@@ -7,6 +7,92 @@ extern ChiLog& chi_log;
 extern ChiMPI& chi_mpi;
 
 //###################################################################
+/**Cell geometry data comprises lines, triangles and tetrahedra that
+ * are essential to break cells into their most basic constituents.
+ * This routine builds and stores this data.*/
+void mcpartra::SourceDrivenSolver::InitCellGeometryData()
+{
+  chi_log.Log() << "MCParTra: Initializing cell geometry data";
+  size_t num_local_cells = grid->local_cells.size();
+
+  cell_geometry_info.reserve(num_local_cells);
+  for (const auto& cell : grid->local_cells)
+  {
+    CellGeometryData cell_info;
+
+    //====================================== Make volume elements
+    cell_info.volume_elements = GetCellVolumeSourceElements(cell, grid);
+    for (const auto& element : cell_info.volume_elements)
+      cell_info.total_volume += element.Volume();
+
+    //====================================== Build volume_element cdf
+    {
+      const double V = cell_info.total_volume;
+      auto& cdf = cell_info.volume_elements_cdf;
+      const size_t num_elems = cell_info.volume_elements.size();
+
+      cdf.reserve(num_elems);
+
+      double incr_volume = 0.0;
+      for (const auto& element : cell_info.volume_elements)
+      {incr_volume += element.Volume(); cdf.push_back(incr_volume / V);}
+    }
+
+    //====================================== Make surface elements
+    size_t num_faces = cell.faces.size();
+    cell_info.faces_surface_elements.reserve(num_faces);
+    cell_info.faces_total_area.reserve(num_faces);
+    double total_surface_area = 0.0;
+    for (const auto& face : cell.faces)
+    {
+      auto face_surf_elements = GetCellSurfaceSourceElements(cell, face, grid);
+
+      double face_area = 0.0;
+      for (const auto& element : face_surf_elements)
+        face_area += element.Area();
+
+      total_surface_area += face_area;
+
+      cell_info.faces_total_area.push_back(face_area);
+      cell_info.faces_surface_elements.push_back(std::move(face_surf_elements));
+    }//for face
+    cell_info.total_area = total_surface_area;
+
+    //====================================== Build faces cdf
+    {
+      const auto& areas = cell_info.faces_total_area;
+      auto& cdf = cell_info.faces_cdf;
+      const double total_area = cell_info.total_area;
+
+      cdf.reserve(num_faces);
+
+      double incr_area = 0.0;
+      for (const auto& area : areas)
+      {incr_area += area; cdf.push_back(incr_area / total_area);}
+    }
+
+    //====================================== Build surface element cdfs
+    cell_info.faces_surface_elements_cdf.resize(num_faces);
+    for (size_t f=0; f<num_faces; ++f)
+    {
+      const auto& areas = cell_info.faces_total_area;
+      const auto& elements = cell_info.faces_surface_elements[f];
+      auto& cdf = cell_info.faces_surface_elements_cdf[f];
+      size_t num_elems = elements.size();
+
+      cdf.reserve(num_elems);
+
+      double incr_area = 0.0;
+      for (const auto& element : elements)
+      {incr_area += element.Area(); cdf.push_back(incr_area / areas[f]);}
+    }//for face f
+
+    cell_geometry_info.push_back(cell_info);
+  }//for local cell
+
+}
+
+//###################################################################
 /**Initialize Sources.*/
 void mcpartra::SourceDrivenSolver::InitSources()
 {
@@ -14,7 +100,7 @@ void mcpartra::SourceDrivenSolver::InitSources()
 
   for (auto& source : sources)
   {
-    source->Initialize(grid, fv, num_groups, m_to_ell_em_map);
+    source->Initialize(grid, fv, num_groups, m_to_ell_em_map, cell_geometry_info);
 
     total_globl_source_rate += source->GlobalSourceRate();
     total_local_source_rate += source->LocalSourceRate();
