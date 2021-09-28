@@ -48,15 +48,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
   //============================================= Initialize data vectors
   //                                              (for efficiency)
-  r_abs_cellk_interior_average.      clear();
-  r_abs_cellk_interior_max.          clear();
-  r_cellk_interior_min.              clear();
-  R_abs_cellk_interior.              clear();
-
-  r_abs_cellk_interior_average.      resize(num_local_cells, 0.0);
-  r_abs_cellk_interior_max.          resize(num_local_cells, -1.0e32);
-  r_cellk_interior_min.              resize(num_local_cells,  1.0e32);
-  R_abs_cellk_interior.              resize(num_local_cells, 0.0);
+  R_abs_cellk_interior.assign(num_local_cells, 0.0);
 
   //============================================= Sample each cell
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -66,7 +58,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
-
+  residual_info_cell_interiors.resize(num_local_cells);
   for (const auto& cell : grid->local_cells)
   {
     const uint64_t k = cell.local_id;
@@ -85,11 +77,10 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     auto Q    = mat_data.Q;
 
     //====================================== Determine absolute Residual Interior
-    int N_p = 1000; //Number of points to sample
     double cell_average_rstar_absolute=0.0;
     double cell_maximum_rstar_absolute=-1.0e-32;
-    double cell_Rstar_absolute=0.0;
-    for (int i=0; i < N_p; ++i)
+    int num_points = 1000; //Number of points to sample
+    for (int i=0; i < num_points; ++i)
     {
       auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
       auto omega = SampleRandomDirection(rng);
@@ -105,35 +96,20 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
 
       //==================================== Contribute to avg
-      r_abs_cellk_interior_average[k] += std::fabs(r);
-      r_abs_cellk_interior_max[k] = std::fmax(r_abs_cellk_interior_max[k], std::fabs(r));
-      r_cellk_interior_min[k] = std::fmin(r_cellk_interior_min[k], r);
-
       cell_average_rstar_absolute += std::fabs(r);
-      cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute, std::fabs(r));
+      cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute,
+                                              std::fabs(r));
     }//for i
-    r_abs_cellk_interior_average[k]  /= N_p;
-    cell_average_rstar_absolute /= N_p;
+    cell_average_rstar_absolute /= num_points;
 
-    R_abs_cellk_interior[k] = FOUR_PI * V *
-                              r_abs_cellk_interior_average[k];
+    R_abs_cellk_interior[k] = cell_average_rstar_absolute * FOUR_PI * V;
 
-    cell_Rstar_absolute = cell_average_rstar_absolute * FOUR_PI * V;
-
-    RCellInterior rcellinterior;
+    RCellInterior& rcellinterior = residual_info_cell_interiors[cell.local_id];
     rcellinterior.cell_local_id          = cell.local_id;
     rcellinterior.average_rstar_absolute = cell_average_rstar_absolute;
     rcellinterior.maximum_rstar_absolute = cell_maximum_rstar_absolute;
-    rcellinterior.Rstar_absolute         = cell_Rstar_absolute;
-    residual_info_cell_interiors.push_back(rcellinterior);
-
-    domain_volume     += cell_FV_view->volume;
-
-    if (std::fabs(r_abs_cellk_interior_average[k]) > 1.0e-16)
-      source_volume += cell_FV_view->volume;
+    rcellinterior.Rstar_absolute         = R_abs_cellk_interior[k];
   }//for cell
-
-  MPI_Barrier(MPI_COMM_WORLD);
 
   //============================================= Sample surfaces
   chi_log.Log(LOG_0) << "Integrating surface source.";
@@ -154,8 +130,8 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
 
       double face_average_rstar_absolute=0.0;
-      int num_points = (face.has_neighbor)? 0 : 1000;
       double face_maximum_rstar_absolute = -1.0e32;
+      int num_points = (face.has_neighbor)? 0 : 1000;
       for (int i=0; i<num_points; ++i)
       {
         auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
@@ -189,19 +165,22 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
   //============================================= Integrate sources locally
   R_abs_localdomain_interior = 0.0;
-  for (double v : R_abs_cellk_interior)
-    R_abs_localdomain_interior += v;
+  for (const auto& cell_r_info : residual_info_cell_interiors)
+    R_abs_localdomain_interior += cell_r_info.Rstar_absolute;
 
-  chi_log.Log(LOG_ALL) << "Total local interior source: " << R_abs_localdomain_interior;
+  chi_log.Log(LOG_ALL) << "Total local interior source: "
+                       << R_abs_localdomain_interior;
 
   R_abs_localdomain_surface = 0.0;
   for (auto& rcellface : residual_info_cell_bndry_faces)
     R_abs_localdomain_surface += rcellface.Rstar_absolute;
 
-  chi_log.Log(LOG_ALL) << "Total local surface source: " << R_abs_localdomain_surface;
+  chi_log.Log(LOG_ALL) << "Total local surface source: "
+                       << R_abs_localdomain_surface;
 
   //============================================= Integrate residual sources
   //                                              globally
+  double R_abs_globaldomain_interior;
   MPI_Allreduce(&R_abs_localdomain_interior,
                 &R_abs_globaldomain_interior,
                 1,
@@ -209,6 +188,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
                 MPI_SUM,
                 MPI_COMM_WORLD);
 
+  double R_abs_globaldomain_surface;
   MPI_Allreduce(&R_abs_localdomain_surface,
                 &R_abs_globaldomain_surface,
                 1,
@@ -224,7 +204,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     domain_cdf.clear();
     domain_cdf.resize(num_local_cells, 0.0);
     double running_total = 0.0;
-    for (int c = 0; c < num_local_cells; ++c)
+    for (uint64_t c = 0; c < num_local_cells; ++c)
     {
       running_total += R_abs_cellk_interior[c];
       domain_cdf[c] = running_total / R_abs_localdomain_interior;
@@ -255,7 +235,7 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     "R_interior",                                 //Text name
     fv_sd,                                        //Spatial Discretization
     &R_abs_cellk_interior,                        //Data
-    ref_solver.uk_man_fv,                        //Nodal variable structure
+    ref_solver.uk_man_fv,                         //Nodal variable structure
     0, 0);                                        //Reference variable and component
 
   R_ff->ExportToVTKFV("ZRout","R_interior");

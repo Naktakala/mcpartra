@@ -55,20 +55,11 @@ private: //CDFs
   std::vector<GrpSrc> group_sources;
   std::vector<std::vector<double>> group_element_cdf;
 
-public:
-  std::vector<double> r_abs_cellk_interior_average;
-  std::vector<double> r_abs_cellk_interior_max;
-  std::vector<double> r_cellk_interior_min;
+private:
   std::vector<double> R_abs_cellk_interior;
 
   double R_abs_localdomain_interior = 0.0;
   double R_abs_localdomain_surface = 0.0;
-
-  double R_abs_globaldomain_interior = 0.0;
-  double R_abs_globaldomain_surface = 0.0;
-
-  double domain_volume = 0.0;
-  double source_volume = 0.0;
 
   std::vector<double> domain_cdf;
   std::vector<double> surface_cdf;

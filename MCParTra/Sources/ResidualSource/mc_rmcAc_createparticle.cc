@@ -83,7 +83,9 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
 
-      double rrandom = rng.Rand() * r_abs_cellk_interior_max[cell_local_id];
+//      double rrandom = rng.Rand() * r_abs_cellk_interior_max[cell_local_id];
+
+      double rrandom = rng.Rand() * cell_r_info.maximum_rstar_absolute;
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
@@ -148,7 +150,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       double r = (1.0/FOUR_PI)*(phi_N - phi_P);
 
-      double rrandom = rng.Rand()*rcellface.maximum_rstar_absolute;
+      double rrandom = rng.Rand() * rcellface.maximum_rstar_absolute;
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
