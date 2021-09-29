@@ -29,14 +29,14 @@ namespace mcpartra
     UNCOLLIDED = 1
   };
 
-  class VolumeSourceElement;
+  class VolumeElement;
   class SurfaceSourceElement;
 
   /**Structure to hold all of the constituents of non-curvilinear cells.*/
   struct CellGeometryData
   {
     double total_volume=0.0;
-    std::vector<VolumeSourceElement> volume_elements;
+    std::vector<VolumeElement> volume_elements;
     std::vector<double> volume_elements_cdf;
 
     double total_area=0.0;

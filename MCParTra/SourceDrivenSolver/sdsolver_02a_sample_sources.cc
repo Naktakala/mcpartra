@@ -18,7 +18,10 @@ mcpartra::Particle mcpartra::SourceDrivenSolver::
 
   auto prtcl = source->CreateParticle(rng);
 
-  double importance = local_cell_importance[prtcl.cur_cell_local_id];
+  uint64_t dof_map = prtcl.cur_cell_local_id * importance_num_groups +
+                     prtcl.egrp;
+
+  double importance = local_cell_importance[dof_map];
   accumulated_src_importances += importance;
 
   return prtcl;

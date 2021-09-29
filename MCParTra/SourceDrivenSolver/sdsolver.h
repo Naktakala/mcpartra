@@ -89,7 +89,7 @@ public:
   std::vector<double>                   local_cell_importance_setting;
   std::vector<chi_mesh::Vector3>        local_cell_importance_directions;
   std::vector<std::pair<double,double>> local_cell_importance_exp_coeffs;
-private:
+public:
   std::vector<double>                   local_cell_importance;
 
   // Source information

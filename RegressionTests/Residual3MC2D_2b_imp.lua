@@ -168,7 +168,7 @@ chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
 
 chiSolverInitialize(phys1)
-chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
+-- chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys1)
 
 fmc_pwl_ff = chiGetFieldFunctionHandleByName("FMCParTra-PWLFlux_g0_m0")
@@ -192,7 +192,7 @@ chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
 chiSolverInitialize(phys2)
-chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
+-- chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys2)
 
 rmc_pwl_ff = chiGetFieldFunctionHandleByName("RMCParTra-PWLFlux_g0_m0")

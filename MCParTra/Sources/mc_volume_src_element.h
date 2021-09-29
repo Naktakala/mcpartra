@@ -13,7 +13,7 @@ namespace mcpartra
 {
 //###################################################################
 /**A basic element that can be used to generate particles.*/
-class VolumeSourceElement
+class VolumeElement
 {
 private:
   const uint64_t parent_cell_local_id;
@@ -25,10 +25,12 @@ private:
   double volume = 0.0;
 
 public:
-  VolumeSourceElement(uint64_t in_cell_local_id,
-                      uint64_t in_cell_global_id,
-                      const chi_mesh::Vector3& in_ref_point,
-                      std::vector<chi_mesh::Vector3> in_geom_legs);
+  VolumeElement(uint64_t in_cell_local_id,
+                uint64_t in_cell_global_id,
+                const chi_mesh::Vector3& in_ref_point,
+                std::vector<chi_mesh::Vector3> in_geom_legs);
+
+  VolumeElement(const VolumeElement& other);
 
   chi_mesh::Vector3 SampleRandomPosition(chi_math::RandomNumberGenerator& rng) const;
 
@@ -40,9 +42,9 @@ public:
 
 //###################################################################
 /**Make a list of VolumeSourceElement-type elements for a given cell.*/
-std::vector<VolumeSourceElement>
-  GetCellVolumeSourceElements(const chi_mesh::Cell& cell,
-                              const chi_mesh::MeshContinuumPtr& grid);
+std::vector<VolumeElement>
+  GetCellVolumeElements(const chi_mesh::Cell& cell,
+                        const chi_mesh::MeshContinuumPtr& grid);
 
 }//namespace mcpartra
 

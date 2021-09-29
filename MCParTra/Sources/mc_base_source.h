@@ -66,10 +66,10 @@ public:
                           const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
                           const std::vector<CellGeometryData>& ref_cell_geometry_info);
 
+  virtual void BiasCDFs(bool apply) {}
+
   virtual mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng);
-
-  virtual bool CheckForReExecution() { return false; }
 
   SourceType Type() const {return type_index;}
 

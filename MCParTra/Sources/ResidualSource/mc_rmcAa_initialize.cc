@@ -46,11 +46,18 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
   //                                              tilde_phi_star
   RemoveFFDiscontinuities();
 
+  size_t total_num_faces = 0;
+  for (const auto& cell : grid->local_cells)
+    for (const auto& face : cell.faces)
+      ++total_num_faces;
+
   //============================================= Initialize data vectors
   //                                              (for efficiency)
   R_abs_cellk_interior.assign(num_local_cells * num_groups, 0.0);
   residual_info_cell_interiors.resize(num_groups, VecRCellInterior(num_local_cells));
   residual_info_cell_bndry_faces.resize(num_groups);
+  for (auto& vec_R_cell_face : residual_info_cell_bndry_faces)
+    vec_R_cell_face.reserve(total_num_faces);
 
   //============================================= Sample each cell
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -68,46 +75,59 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     size_t num_nodes = pwl->GetCellNumNodes(cell);
     const double V = cell_FV_view->volume;
 
-    int group_g = 0;
-
-    MaterialData mat_data;
-    PopulateMaterialData(cell.material_id,group_g,mat_data);
-
-    auto siga = mat_data.siga;
-    auto Q    = mat_data.Q;
-
-    double cell_average_rstar_absolute=0.0;
-    double cell_maximum_rstar_absolute=-1.0e-32;
-    int num_points = 1000; //Number of points to sample
-    for (int i=0; i < num_points; ++i)
+    for (size_t g=0; g < num_groups; ++g)
     {
-      auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
-      auto omega = SampleRandomDirection(rng);
+      MaterialData mat_data;
+      PopulateMaterialData(cell.material_id, g, mat_data);
 
-      cell_pwl_view->ShapeValues(x_i, shape_values);
-      cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
+      auto siga = mat_data.siga;
+      auto Q    = mat_data.Q;
 
-      double phi = GetResidualFFPhi(shape_values, num_nodes, k, group_g);
+      double cell_average_rstar_absolute=0.0;
+      double cell_maximum_rstar_absolute=-1.0e-32;
+      int num_points = 1000; //Number of points to sample
+      for (int i=0; i < num_points; ++i)
+      {
+        auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
+        auto omega = SampleRandomDirection(rng);
 
-      auto grad_phi = GetResidualFFGradPhi(
-        grad_shape_values, num_nodes, cell.local_id, group_g);
+        cell_pwl_view->ShapeValues(x_i, shape_values);
+        cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
 
-      double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
+        double phi = GetResidualFFPhi(shape_values, num_nodes, k, g);
 
-      //==================================== Contribute to avg
-      cell_average_rstar_absolute += std::fabs(r);
-      cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute,
-                                              std::fabs(r));
-    }//for i
-    cell_average_rstar_absolute /= num_points;
+        auto grad_phi = GetResidualFFGradPhi(
+          grad_shape_values, num_nodes, cell.local_id, g);
 
-    R_abs_cellk_interior[k] = cell_average_rstar_absolute * FOUR_PI * V;
+        double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
 
-    RCellInterior& rcellinterior = residual_info_cell_interiors[group_g][cell.local_id];
-    rcellinterior.cell_local_id          = cell.local_id;
-    rcellinterior.average_rstar_absolute = cell_average_rstar_absolute;
-    rcellinterior.maximum_rstar_absolute = cell_maximum_rstar_absolute;
-    rcellinterior.Rstar_absolute         = R_abs_cellk_interior[k];
+        //==================================== Contribute to avg
+        cell_average_rstar_absolute += std::fabs(r);
+        cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute,
+                                                std::fabs(r));
+      }//for i
+      cell_average_rstar_absolute /= num_points;
+
+      R_abs_cellk_interior[k] = cell_average_rstar_absolute * FOUR_PI * V;
+
+      {
+        RCellInterior& rcellinterior =
+          residual_info_cell_interiors[g][cell.local_id];
+        rcellinterior.cell_local_id          = cell.local_id;
+        rcellinterior.maximum_rstar_absolute = cell_maximum_rstar_absolute;
+        rcellinterior.Rstar_absolute         = R_abs_cellk_interior[k];
+      }
+
+      {
+        auto rcellinterior = std::make_unique<RCellInterior>();
+        rcellinterior->cell_local_id          = cell.local_id;
+        rcellinterior->maximum_rstar_absolute = cell_maximum_rstar_absolute;
+        rcellinterior->Rstar_absolute         = R_abs_cellk_interior[k];
+
+        residual_info_elements.push_back(std::move(rcellinterior));
+      }
+
+    }//for g
   }//for cell
 
   //============================================= Sample surfaces
@@ -117,71 +137,88 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     const uint64_t k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
+    size_t num_nodes = pwl->GetCellNumNodes(cell);
 
-
-    int f=-1;
+    unsigned int f=0;
     for (auto& face : cell.faces)
     {
-      ++f;
       double A_f = cell_FV_view->face_area[f];
       auto&  n   = face.normal;
 
-      int group_g = 0;
-
-      double face_average_rstar_absolute=0.0;
-      double face_maximum_rstar_absolute = -1.0e32;
-      int num_points = (face.has_neighbor)? 0 : 1000;
-      for (int i=0; i<num_points; ++i)
+      for (size_t g=0; g < num_groups; ++g)
       {
-        auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
+        double face_average_rstar_absolute=0.0;
+        double face_maximum_rstar_absolute = -1.0e32;
+        int num_points = (face.has_neighbor)? 0 : 1000;
+        for (int i=0; i<num_points; ++i)
+        {
+          auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
 
-        cell_pwl_view->ShapeValues(x_i, shape_values);
+          cell_pwl_view->ShapeValues(x_i, shape_values);
 
-        double phi = GetResidualFFPhi(shape_values, cell_pwl_view->num_nodes, k, group_g);
+          double phi = GetResidualFFPhi(shape_values, num_nodes, k, g);
 
-        double phi_N = phi;
-        if (not face.has_neighbor)
-          phi_N = 0.0; //TODO: Specialize for bndries
+          double phi_N = phi;
+          if (not face.has_neighbor)
+            phi_N = 0.0; //TODO: Specialize for bndries
 
-        double r = (1.0/FOUR_PI)*(phi_N - phi);
+          double r = (1.0/FOUR_PI)*(phi_N - phi);
 
-        //==================================== Contribute to avg
-        face_average_rstar_absolute += std::fabs(r);
-        face_maximum_rstar_absolute  = std::fmax(face_maximum_rstar_absolute, std::fabs(r));
+          //==================================== Contribute to avg
+          face_average_rstar_absolute += std::fabs(r);
+          face_maximum_rstar_absolute  = std::fmax(face_maximum_rstar_absolute, std::fabs(r));
+        }//for i
+        face_average_rstar_absolute /= std::max(1, num_points);
 
-      }//for i
-      face_average_rstar_absolute /= std::max(1, num_points);
+        {
+          RCellFace rcellface;
+          rcellface.cell_local_id          = cell.local_id;
+          rcellface.ass_face               = f;
+          rcellface.maximum_rstar_absolute = face_maximum_rstar_absolute;
+          rcellface.Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
 
-      RCellFace rcellface;
-      rcellface.cell_local_id          = cell.local_id;
-      rcellface.ass_face               = f;
-      rcellface.maximum_rstar_absolute = face_maximum_rstar_absolute;
-      rcellface.Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
+          residual_info_cell_bndry_faces[g].push_back(rcellface);
+        }
 
-      residual_info_cell_bndry_faces[group_g].push_back(rcellface);
+        {
+          auto rcellface = std::make_unique<RCellFace2>();
+
+          rcellface->cell_local_id          = cell.local_id;
+          rcellface->ass_face               = f;
+          rcellface->maximum_rstar_absolute = face_maximum_rstar_absolute;
+          rcellface->Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
+
+          residual_info_elements.push_back(std::move(rcellface));
+        }
+      }//for g
+      ++f;
     }//for face
   }//for cell
   chi_log.Log(LOG_0) << "Preparing CDFs.";
 
   //============================================= Integrate sources locally
-  R_abs_localdomain_interior.assign(num_groups, 0.0);
-  R_abs_localdomain_surface.assign(num_groups, 0.0);
+  R_abs_domain_interior.assign(num_groups, 0.0);
+  R_abs_domain_surface.assign(num_groups, 0.0);
+  R_abs_domain_total.assign(num_groups, 0.0);
   for (size_t g=0; g < num_groups; ++g)
   {
-    R_abs_localdomain_interior[g] = 0.0;
+    R_abs_domain_interior[g] = 0.0;
     for (const auto& cell_r_info : residual_info_cell_interiors[g])
-      R_abs_localdomain_interior[g] += cell_r_info.Rstar_absolute;
+      R_abs_domain_interior[g] += cell_r_info.Rstar_absolute;
 
     chi_log.Log(LOG_ALL) << "Total local interior source: group " << g << " "
-                         << R_abs_localdomain_interior[g];
+                         << R_abs_domain_interior[g];
 
 
-    R_abs_localdomain_surface[g] = 0.0;
+    R_abs_domain_surface[g] = 0.0;
     for (auto& rcellface : residual_info_cell_bndry_faces[g])
-      R_abs_localdomain_surface[g] += rcellface.Rstar_absolute;
+      R_abs_domain_surface[g] += rcellface.Rstar_absolute;
 
     chi_log.Log(LOG_ALL) << "Total local surface source: group " << g << " "
-                         << R_abs_localdomain_surface[g];
+                         << R_abs_domain_surface[g];
+
+    R_abs_domain_total[g] = R_abs_domain_interior[g] +
+                            R_abs_domain_surface[g];
   }//for g
 
   //============================================= Integrate residual sources
@@ -194,14 +231,14 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
 
   for (size_t g=0; g < num_groups; ++g)
   {
-    MPI_Allreduce(&R_abs_localdomain_interior[g],
+    MPI_Allreduce(&R_abs_domain_interior[g],
                   &R_abs_globaldomain_interior[g],
                   1,
                   MPI_DOUBLE,
                   MPI_SUM,
                   MPI_COMM_WORLD);
 
-    MPI_Allreduce(&R_abs_localdomain_surface[g],
+    MPI_Allreduce(&R_abs_domain_surface[g],
                   &R_abs_globaldomain_surface[g],
                   1,
                   MPI_DOUBLE,
@@ -211,40 +248,65 @@ Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
     chi_log.Log(LOG_0) << "Total interior source: " << R_abs_globaldomain_interior[g];
     chi_log.Log(LOG_0) << "Total surface source: " << R_abs_globaldomain_surface[g];
 
-    sumG_R_abs_localdomain += R_abs_localdomain_interior[g];
-    sumG_R_abs_globaldomain += R_abs_globaldomain_interior[g];
+    sumG_R_abs_localdomain += R_abs_domain_interior[g] +
+                              R_abs_domain_surface[g];
+    sumG_R_abs_globaldomain += R_abs_globaldomain_interior[g] +
+                               R_abs_globaldomain_surface[g];
   }//for g
 
-//  SetSourceRates(R_abs_localdomain_interior + R_abs_localdomain_surface,
-//                 R_abs_globaldomain_interior + R_abs_globaldomain_surface);
   SetSourceRates(sumG_R_abs_localdomain, sumG_R_abs_globaldomain);
 
   //============================================= Compute interior local cdf
-  domain_cdf.resize(num_groups);
+  R_abs_domain_interior_cdf.resize(num_groups);
   for (size_t g=0; g < num_groups; ++g)
   {
-    domain_cdf[g].assign(num_local_cells, 0.0);
+    R_abs_domain_interior_cdf[g].assign(num_local_cells, 0.0);
     double running_total = 0.0;
     for (uint64_t c = 0; c < num_local_cells; ++c)
     {
       running_total += residual_info_cell_interiors[g][c].Rstar_absolute;
-      domain_cdf[g][c] = running_total / R_abs_localdomain_interior[g];
+      R_abs_domain_interior_cdf[g][c] = running_total / R_abs_domain_interior[g];
     }
   }// for g
 
   //============================================= Compute surface local cdf
-  surface_cdf.resize(num_groups);
+  R_abs_domain_surface_cdf.resize(num_groups);
   for (size_t g=0; g < num_groups; ++g)
   {
-    surface_cdf[g].resize(residual_info_cell_bndry_faces[g].size(), 0.0);
+    R_abs_domain_surface_cdf[g].resize(residual_info_cell_bndry_faces[g].size(), 0.0);
     double running_total = 0.0;
     for (size_t cf = 0; cf < residual_info_cell_bndry_faces[g].size(); ++cf)
     {
       auto& rcellface = residual_info_cell_bndry_faces[g][cf];
       running_total += rcellface.Rstar_absolute;
-      surface_cdf[g][cf] = running_total / R_abs_localdomain_surface[g];
+      R_abs_domain_surface_cdf[g][cf] = running_total /
+                                        R_abs_domain_surface[g];
     }
   }//for g
+
+  //============================================= Compute groupwise
+  //                                              interior-surface cdf
+  interior_vs_surface_cdf.resize(num_groups, std::vector<double>(2, 0.0));
+  {
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      interior_vs_surface_cdf[g][0] = R_abs_domain_interior[g] /
+                                      (R_abs_domain_interior[g] + R_abs_domain_surface[g]);
+      interior_vs_surface_cdf[g][1] = 1.0;
+    }
+  }
+
+  //============================================= Compute group cdf
+  group_cdf.assign(num_groups, 0.0);
+  {
+    double running_total = 0.0;
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      running_total += R_abs_domain_interior[g] +
+                       R_abs_domain_surface[g];
+      group_cdf[g] = running_total / sumG_R_abs_localdomain;
+    }
+  }
   chi_log.Log(LOG_0) << "Done initializing Residual Sources";
 
   //============================================= Export interior source

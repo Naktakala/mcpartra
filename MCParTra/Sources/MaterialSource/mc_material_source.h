@@ -11,21 +11,29 @@
 class mcpartra::MaterialSource : public mcpartra::SourceBase
 {
 private:
-  typedef std::pair<double, VolumeSourceElement&> ElementSrc;
+  typedef std::pair<double, VolumeElement&> ElementSrc;
   typedef std::vector<ElementSrc> GrpSrc;
   typedef chi_physics::IsotropicMultiGrpSource IsoMGSrc;
 
-  std::map<uint64_t, std::vector<VolumeSourceElement>> cell_elements;
+  std::map<uint64_t, std::vector<VolumeElement>> cell_elements;
 
   std::vector<bool> matid_has_q_flags;
   std::map<int, std::shared_ptr<IsoMGSrc>> matid_q_map;
 
+private: //PDFs
+  std::vector<GrpSrc> group_sources; ///< Per group then element
+
 private: //CDFs
-  std::vector<double> group_cdf;
+  std::vector<std::vector<double>> group_element_pdf; ///< Per group then element
+  std::vector<std::vector<double>> group_element_cdf; ///< Per group then element
 
-  std::vector<GrpSrc> group_sources;
-  std::vector<std::vector<double>> group_element_cdf;
+  std::vector<double> group_cdf; ///< Per group
 
+private: //Biased CDFs
+  std::vector<std::vector<double>> group_element_biased_cdf;      ///< Per group then element
+  std::vector<std::vector<double>> group_element_biased_cdf_corr; ///< Per group then element
+
+  std::vector<double> group_biased_cdf;      ///< Per group
 public:
   explicit
   MaterialSource(mcpartra::SourceDrivenSolver& solver) :
@@ -37,6 +45,8 @@ public:
                   size_t ref_num_groups,
                   const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
                   const std::vector<CellGeometryData>& ref_cell_geometry_info) override;
+
+  void BiasCDFs(bool apply) override;
 
   mcpartra::Particle
   CreateParticle(chi_math::RandomNumberGenerator& rng) override;

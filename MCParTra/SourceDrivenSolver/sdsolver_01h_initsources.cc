@@ -21,7 +21,7 @@ void mcpartra::SourceDrivenSolver::InitCellGeometryData()
     CellGeometryData cell_info;
 
     //====================================== Make volume elements
-    cell_info.volume_elements = GetCellVolumeSourceElements(cell, grid);
+    cell_info.volume_elements = GetCellVolumeElements(cell, grid);
     for (const auto& element : cell_info.volume_elements)
       cell_info.total_volume += element.Volume();
 

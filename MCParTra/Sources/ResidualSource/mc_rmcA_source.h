@@ -16,9 +16,6 @@ class mcpartra::ResidualSourceA : public mcpartra::SourceBase
 public:
   std::shared_ptr<chi_physics::FieldFunction> resid_ff;
 private:
-  typedef std::pair<double, VolumeSourceElement&> ElementSrc;
-  typedef std::vector<ElementSrc> GrpSrc;
-
   /**Simplified material structure that can be passed around.*/
   struct MaterialData
   {
@@ -28,13 +25,19 @@ private:
 
   std::unique_ptr<std::vector<CellGeometryData>> cell_geometry_info;
 
+  enum class RessidualInfoType : int
+  {
+    Interior = 0,
+    Face     = 1
+  };
+
   /**Structure to store cell interior residual info.*/
   struct RCellInterior
   {
-    uint64_t cell_local_id=0;
-    double average_rstar_absolute=0.0;
-    double maximum_rstar_absolute=-1.0e32;
-    double Rstar_absolute=0.0;
+    RessidualInfoType type = RessidualInfoType::Interior;
+    uint64_t          cell_local_id=0;
+    double            maximum_rstar_absolute=-1.0e32;
+    double            Rstar_absolute=0.0;
   };
   typedef std::vector<RCellInterior> VecRCellInterior;
   std::vector<VecRCellInterior> residual_info_cell_interiors;
@@ -43,28 +46,37 @@ private:
   struct RCellFace
   {
     uint64_t cell_local_id=0;
-    int ass_face=0;
+    unsigned int ass_face=0;
     double maximum_rstar_absolute=-1.0e32;
     double Rstar_absolute=0.0;
   };
   typedef std::vector<RCellFace> VecRCellFace;
   std::vector<VecRCellFace> residual_info_cell_bndry_faces;
 
-private: //CDFs
-  std::vector<double> group_cdf;
+  /**Structure to store cell-face pairs.*/
+  struct RCellFace2 : public RCellInterior
+  {
+    unsigned int ass_face=0;
+    RCellFace2() {type = RessidualInfoType::Face;}
+  };
 
-  std::vector<GrpSrc> group_sources;
-  std::vector<std::vector<double>> group_element_cdf;
+private://PDFs
+  std::vector<std::unique_ptr<RCellInterior>> residual_info_elements;
 
 private:
-  std::vector<double> R_abs_cellk_interior; //for field function
+  std::vector<double> R_abs_cellk_interior; ///< For field function
 
-  std::vector<double> R_abs_localdomain_interior; ///< Per group
-  std::vector<double> R_abs_localdomain_surface;  ///< Per group
+private: //CDFs
+  std::vector<double> R_abs_domain_interior; ///< Per group
+  std::vector<double> R_abs_domain_surface;  ///< Per group
+  std::vector<double> R_abs_domain_total; ///< Per group
 
-  std::vector<std::vector<double>> domain_cdf; ///< Per group
-  std::vector<std::vector<double>> surface_cdf; ///< Per group
+  std::vector<std::vector<double>> R_abs_domain_interior_cdf; ///< Per group then cell
+  std::vector<std::vector<double>> R_abs_domain_surface_cdf; ///< Per group then face
 
+  std::vector<std::vector<double>> interior_vs_surface_cdf; ///< Per group then exterior or surface
+
+  std::vector<double> group_cdf; ///< Per group
 public:
   explicit
   ResidualSourceA(mcpartra::SourceDrivenSolver& solver,
@@ -81,19 +93,19 @@ public:
                   const std::vector<CellGeometryData>& ref_cell_geometry_info) override;
 
   //b
-  void PopulateMaterialData(int mat_id, int group_g,
+  void PopulateMaterialData(int mat_id, size_t group_g,
                             MaterialData& mat_data);
 
   double GetResidualFFPhi(std::vector<double> &N_in,
                           size_t dofs,
                           uint64_t cell_local_id,
-                          int egrp);
+                          size_t egrp);
 
   chi_mesh::Vector3 GetResidualFFGradPhi(
                           std::vector<chi_mesh::Vector3>& Grad_in,
                           size_t dofs,
                           uint64_t cell_local_id,
-                          int egrp);
+                          size_t egrp);
 
   //c
   mcpartra::Particle

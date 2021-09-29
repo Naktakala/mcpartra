@@ -8,11 +8,11 @@ extern ChiLog& chi_log;
 
 //###################################################################
 /**Constructor.*/
-mcpartra::VolumeSourceElement::
-  VolumeSourceElement(uint64_t in_cell_local_id,
-                      uint64_t in_cell_global_id,
-                      const chi_mesh::Vector3& in_ref_point,
-                      std::vector<chi_mesh::Vector3> in_geom_legs) :
+mcpartra::VolumeElement::
+  VolumeElement(uint64_t in_cell_local_id,
+                uint64_t in_cell_global_id,
+                const chi_mesh::Vector3& in_ref_point,
+                std::vector<chi_mesh::Vector3> in_geom_legs) :
     parent_cell_local_id(in_cell_local_id),
     parent_cell_global_id(in_cell_global_id),
     ref_point(in_ref_point),
@@ -50,8 +50,48 @@ mcpartra::VolumeSourceElement::
 }
 
 //###################################################################
+/**Constructor.*/
+mcpartra::VolumeElement::
+VolumeElement(const VolumeElement& other) :
+                    parent_cell_local_id(other.parent_cell_local_id),
+                    parent_cell_global_id(other.parent_cell_global_id),
+                    ref_point(other.ref_point),
+                    geom_legs(other.geom_legs)
+{
+  if (geom_legs.size() == 1) //Line
+  {
+    volume = geom_legs.back().Norm();
+  }
+  else if (geom_legs.size() == 2) //Triangle
+  {
+    const auto& v01 = geom_legs[0];
+    const auto& v02 = geom_legs[1];
+
+    volume = ((v01.x)*(v02.y) - (v02.x)*(v01.y))/2.0;
+  }
+  else if (geom_legs.size() == 3) //Tetrahedron
+  {
+    const auto& v01 = geom_legs[0];
+    const auto& v02 = geom_legs[1];
+    const auto& v03 = geom_legs[2];
+
+    chi_mesh::Matrix3x3 J;
+    J.SetColJVec(0,v01);
+    J.SetColJVec(1,v02);
+    J.SetColJVec(2,v03);
+
+    double detJ = J.Det();
+
+    volume = std::fabs(detJ/6.0);
+  }
+  else
+    throw std::logic_error(std::string(__FUNCTION__) + ": Unsupported number "
+                                                       "of legs passed to function.");
+}
+
+//###################################################################
 /**Sample a random position within an elment.*/
-chi_mesh::Vector3 mcpartra::VolumeSourceElement::
+chi_mesh::Vector3 mcpartra::VolumeElement::
   SampleRandomPosition(chi_math::RandomNumberGenerator& rng) const
 {
   if (geom_legs.size() == 1) //Line
@@ -86,11 +126,11 @@ chi_mesh::Vector3 mcpartra::VolumeSourceElement::
 
 //###################################################################
 /**Makes VolumeSourceElements for a given cell.*/
-std::vector<mcpartra::VolumeSourceElement> mcpartra::
-  GetCellVolumeSourceElements(const chi_mesh::Cell &cell,
-                              const chi_mesh::MeshContinuumPtr& grid)
+std::vector<mcpartra::VolumeElement> mcpartra::
+  GetCellVolumeElements(const chi_mesh::Cell &cell,
+                        const chi_mesh::MeshContinuumPtr& grid)
 {
-  std::vector<VolumeSourceElement> elements;
+  std::vector<VolumeElement> elements;
 
   if (cell.Type() == chi_mesh::CellType::SLAB)
   {
@@ -146,7 +186,7 @@ std::vector<mcpartra::VolumeSourceElement> mcpartra::
   {
     chi_log.Log(LOG_ALLERROR)
       << "Unsupported cell type encountered in "
-      << "mcpartra::GetCellVolumeSourceElements.";
+      << "mcpartra::GetCellVolumeElements.";
     exit(EXIT_FAILURE);
   }
 

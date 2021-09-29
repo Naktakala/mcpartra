@@ -541,7 +541,7 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
     {
       const auto& cell = grid->cells[cell_global_id];
 
-      size_t dof_map = cell_global_id * importance_num_groups + group_id;
+      size_t dof_map = cell.local_id * importance_num_groups + group_id;
 
       double phi = p1_moments[0];
       chi_mesh::Vector3 omega_J(p1_moments[1],
@@ -559,4 +559,7 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   file.close();
 
   chi_log.Log() << "MCParTra: Done reading importance map.";
+
+  for (auto& src : sources)
+    src->BiasCDFs(true);
 }

@@ -23,22 +23,17 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
   //======================================== Sample energy group
-  int g = 0;
-  new_particle.egrp = g;
+  size_t g = SampleCDF(group_cdf, rng);
+  new_particle.egrp = static_cast<int>(g);
 
   //======================================== Choose interior or surface
-  bool sample_interior = false;
-  if (rng.Rand() < R_abs_localdomain_interior[g] /
-          (R_abs_localdomain_interior[g] + R_abs_localdomain_surface[g]))
-  {sample_interior = true;}
+  bool sample_interior = (SampleCDF(interior_vs_surface_cdf[g], rng) == 0);
 
   //################################################## INTERIOR
   if (sample_interior)
   {
-    //======================================== Randomly Sample Cell
-    int64_t cell_local_id = std::lower_bound(domain_cdf[g].begin(),
-                                             domain_cdf[g].end(),
-                                             rng.Rand()) - domain_cdf[g].begin();
+    //======================================== Randomly Sample Cell from CDF
+    size_t cell_local_id = SampleCDF(R_abs_domain_interior_cdf[g], rng);
 
     const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
@@ -102,22 +97,19 @@ mcpartra::Particle mcpartra::ResidualSourceA::
     //################################################## SURFACE
   else
   {
-    //==================================== Randomly sample face
-    int64_t cf = std::lower_bound(surface_cdf[g].begin(),
-                                  surface_cdf[g].end(),
-                                  rng.Rand()) - surface_cdf[g].begin();
+    //====================================== Randomly sample face from CDF
+    size_t rcellface_id = SampleCDF(R_abs_domain_surface_cdf[g], rng);
 
-    const auto& rcellface = residual_info_cell_bndry_faces[g][cf];
-
+    const auto& rcellface = residual_info_cell_bndry_faces[g][rcellface_id];
     const uint64_t cell_local_id  = rcellface.cell_local_id;
     const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
     const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
-    const int   f    = rcellface.ass_face;
-    const auto& face = cell.faces[f];
-    const auto& n    = face.normal;
+    const unsigned int f = rcellface.ass_face;
+    const auto& face     = cell.faces[f];
+    const auto& n        = face.normal;
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -130,7 +122,6 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       new_particle.pos = GetRandomPositionOnCellFace(rng, cell_geom_info, f);
 
       //==================================== Sample direction
-
       chi_mesh::Vector3 omega = RandomCosineLawDirection(rng,-1.0*n);
       new_particle.dir = omega;
 

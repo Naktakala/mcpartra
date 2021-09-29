@@ -12,7 +12,7 @@ extern ChiPhysics&  chi_physics_handler;
 //###################################################################
 /**Populates a material information data structure from a mat-id.*/
 void mcpartra::ResidualSourceA::
-  PopulateMaterialData(int mat_id, int group_g, MaterialData &mat_data)
+  PopulateMaterialData(int mat_id, size_t group_g, MaterialData &mat_data)
 {
   auto xs = ref_solver.matid_xs_map2[mat_id];
   double siga = xs->sigma_a[group_g];
@@ -34,7 +34,7 @@ double mcpartra::ResidualSourceA::
   GetResidualFFPhi(std::vector<double> &N_in,
                    size_t dofs,
                    uint64_t cell_local_id,
-                   int egrp)
+                   size_t egrp)
 {
   auto& cell = grid->local_cells[cell_local_id];
 
@@ -49,7 +49,7 @@ double mcpartra::ResidualSourceA::
   auto& uk_man = resid_ff->unknown_manager;
 
   double phi = 0.0;
-  for (int dof=0; dof<dofs; dof++)
+  for (size_t dof=0; dof<dofs; dof++)
   {
     int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
@@ -65,7 +65,7 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
   GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
                        size_t dofs,
                        uint64_t cell_local_id,
-                       int egrp)
+                       size_t egrp)
 {
   auto& cell = grid->local_cells[cell_local_id];
 
@@ -80,7 +80,7 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
   auto& uk_man = resid_ff->unknown_manager;
 
   chi_mesh::Vector3 gradphi;
-  for (int dof=0; dof<dofs; dof++)
+  for (size_t dof=0; dof<dofs; dof++)
   {
     int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
 
