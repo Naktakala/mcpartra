@@ -1,8 +1,8 @@
-#include "mc_material_source.h"
+#include "mc_rmcA_source.h"
 
 #include "SourceDrivenSolver/sdsolver.h"
 
-void mcpartra::MaterialSource::BiasCDFs(bool apply)
+void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
 {
   //======================================== Initialize biased cdfs and corrections
   group_element_biased_cdf      = group_element_cdf;
@@ -16,27 +16,44 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
 
   const auto& importances = ref_solver.local_cell_importance;
 
+  //======================================== Make simple copy of group-source
+  //                                         strenghts
+  std::vector<std::vector<double>> group_sources_biased(num_groups);
+  {
+    size_t g = 0;
+    for (auto& group_src_biased : group_sources_biased)
+    {
+      size_t num_elements = group_sources[g].size();
+      group_src_biased.resize(num_elements, 0.0);
+      size_t elem=0;
+      for (const auto& element : group_sources[g])
+      {
+        group_src_biased[elem] = group_sources[g][elem]->Rstar_absolute;
+        ++elem;
+      }
+      ++g;
+    }//for g
+  }
+
   //======================================== Create biased unnormalized PDF
   double IntV_Q_total_local = 0.0;
   std::vector<double> IntV_Q_g(num_groups, 0.0);
-  std::vector<GrpSrc> group_sources_biased = group_sources;
   {
     size_t g = 0;
-    for (auto& group_src : group_sources_biased)
+    for (auto& group_src : group_sources)
     {
       size_t elem = 0;
       for (auto& src_elem_pair : group_src)
       {
-        const auto& element = src_elem_pair.second;
-        const uint64_t cell_local_id = element.ParentCellLocalID();
+        const uint64_t cell_local_id = src_elem_pair->cell_local_id;
 
         uint64_t dof_map = cell_local_id * num_groups + g;
 
         const double importance = importances[dof_map];
 
-        src_elem_pair.first *= importance;
+        group_sources_biased[g][elem] *= importance;
 
-        IntV_Q_g[g] += src_elem_pair.first;
+        IntV_Q_g[g] += group_sources_biased[g][elem];
 
         ++elem;
       }//for src_elem_pair
@@ -53,7 +70,7 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
     group_element_biased_pdf[g].resize(num_elems, 0.0);
     for (size_t elem=0; elem<num_elems; ++elem)
       group_element_biased_pdf[g][elem] =
-        group_sources_biased[g][elem].first / IntV_Q_g[g];
+        group_sources_biased[g][elem] / IntV_Q_g[g];
   }
 
   //======================================== Compute bias corrections
@@ -82,9 +99,9 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
   {
     double elem_running_total = 0.0;
     size_t elem = 0;
-    for (auto& src_element : group_source)
+    for (const auto& src_element : group_source)
     {
-      elem_running_total += src_element.first;
+      elem_running_total += src_element;
       group_element_biased_cdf[g][elem] = (IntV_Q_g[g] > 0.0)?
         elem_running_total/IntV_Q_g[g] : 0.0;
       ++elem;

@@ -89,3 +89,87 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
 
   return gradphi;
 }
+
+//###################################################################
+/**Samples and exponential importance representation.*/
+std::pair<chi_mesh::Vector3,double> mcpartra::ResidualSourceA::
+  SampleSpecialRandomDirection(chi_math::RandomNumberGenerator &rng,
+                               size_t group,
+                               uint64_t cell_local_id)
+{
+  size_t dof_map = cell_local_id*num_groups + group;
+
+  const auto& omega_J  = ref_solver.local_cell_importance_directions[dof_map];
+  const auto& a_b_pair = ref_solver.local_cell_importance_exp_coeffs[dof_map];
+  const double a = a_b_pair.first;
+  const double b = a_b_pair.second;
+
+  if (std::fabs(b) < 1.0e-8)
+    return std::make_pair(SampleRandomDirection(rng),1.0);
+
+  //======================================== Define utilities
+  const double TWO_PI = 2.0*M_PI;
+
+  auto Isotropic_PDF = [TWO_PI](double mu) {return (1.0/TWO_PI);};
+  auto PDF = [TWO_PI,a,b](double mu) {return (1.0/TWO_PI) * exp( a + b*mu );};
+
+  //======================================== Find domain size
+  double max_psi = 0.0;
+  max_psi = std::max(max_psi, PDF(-1.0));
+  max_psi = std::max(max_psi, PDF( 1.0));
+
+  //======================================== Rejection sample pdf for mu
+  bool rejected = true;
+  double sampled_mu = 1.0;
+  for (int i=0; i<10000; ++i)
+  {
+    double mu       = rng.Rand()*2.0 - 1.0;
+    double random_y = rng.Rand()*max_psi;
+
+    if (random_y < PDF(mu))
+    {
+      rejected = false;
+      sampled_mu = mu;
+    }
+
+    if (not rejected) break;
+  }
+  if (rejected)
+    std::cout << "Shit happened!\n";
+
+  double weight_correction = Isotropic_PDF(sampled_mu) / PDF(sampled_mu);
+
+  //======================================== Perform rotation
+  //Build rotation matrix
+  chi_mesh::Matrix3x3 R;
+
+  const chi_mesh::Vector3 khat(0.0,0.0,1.0);
+
+  if      (omega_J.Dot(khat) >  0.9999999)
+    R.SetDiagonalVec(1.0, 1.0, 1.0);
+  else if (omega_J.Dot(khat) < -0.9999999)
+    R.SetDiagonalVec(1.0, 1.0,-1.0);
+  else
+  {
+    chi_mesh::Vector3 binorm = khat.Cross(omega_J);
+    binorm = binorm/binorm.Norm();
+
+    chi_mesh::Vector3 tangent = binorm.Cross(omega_J);
+    tangent = tangent/tangent.Norm();
+
+    R.SetColJVec(0, tangent);
+    R.SetColJVec(1, binorm);
+    R.SetColJVec(2, omega_J);
+  }
+
+  //Sample direction
+  double theta    = acos(sampled_mu);
+  double varphi   = rng.Rand()*2.0*M_PI;
+
+  chi_mesh::Vector3 ref_dir;
+  ref_dir.x = sin(theta)*cos(varphi);
+  ref_dir.y = sin(theta)*sin(varphi);
+  ref_dir.z = cos(theta);
+
+  return std::make_pair(R*ref_dir, weight_correction);
+}

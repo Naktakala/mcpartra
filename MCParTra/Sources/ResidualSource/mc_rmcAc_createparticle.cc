@@ -23,23 +23,26 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
   //======================================== Sample energy group
-  size_t g = SampleCDF(group_cdf, rng);
+  size_t g = SampleCDF(group_biased_cdf, rng);
   new_particle.egrp = static_cast<int>(g);
 
-  //======================================== Choose interior or surface
-  bool sample_interior = (SampleCDF(interior_vs_surface_cdf[g], rng) == 0);
+  //======================================== Sample element
+  size_t elem = SampleCDF(group_element_biased_cdf[g], rng);
+
+  const auto& src_element = *group_sources[g][elem];
+  bool sample_interior = (src_element.type == RessidualInfoType::Interior);
 
   //################################################## INTERIOR
   if (sample_interior)
   {
-    //======================================== Randomly Sample Cell from CDF
-    size_t cell_local_id = SampleCDF(R_abs_domain_interior_cdf[g], rng);
+    //======================================== Get information
+    size_t cell_local_id = src_element.cell_local_id;
 
     const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
     const auto&  cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
-    const auto&  cell_r_info    = residual_info_cell_interiors[g][cell_local_id];
+    const auto&  cell_r_info    = src_element;
 
     //====================================== Get material properties
     MaterialData mat_data;
@@ -59,7 +62,11 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       new_particle.pos = GetRandomPositionInCell(rng, cell_geom_info);
 
       //==================================== Sample direction
-      chi_mesh::Vector3 omega = SampleRandomDirection(rng);
+//      chi_mesh::Vector3 omega = SampleRandomDirection(rng);
+//      double angular_w_corr = 1.0;
+      auto angle_info = SampleSpecialRandomDirection(rng, g, cell_local_id);
+      chi_mesh::Vector3 omega = angle_info.first;
+      double angular_w_corr   = angle_info.second;
       new_particle.dir = omega;
 
       //==================================== Populate shape values
@@ -82,7 +89,9 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
-        new_particle.w = r/std::fabs(r);
+        new_particle.w = (r/std::fabs(r))*
+                         group_element_biased_cdf_corr[g][elem]*
+                         angular_w_corr;
       else
       {
         new_particle.w = 0.0;
@@ -97,10 +106,8 @@ mcpartra::Particle mcpartra::ResidualSourceA::
     //################################################## SURFACE
   else
   {
-    //====================================== Randomly sample face from CDF
-    size_t rcellface_id = SampleCDF(R_abs_domain_surface_cdf[g], rng);
-
-    const auto& rcellface = residual_info_cell_bndry_faces[g][rcellface_id];
+    //====================================== Get information
+    const auto& rcellface = static_cast<const RCellFace2&>(src_element);
     const uint64_t cell_local_id  = rcellface.cell_local_id;
     const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
@@ -143,7 +150,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       //======================================== Determine weight
       if (std::fabs(rrandom) < std::fabs(r))
-        new_particle.w = r/std::fabs(r);
+        new_particle.w = (r/std::fabs(r))*group_element_biased_cdf_corr[g][elem];
       else
       {
         new_particle.w = 0.0;

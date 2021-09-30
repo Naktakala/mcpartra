@@ -144,5 +144,7 @@ void mcpartra::MaterialSource::
     }//for g
   }
 
+  chi_log.Log(LOG_0) << "Done initializing Material Sources";
+
   BiasCDFs(false); //This just copies cdfs and corrections
 }

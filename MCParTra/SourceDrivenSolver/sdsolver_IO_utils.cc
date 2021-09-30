@@ -561,5 +561,66 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   chi_log.Log() << "MCParTra: Done reading importance map.";
 
   for (auto& src : sources)
-    src->BiasCDFs(true);
+    src->BiasCDFs(false);
+
+  //============================================= Make unknown managers
+  chi_math::UnknownManager uk_man;
+  uk_man.AddUnknown(chi_math::UnknownType::VECTOR_N,3);
+
+  uk_man.SetUnknownTextName(0, "Comp");
+
+  //============================================= Make vectors compatible with
+  //                                              field functions
+  std::vector<double> data_omega_J;
+  std::vector<double> data_exp_coeffs;
+
+  {
+    auto& data_vector = data_omega_J;
+    size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
+
+    data_vector.assign(num_local_dofs, 0.0);
+
+    uint64_t cell_local_id = 0;
+    for (const auto& omega_J : local_cell_importance_directions)
+    {
+      const auto& cell = grid->local_cells[cell_local_id];
+      int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, 0);
+
+      data_vector[dof_map+0] = omega_J.x;
+      data_vector[dof_map+1] = omega_J.y;
+      data_vector[dof_map+2] = omega_J.z;
+
+      ++cell_local_id;
+    }
+  }
+  {
+    auto& data_vector = data_exp_coeffs;
+    size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
+
+    data_vector.assign(num_local_dofs, 0.0);
+
+    uint64_t cell_local_id = 0;
+    for (const auto& coeffs : local_cell_importance_exp_coeffs)
+    {
+      const auto& cell = grid->local_cells[cell_local_id];
+      int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, 0);
+
+      data_vector[dof_map+0] = coeffs.first;
+      data_vector[dof_map+1] = coeffs.second;
+
+      ++cell_local_id;
+    }
+  }
+
+  //============================================= Export interior source
+  //                                              as FieldFunction
+  auto fv_sd = std::dynamic_pointer_cast<SpatialDiscretization>(fv);
+  auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+    "omega_J",                                 //Text name
+    fv_sd,                                     //Spatial Discretization
+    &data_omega_J,                             //Data
+    uk_man,                                  //Nodal variable structure
+    0, 0);                                     //Reference variable and component
+
+  R_ff->ExportMultipleFFToVTK("Z_J", {R_ff});
 }
