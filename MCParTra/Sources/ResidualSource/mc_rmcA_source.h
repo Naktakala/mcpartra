@@ -39,25 +39,12 @@ private:
     double            maximum_rstar_absolute=-1.0e32;
     double            Rstar_absolute=0.0;
   };
-//  typedef std::vector<RCellInterior> VecRCellInterior;
-//  std::vector<VecRCellInterior> residual_info_cell_interiors;
-
-//  /**Structure to store cell-face pairs.*/
-//  struct RCellFace
-//  {
-//    uint64_t cell_local_id=0;
-//    unsigned int ass_face=0;
-//    double maximum_rstar_absolute=-1.0e32;
-//    double Rstar_absolute=0.0;
-//  };
-//  typedef std::vector<RCellFace> VecRCellFace;
-//  std::vector<VecRCellFace> residual_info_cell_bndry_faces;
 
   /**Structure to store cell-face pairs.*/
-  struct RCellFace2 : public RCellInterior
+  struct RCellFace : public RCellInterior
   {
     unsigned int ass_face=0;
-    RCellFace2() {type = RessidualInfoType::Face;}
+    RCellFace() { type = RessidualInfoType::Face;}
   };
 
 private://PDFs

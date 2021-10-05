@@ -4,7 +4,8 @@
 
 void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
 {
-  //======================================== Initialize biased cdfs and corrections
+  //======================================== Initialize biased cdfs and
+  //                                         corrections
   group_element_biased_cdf      = group_element_cdf;
   group_element_biased_cdf_corr = group_element_cdf;
   group_biased_cdf              = group_cdf;
@@ -19,6 +20,7 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
   //======================================== Make simple copy of group-source
   //                                         strenghts
   std::vector<std::vector<double>> group_sources_biased(num_groups);
+
   {
     size_t g = 0;
     for (auto& group_src_biased : group_sources_biased)
@@ -38,14 +40,16 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
   //======================================== Create biased unnormalized PDF
   double IntV_Q_total_local = 0.0;
   std::vector<double> IntV_Q_g(num_groups, 0.0);
+
   {
     size_t g = 0;
     for (auto& group_src : group_sources)
     {
       size_t elem = 0;
-      for (auto& src_elem_pair : group_src)
+      for (auto& residual_info : group_src)
       {
-        const uint64_t cell_local_id = src_elem_pair->cell_local_id;
+        if (residual_info->type == RessidualInfoType::Face) continue;
+        const uint64_t cell_local_id = residual_info->cell_local_id;
 
         uint64_t dof_map = cell_local_id * num_groups + g;
 

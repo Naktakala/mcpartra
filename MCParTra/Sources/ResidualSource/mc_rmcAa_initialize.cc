@@ -157,7 +157,7 @@ void mcpartra::ResidualSourceA::
         }//for i
         face_average_rstar_absolute /= std::max(1, num_points);
 
-        auto rcellface = std::make_unique<RCellFace2>();
+        auto rcellface = std::make_unique<RCellFace>();
 
         rcellface->cell_local_id          = cell.local_id;
         rcellface->ass_face               = f;
@@ -165,6 +165,8 @@ void mcpartra::ResidualSourceA::
         rcellface->Rstar_absolute         = face_average_rstar_absolute * A_f * M_PI;
 
         group_sources[g].push_back(std::move(rcellface));
+
+        R_abs_cellk_interior[cell.local_id] += face_average_rstar_absolute * A_f * M_PI;
       }//for g
       ++f;
     }//for face

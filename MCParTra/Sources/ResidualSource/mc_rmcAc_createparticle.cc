@@ -62,11 +62,11 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       new_particle.pos = GetRandomPositionInCell(rng, cell_geom_info);
 
       //==================================== Sample direction
-//      chi_mesh::Vector3 omega = SampleRandomDirection(rng);
-//      double angular_w_corr = 1.0;
-      auto angle_info = SampleSpecialRandomDirection(rng, g, cell_local_id);
-      chi_mesh::Vector3 omega = angle_info.first;
-      double angular_w_corr   = angle_info.second;
+      chi_mesh::Vector3 omega = SampleRandomDirection(rng);
+      double angular_w_corr = 1.0;
+//      auto angle_info = SampleSpecialRandomDirection(rng, g, cell_local_id);
+//      chi_mesh::Vector3 omega = angle_info.first;
+//      double angular_w_corr   = angle_info.second;
       new_particle.dir = omega;
 
       //==================================== Populate shape values
@@ -107,7 +107,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   else
   {
     //====================================== Get information
-    const auto& rcellface = static_cast<const RCellFace2&>(src_element);
+    const auto& rcellface = static_cast<const RCellFace&>(src_element);
     const uint64_t cell_local_id  = rcellface.cell_local_id;
     const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
     const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);

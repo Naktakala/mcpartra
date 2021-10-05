@@ -110,34 +110,41 @@ std::pair<chi_mesh::Vector3,double> mcpartra::ResidualSourceA::
   //======================================== Define utilities
   const double TWO_PI = 2.0*M_PI;
 
-  auto Isotropic_PDF = [TWO_PI](double mu) {return (1.0/TWO_PI);};
-  auto PDF = [TWO_PI,a,b](double mu) {return (1.0/TWO_PI) * exp( a + b*mu );};
+  auto Isotropic_PDF = [](double mu) {return 0.5;};
+  auto PDF = [TWO_PI,a,b](double mu) {return TWO_PI * exp( a + b*mu );};
 
-  //======================================== Find domain size
+  //======================================== Rejection sample pdf for mu
+  // Find domain size
   double max_psi = 0.0;
   max_psi = std::max(max_psi, PDF(-1.0));
   max_psi = std::max(max_psi, PDF( 1.0));
 
-  //======================================== Rejection sample pdf for mu
   bool rejected = true;
-  double sampled_mu = 1.0;
+  double mu_prime = 1.0;
   for (int i=0; i<10000; ++i)
   {
-    double mu       = rng.Rand()*2.0 - 1.0;
-    double random_y = rng.Rand()*max_psi;
+    mu_prime = rng.Rand() * 2.0 - 1.0;
+    const double random_PDF = rng.Rand() * max_psi;
 
-    if (random_y < PDF(mu))
-    {
-      rejected = false;
-      sampled_mu = mu;
-    }
-
+    if (random_PDF < PDF(mu_prime)) rejected = false;
     if (not rejected) break;
   }
-  if (rejected)
-    std::cout << "Shit happened!\n";
 
-  double weight_correction = Isotropic_PDF(sampled_mu) / PDF(sampled_mu);
+//  const double C_0 = (TWO_PI/b) * exp(a - b);
+//  const double theta_dvi_C0 = rng.Rand()/C_0;
+//  double mu = (1.0/b) * log( exp(-b) * (theta_dvi_C0 + 1) );
+
+  double weight_correction = Isotropic_PDF(mu_prime) / PDF(mu_prime);
+
+  //======================================== Compute omega in ref-coordinates
+  //Sample direction
+  double theta  = acos(mu_prime);
+  double varphi = rng.Rand()*2.0*M_PI;
+
+  chi_mesh::Vector3 omega_prime;
+  omega_prime.x = sin(theta) * cos(varphi);
+  omega_prime.y = sin(theta) * sin(varphi);
+  omega_prime.z = cos(theta);
 
   //======================================== Perform rotation
   //Build rotation matrix
@@ -162,14 +169,7 @@ std::pair<chi_mesh::Vector3,double> mcpartra::ResidualSourceA::
     R.SetColJVec(2, omega_J);
   }
 
-  //Sample direction
-  double theta    = acos(sampled_mu);
-  double varphi   = rng.Rand()*2.0*M_PI;
+  chi_mesh::Vector3 omega = R * omega_prime;
 
-  chi_mesh::Vector3 ref_dir;
-  ref_dir.x = sin(theta)*cos(varphi);
-  ref_dir.y = sin(theta)*sin(varphi);
-  ref_dir.z = cos(theta);
-
-  return std::make_pair(R*ref_dir, weight_correction);
+  return std::make_pair(omega, weight_correction);
 }

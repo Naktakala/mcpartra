@@ -566,14 +566,11 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   //============================================= Make unknown managers
   chi_math::UnknownManager uk_man;
   uk_man.AddUnknown(chi_math::UnknownType::VECTOR_N,3);
-
   uk_man.SetUnknownTextName(0, "Comp");
 
   //============================================= Make vectors compatible with
   //                                              field functions
   std::vector<double> data_omega_J;
-  std::vector<double> data_exp_coeffs;
-
   {
     auto& data_vector = data_omega_J;
     size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
@@ -593,6 +590,7 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
       ++cell_local_id;
     }
   }
+  std::vector<double> data_exp_coeffs;
   {
     auto& data_vector = data_exp_coeffs;
     size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
@@ -615,12 +613,29 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   //============================================= Export interior source
   //                                              as FieldFunction
   auto fv_sd = std::dynamic_pointer_cast<SpatialDiscretization>(fv);
-  auto R_ff = std::make_shared<chi_physics::FieldFunction>(
-    "omega_J",                                 //Text name
-    fv_sd,                                     //Spatial Discretization
-    &data_omega_J,                             //Data
-    uk_man,                                  //Nodal variable structure
-    0, 0);                                     //Reference variable and component
 
-  R_ff->ExportMultipleFFToVTK("Z_J", {R_ff});
+  //Make and export omega_J field function
+  {
+    auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+      "omega_J",                                 //Text name
+      fv_sd,                                     //Spatial Discretization
+      &data_omega_J,                             //Data
+      uk_man,                                    //Nodal variable structure
+      0, 0);                                     //Reference variable and component
+
+    R_ff->ExportToVTK("Z_J2", "omega_J");
+  }
+
+  //Make and export exp_coeffs field function
+  {
+    auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+      "ab",                                    //Text name
+      fv_sd,                                   //Spatial Discretization
+      &data_exp_coeffs,                        //Data
+      uk_man,                                  //Nodal variable structure
+      0, 0);                                   //Reference variable and component
+
+      R_ff->ExportToVTK("Z_ab", "ab");
+  }
+
 }
