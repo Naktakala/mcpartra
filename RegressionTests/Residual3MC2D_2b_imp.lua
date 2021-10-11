@@ -134,7 +134,7 @@ chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD)
 chiLBSSetProperty(phys0,SCATTERING_ORDER,0)
 
 chiLBSInitialize(phys0)
-chiLBSExecute(phys0)
+-- chiLBSExecute(phys0)
 --
 lbs_pwl_ff = chiGetFieldFunctionHandleByName("Flux_g0_m0")
 

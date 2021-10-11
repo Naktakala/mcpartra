@@ -21,31 +21,15 @@ void mcpartra::SourceDrivenSolver::Execute()
 
   chi_math::RandomNumberGenerator rng1;
 
-  chi_mesh::Vector3 avg_pos, max_pos, min_pos(100,100,100);
   for (unsigned long long b : batch_sizes_per_loc)
   {
     for (uint64_t pi=0; pi<b; ++pi)
     {
       mcpartra::Particle prtcl = SampleSources(rng1);
-      avg_pos += prtcl.dir;
-
-      max_pos.x = std::max(max_pos.x,prtcl.pos.x);
-      max_pos.y = std::max(max_pos.y,prtcl.pos.y);
-      max_pos.z = std::max(max_pos.z,prtcl.pos.z);
-
-      min_pos.x = std::min(min_pos.x,prtcl.pos.x);
-      min_pos.y = std::min(min_pos.y,prtcl.pos.y);
-      min_pos.z = std::min(min_pos.z,prtcl.pos.z);
-
       source_particles.push_back(prtcl);
-//      chi_log.Log() << prtcl.dir.PrintS();
     }//for pi in batch
   }//for batch
   size_t k=0;
-  avg_pos /= source_particles.size();
-  chi_log.Log(LOG_0) << "Average source position: " << avg_pos.PrintS();
-  chi_log.Log(LOG_0) << "Max position: " << max_pos.PrintS();
-  chi_log.Log(LOG_0) << "Min position: " << min_pos.PrintS();
   //TODO: End Remove test code
 
 //  if (TextName() == "FMCParTra")
