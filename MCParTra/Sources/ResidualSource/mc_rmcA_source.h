@@ -94,16 +94,20 @@ public:
   void PopulateMaterialData(int mat_id, size_t group_g,
                             MaterialData& mat_data);
 
-  double GetResidualFFPhi(std::vector<double> &N_in,
-                          size_t dofs,
-                          uint64_t cell_local_id,
-                          size_t egrp);
+  std::vector<double>
+    GetResidualFFPhiAtNodes(const chi_mesh::Cell& cell,
+                            size_t num_nodes,
+                            size_t variable_id,
+                            size_t component_id);
 
-  chi_mesh::Vector3 GetResidualFFGradPhi(
-    std::vector<chi_mesh::Vector3>& Grad_in,
-    size_t dofs,
-    uint64_t cell_local_id,
-    size_t egrp);
+  static double GetPhiH(const std::vector<double>& shape_values,
+                        const std::vector<double>& phi,
+                        size_t num_nodes);
+
+  static chi_mesh::Vector3 GetGradPhiH(
+    const std::vector<chi_mesh::Vector3>& grad_shape_values,
+    const std::vector<double>& phi,
+    size_t num_nodes);
 
   std::pair<chi_mesh::Vector3,double>
     SampleSpecialRandomDirection(chi_math::RandomNumberGenerator& rng,

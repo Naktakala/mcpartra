@@ -16,6 +16,7 @@ extern ChiMPI& chi_mpi;
 mcpartra::Particle mcpartra::ResidualSourceA::
   CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
+  typedef chi_mesh::Vector3 Vec3;
   constexpr double FOUR_PI = 4.0*M_PI;
   mcpartra::Particle new_particle;
 
@@ -43,6 +44,8 @@ mcpartra::Particle mcpartra::ResidualSourceA::
     const auto&  cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
     const auto&  cell_r_info    = src_element;
+
+    const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, cell_num_nodes, 0, g);
 
     //====================================== Get material properties
     MaterialData mat_data;
@@ -74,14 +77,8 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       cell_pwl_view->GradShapeValues(new_particle.pos, grad_shape_values);
 
       //==================================== Get Residual
-      double phi = GetResidualFFPhi(shape_values,
-                                    cell_num_nodes,
-                                    cell_local_id,
-                                    g);
-      auto grad_phi = GetResidualFFGradPhi(grad_shape_values,
-                                           cell_num_nodes,
-                                           cell_local_id,
-                                           g);
+      double phi = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
+      Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, cell_num_nodes);
 
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
 
@@ -114,6 +111,8 @@ mcpartra::Particle mcpartra::ResidualSourceA::
     const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
     const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
+    const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, cell_num_nodes, 0, g);
+
     const unsigned int f = rcellface.ass_face;
     const auto& face     = cell.faces[f];
     const auto& n        = face.normal;
@@ -136,10 +135,7 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       cell_pwl_view->ShapeValues(new_particle.pos, shape_values);
 
       //==================================== Get Residual
-      double phi_P = GetResidualFFPhi(shape_values,
-                                      cell_num_nodes,
-                                      cell_local_id,
-                                      g);
+      double phi_P = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
 
       double phi_N = phi_P;
       if (not face.has_neighbor) phi_N = 0.0; //TODO: Specialize for bndries

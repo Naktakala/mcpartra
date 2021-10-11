@@ -171,6 +171,29 @@ struct mcpartra::Particle final
   }
 
   void Kill() {alive = false;}
+
+  std::string PrintStr() const
+  {
+    std::stringstream outstr;
+
+    outstr << "pos                 " << pos.PrintS()        << "\n";
+    outstr << "dir                 " << dir.PrintS()        << "\n";
+    outstr << "w                   " << w                   << "\n";
+    outstr << "egrp                " << egrp                << "\n";
+    outstr << "cur_cell_global_id  " << cur_cell_global_id  << "\n";
+    outstr << "pre_cell_global_id  " << pre_cell_global_id  << "\n";
+    outstr << "cur_cell_local_id   " << cur_cell_local_id   << "\n";
+    outstr << "pre_cell_local_id   " << pre_cell_local_id   << "\n";
+    outstr << "ray_trace_method    " << ray_trace_method    << "\n";
+    outstr << "tally_method        " << tally_method        << "\n";
+    outstr << "tally_mask          " << tally_mask          << "\n";
+    outstr << "cur_cell_importance " << cur_cell_importance << "\n";
+    outstr << "pre_cell_importance " << pre_cell_importance << "\n";
+    outstr << "alive               " << alive               << "\n";
+    outstr << "banked              " << banked              << "\n";
+
+    return outstr.str();
+  }
 };
 
 

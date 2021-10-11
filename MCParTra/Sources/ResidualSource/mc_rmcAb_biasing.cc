@@ -38,8 +38,11 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
   }
 
   //======================================== Create biased unnormalized PDF
+  const size_t num_local_cells = grid->local_cells.size();
+  const size_t num_cell_R_vals = num_local_cells*num_groups;
   double IntV_Q_total_local = 0.0;
   std::vector<double> IntV_Q_g(num_groups, 0.0);
+  std::vector<double> R_abs_cellk_interior_biased(num_cell_R_vals, 0.0);
 
   {
     size_t g = 0;
@@ -58,6 +61,8 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
         group_sources_biased[g][elem] *= importance;
 
         IntV_Q_g[g] += group_sources_biased[g][elem];
+
+        R_abs_cellk_interior_biased[dof_map] += group_sources_biased[g][elem];
 
         ++elem;
       }//for src_elem_pair
@@ -112,4 +117,16 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
     }
     ++g;
   }
+
+  //============================================= Export interior source
+  //                                              as FieldFunction
+  auto fv_sd = std::dynamic_pointer_cast<SpatialDiscretization>(fv_sdm);
+  auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+    "R_interior_biased",                          //Text name
+    fv_sd,                                        //Spatial Discretization
+    &R_abs_cellk_interior_biased,                 //Data
+    ref_solver.uk_man_fv,                         //Nodal variable structure
+    0, 0);                                        //Reference variable and component
+
+    R_ff->ExportToVTKFV("ZRoutBiased","R_interior_biased");
 }

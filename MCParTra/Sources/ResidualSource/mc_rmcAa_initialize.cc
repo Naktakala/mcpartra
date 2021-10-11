@@ -24,6 +24,7 @@ void mcpartra::ResidualSourceA::
              const std::vector<std::pair<int,int>>& ref_m_to_ell_em_map,
              const std::vector<CellGeometryData>& ref_cell_geometry_info)
 {
+  typedef chi_mesh::Vector3 Vec3;
   chi_log.Log(LOG_0) << "Initializing Residual3 Sources";
 
   grid = ref_grid;
@@ -70,7 +71,7 @@ void mcpartra::ResidualSourceA::
     const uint64_t k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
-    size_t num_nodes = pwl->GetCellNumNodes(cell);
+    const size_t num_nodes = pwl->GetCellNumNodes(cell);
     const double V = cell_FV_view->volume;
 
     for (size_t g=0; g < num_groups; ++g)
@@ -80,6 +81,8 @@ void mcpartra::ResidualSourceA::
 
       auto siga = mat_data.siga;
       auto Q    = mat_data.Q;
+
+      const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
 
       double cell_average_rstar_absolute=0.0;
       double cell_maximum_rstar_absolute=-1.0e-32;
@@ -92,10 +95,8 @@ void mcpartra::ResidualSourceA::
         cell_pwl_view->ShapeValues(x_i, shape_values);
         cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
 
-        double phi = GetResidualFFPhi(shape_values, num_nodes, k, g);
-
-        auto grad_phi = GetResidualFFGradPhi(
-          grad_shape_values, num_nodes, cell.local_id, g);
+        double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
+        Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, num_nodes);
 
         double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
 
@@ -124,7 +125,7 @@ void mcpartra::ResidualSourceA::
     const uint64_t k = cell.local_id;
     auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
     auto cell_FV_view  = fv->MapFeView(cell.local_id);
-    size_t num_nodes = pwl->GetCellNumNodes(cell);
+    const size_t num_nodes = pwl->GetCellNumNodes(cell);
 
     unsigned int f=0;
     for (auto& face : cell.faces)
@@ -134,6 +135,8 @@ void mcpartra::ResidualSourceA::
 
       for (size_t g=0; g < num_groups; ++g)
       {
+        const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
+
         double face_average_rstar_absolute=0.0;
         double face_maximum_rstar_absolute = -1.0e32;
         int num_points = (face.has_neighbor)? 0 : 1000;
@@ -143,7 +146,7 @@ void mcpartra::ResidualSourceA::
 
           cell_pwl_view->ShapeValues(x_i, shape_values);
 
-          double phi = GetResidualFFPhi(shape_values, num_nodes, k, g);
+          double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
 
           double phi_N = phi;
           if (not face.has_neighbor)
@@ -171,6 +174,7 @@ void mcpartra::ResidualSourceA::
       ++f;
     }//for face
   }//for cell
+
   chi_log.Log(LOG_0) << "Preparing CDFs.";
 
   //============================================= Determine totals

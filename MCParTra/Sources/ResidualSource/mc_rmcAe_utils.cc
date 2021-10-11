@@ -30,65 +30,71 @@ void mcpartra::ResidualSourceA::
 
 //###################################################################
 /**Obtains a field function interpolant of the flux.*/
-double mcpartra::ResidualSourceA::
-  GetResidualFFPhi(std::vector<double> &N_in,
-                   size_t dofs,
-                   uint64_t cell_local_id,
-                   size_t egrp)
+std::vector<double> mcpartra::ResidualSourceA::
+  GetResidualFFPhiAtNodes(const chi_mesh::Cell &cell,
+                          size_t num_nodes,
+                          size_t variable_id,
+                          size_t component_id)
 {
-  auto& cell = grid->local_cells[cell_local_id];
+  typedef SpatialDiscretization_FE SDMFE;
+  typedef chi_math::SpatialDiscretizationType SDType;
+  const auto SDTypePWLD = SDType::PIECEWISE_LINEAR_DISCONTINUOUS;
 
-  auto& sdm = resid_ff->spatial_discretization;
+  const auto& sdm = resid_ff->spatial_discretization;
 
-  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+  if (sdm->type != SDTypePWLD)
     throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
                                 " Invalid spatial discretization.");
 
-  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(sdm);
+  auto pwl_sdm = std::dynamic_pointer_cast<SDMFE>(sdm);
 
-  auto& uk_man = resid_ff->unknown_manager;
+  const auto& uk_man = resid_ff->unknown_manager;
 
-  double phi = 0.0;
-  for (size_t dof=0; dof<dofs; dof++)
+  std::vector<double> phi(num_nodes, 0.0);
+  for (size_t n=0; n < num_nodes; n++) //node n
   {
-    int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
-
-    phi += (*resid_ff->field_vector_local)[ir]*N_in[dof];
-  }//for dof
+    int64_t dof_map = pwl_sdm->MapDOFLocal(cell,
+                                           n,
+                                           uk_man,
+                                           variable_id,
+                                           component_id);
+    phi[n] = (*resid_ff->field_vector_local)[dof_map];
+  }//for node n
 
   return phi;
 }
 
+
+//###################################################################
+/**Obtains a field function interpolant of the flux.*/
+double mcpartra::ResidualSourceA::
+  GetPhiH(const std::vector<double>& shape_values,
+          const std::vector<double>& phi,
+          size_t num_nodes)
+{
+  double phi_h = 0.0;
+  for (size_t j=0; j < num_nodes; ++j)
+    phi_h += phi[j] * shape_values[j];
+
+  return phi_h;
+}
+
+
 //###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
 chi_mesh::Vector3 mcpartra::ResidualSourceA::
-  GetResidualFFGradPhi(std::vector<chi_mesh::Vector3>& Grad_in,
-                       size_t dofs,
-                       uint64_t cell_local_id,
-                       size_t egrp)
+  GetGradPhiH(
+    const std::vector<chi_mesh::Vector3>& grad_shape_values,
+    const std::vector<double>& phi,
+    size_t num_nodes)
 {
-  auto& cell = grid->local_cells[cell_local_id];
+  chi_mesh::Vector3 gradphi_h;
+  for (size_t j=0; j < num_nodes; ++j)
+    gradphi_h += phi[j] * grad_shape_values[j];
 
-  auto& sdm = resid_ff->spatial_discretization;
-
-  if (sdm->type != chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
-    throw std::invalid_argument(std::string(__PRETTY_FUNCTION__) +
-                                " Invalid spatial discretization.");
-
-  auto pwl_sdm = std::dynamic_pointer_cast<SpatialDiscretization_PWLD>(sdm);
-
-  auto& uk_man = resid_ff->unknown_manager;
-
-  chi_mesh::Vector3 gradphi;
-  for (size_t dof=0; dof<dofs; dof++)
-  {
-    int64_t ir = pwl_sdm->MapDOFLocal(cell,dof,uk_man,0,egrp);
-
-    gradphi = gradphi + (Grad_in[dof]*(*resid_ff->field_vector_local)[ir]);
-  }//for dof
-
-  return gradphi;
+  return gradphi_h;
 }
+
 
 //###################################################################
 /**Samples and exponential importance representation.*/

@@ -14,6 +14,45 @@ void mcpartra::SourceDrivenSolver::Execute()
 {
   chi_log.Log(LOG_0) << "\nExecuting MCParTra solver\n";
 
+  //TODO: Begin Remove test code
+  size_t num_stored_particles = options.num_particles;
+  std::vector<mcpartra::Particle> source_particles;
+  source_particles.reserve(num_stored_particles);
+
+  chi_math::RandomNumberGenerator rng1;
+
+  chi_mesh::Vector3 avg_pos, max_pos, min_pos(100,100,100);
+  for (unsigned long long b : batch_sizes_per_loc)
+  {
+    for (uint64_t pi=0; pi<b; ++pi)
+    {
+      mcpartra::Particle prtcl = SampleSources(rng1);
+      avg_pos += prtcl.dir;
+
+      max_pos.x = std::max(max_pos.x,prtcl.pos.x);
+      max_pos.y = std::max(max_pos.y,prtcl.pos.y);
+      max_pos.z = std::max(max_pos.z,prtcl.pos.z);
+
+      min_pos.x = std::min(min_pos.x,prtcl.pos.x);
+      min_pos.y = std::min(min_pos.y,prtcl.pos.y);
+      min_pos.z = std::min(min_pos.z,prtcl.pos.z);
+
+      source_particles.push_back(prtcl);
+//      chi_log.Log() << prtcl.dir.PrintS();
+    }//for pi in batch
+  }//for batch
+  size_t k=0;
+  avg_pos /= source_particles.size();
+  chi_log.Log(LOG_0) << "Average source position: " << avg_pos.PrintS();
+  chi_log.Log(LOG_0) << "Max position: " << max_pos.PrintS();
+  chi_log.Log(LOG_0) << "Min position: " << min_pos.PrintS();
+  //TODO: End Remove test code
+
+//  if (TextName() == "FMCParTra")
+//    WriteParticlesToFile("ZParticles.data", source_particles);
+//  if (TextName() == "RMCParTra")
+//    source_particles = ReadParticlesFromFile("ZParticles.data");
+
   //============================================= Start batch processing
   double start_time = chi_program_timer.GetTime()/1000.0;
   size_t start_nps_global = nps_global;
@@ -24,6 +63,7 @@ void mcpartra::SourceDrivenSolver::Execute()
     for (uint64_t pi=0; pi<batch_sizes_per_loc[b]; ++pi)
     {
       mcpartra::Particle prtcl = SampleSources(rng0);
+//      mcpartra::Particle prtcl = source_particles[k++];
 
       if (prtcl.alive) nps++;
 

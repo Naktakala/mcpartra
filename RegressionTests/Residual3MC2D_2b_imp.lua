@@ -187,13 +187,15 @@ chiMonteCarlonSetProperty2(phys2,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys2,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",false)
 
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
 chiSolverInitialize(phys2)
-chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
+-- chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys2)
+-- chiSolverExecute(phys1)
 
 rmc_pwl_ff = chiGetFieldFunctionHandleByName("RMCParTra-PWLFlux_g0_m0")
 rmc_imp_ff = chiGetFieldFunctionHandleByName("RMCParTra-FVImportance_g0")
@@ -252,7 +254,8 @@ chiFFInterpolationExecute(slice2)
 chiFFInterpolationExportPython(slice2)
 
 ----############################################### Show plots
-if ((chi_location_id == 0) and (with_plot~=nil)) then
+print(with_plot)
+if ((chi_location_id == 0) and (with_plot==nil)) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
     local handle = io.popen("python3 ZPFFI20.py")

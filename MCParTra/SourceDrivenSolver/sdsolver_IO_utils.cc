@@ -561,7 +561,7 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   chi_log.Log() << "MCParTra: Done reading importance map.";
 
   for (auto& src : sources)
-    src->BiasCDFs(false);
+    src->BiasCDFs(options.apply_source_importance_sampling);
 
   //============================================= Make unknown managers
   chi_math::UnknownManager uk_man;
@@ -638,4 +638,123 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
       R_ff->ExportToVTK("Z_ab", "ab");
   }
 
+}
+
+//###################################################################
+/**Writes a vector of particles to file.*/
+void mcpartra::SourceDrivenSolver::
+  WriteParticlesToFile(const std::string &file_name,
+                       const std::vector<Particle>& particle_list)
+{
+  const std::string fname = __FUNCTION__;
+  auto& chi_log = ChiLog::GetInstance();
+  auto& chi_mpi = ChiMPI::GetInstance();
+
+  chi_log.Log() << "MCParTra: Writing source particles.";
+
+  //============================================= Determine number of particles
+  //                                              to be writting
+  uint64_t num_particles_local = particle_list.size();
+  uint64_t num_particles_globl;
+  MPI_Allreduce(&num_particles_local,         //sendbuf
+                &num_particles_globl,         //recvbuf
+                1, MPI_UNSIGNED_LONG_LONG,    //count, datatype
+                MPI_SUM,                      //operation
+                MPI_COMM_WORLD);              //communicator
+
+  //============================================= Open file sequentially on
+  //                                              each processor
+  std::ofstream file;
+  auto mode_all = std::ofstream::binary | std::ofstream::out;
+  for (int location=0; location < chi_mpi.process_count; ++location)
+  {
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    //=========================================== If location does not have scope
+    //                                            it will go wait at the barrier
+    if (location != chi_mpi.location_id) continue;
+
+    //=========================================== Home location wipes file,
+    //                                            others append to it
+    if (location == 0 and chi_mpi.location_id == location)
+      file.open(file_name, mode_all | std::ofstream::trunc);
+    else
+      file.open(file_name, mode_all | std::ofstream::app);
+
+    //=========================================== Check file is open
+    if (not file.is_open())
+    {
+      chi_log.Log(LOG_ALLWARNING)
+        << fname << "Failed to open " << file_name;
+      continue;
+    }
+
+    //=========================================== Home location writes header
+    if (location == 0 and chi_mpi.location_id == location)
+    {
+      std::string header_info =
+        "MCParTra: Source particle file\n"
+        "Header size: 200 bytes\n"
+        "Structure(type-info):\n"
+        "uint64_t num_particles\n";
+
+      int header_size_limit = 200;
+
+      std::vector<char> header_bytes2(header_size_limit, '-');
+      {
+        int c=0;
+        for (auto character : header_info)
+        {
+          header_bytes2[c++] = character;
+          if (not (c<header_size_limit)) break;
+        }
+      }
+
+      file.write(header_bytes2.data(), header_size_limit);
+
+      file.write((char*)&num_particles_globl,sizeof(uint64_t));
+    }
+
+    //============================================= Write each particle
+    for (const auto& prtcl : particle_list)
+      file.write((char *) &prtcl, sizeof(Particle));
+
+    file.close();
+  }//for each location
+
+  chi_log.Log() << "MCParTra: Done writing source particles.";
+}
+
+
+//###################################################################
+/**Reads a list of particles from a file.*/
+std::vector<mcpartra::Particle> mcpartra::SourceDrivenSolver::
+  ReadParticlesFromFile(const std::string &file_name)
+{
+  const std::string fname = __FUNCTION__;
+  auto& chi_log = ChiLog::GetInstance();
+
+  chi_log.Log() << "MCParTra: Reading particles from file.";
+
+  //============================================= Open file
+  std::ifstream file(file_name, std::ios_base::in | std::ios_base::binary);
+
+  //============================================= Check file is open
+  if (not file.is_open())
+    throw std::logic_error(fname + ": Could not open file " + file_name);
+
+  //============================================= Read header
+  char header_bytes[200];
+  file.read(header_bytes, 200);
+
+  uint64_t file_num_particles = 0;
+  file.read((char*)&file_num_particles, sizeof(uint64_t));
+
+  std::vector<Particle> particle_list(file_num_particles);
+  file.read((char*)particle_list.data(),
+            sizeof(Particle)*static_cast<std::streamsize>(file_num_particles));
+
+  file.close();
+
+  return particle_list;
 }

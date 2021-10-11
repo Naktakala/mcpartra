@@ -8,7 +8,7 @@
 mcpartra::Particle mcpartra::MaterialSource::
   CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
-  const std::string fname{__FUNCTION__};
+  const std::string fname = __FUNCTION__;
 
   Particle new_particle;
 

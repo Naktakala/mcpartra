@@ -248,8 +248,11 @@ public:
   void ReadRunTape(const std::string& file_name);
   void WriteLBSFluxMoments(const std::string& file_name);
   void ReadImportanceMap(const std::string& file_name);
+  static void WriteParticlesToFile(const std::string& file_name,
+                                   const std::vector<Particle>& particle_list);
+  static std::vector<Particle> ReadParticlesFromFile(const std::string& file_name);
 
-  friend class ResidualSourceB;
+
   friend class ResidualSourceA;
 
 };
