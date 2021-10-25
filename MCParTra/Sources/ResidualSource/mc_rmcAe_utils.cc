@@ -1,12 +1,16 @@
 #include "mc_rmcA_source.h"
 
-#include <ChiMesh/Cell/cell_polyhedron.h>
+#include "ChiMesh/Cell/cell.h"
 
-#include <ChiPhysics/chi_physics.h>
-#include "chi_log.h"
+#include "ChiMath/Quadratures/product_quadrature.h"
+#include "ChiMath/Quadratures/LegendrePoly/legendrepoly.h"
+
 #include "SourceDrivenSolver/sdsolver.h"
 
+#include "chi_log.h"
 extern ChiLog& chi_log;
+
+#include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
 //###################################################################
@@ -97,85 +101,128 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
 
 
 //###################################################################
-/**Samples and exponential importance representation.*/
-std::pair<chi_mesh::Vector3,double> mcpartra::ResidualSourceA::
-  SampleSpecialRandomDirection(chi_math::RandomNumberGenerator &rng,
-                               size_t group,
-                               uint64_t cell_local_id)
+/***/
+void mcpartra::ResidualSourceA::ExportCellResidualMoments()
 {
-  size_t dof_map = cell_local_id*num_groups + group;
+  chi_log.Log() << "Exporting Cell Residual Moments";
 
-  const auto& omega_J  = ref_solver.local_cell_importance_directions[dof_map];
-  const auto& a_b_pair = ref_solver.local_cell_importance_exp_coeffs[dof_map];
-  const double a = a_b_pair.first;
-  const double b = a_b_pair.second;
+  auto& rng              = ref_solver.rng0;
+  auto& pwl              = ref_solver.pwl;
+  auto& fv               = fv_sdm;
+  auto& cell_geom_info   = *cell_geometry_info;
 
-  if (std::fabs(b) < 1.0e-8)
-    return std::make_pair(SampleRandomDirection(rng),1.0);
+  const double FOUR_PI   = 4.0*M_PI;
+  typedef chi_mesh::Vector3 Vec3;
 
-  //======================================== Define utilities
-  const double TWO_PI = 2.0*M_PI;
+  //======================================== Define quadrature
+  chi_math::ProductQuadrature quadrature;
+  quadrature.InitializeWithGLC(4,4);
 
-  auto Isotropic_PDF = [](double mu) {return 0.5;};
-  auto PDF = [TWO_PI,a,b](double mu) {return TWO_PI * exp( a + b*mu );};
+  const auto& w_n = quadrature.weights;
+  const auto& omega_n = quadrature.omegas;
+  const auto& abscis_n = quadrature.abscissae;
+  const size_t num_q_points = w_n.size();
 
-  //======================================== Rejection sample pdf for mu
-  // Find domain size
-  double max_psi = 0.0;
-  max_psi = std::max(max_psi, PDF(-1.0));
-  max_psi = std::max(max_psi, PDF( 1.0));
+  quadrature.MakeHarmonicIndices(1,3);
 
-  bool rejected = true;
-  double mu_prime = 1.0;
-  for (int i=0; i<10000; ++i)
+  const auto& m_to_ell_em_map = quadrature.GetMomentToHarmonicsIndexMap();
+  const size_t num_moments = m_to_ell_em_map.size();
+
+  //======================================== Define uk_man
+  chi_math::UnknownManager uk_man_r;
+  for (size_t g=0; g < num_groups; ++g)
+    uk_man_r.AddUnknown(chi_math::UnknownType::VECTOR_N, num_moments);
+
+  //======================================== Init vector
+  const size_t num_dofs = fv->GetNumLocalDOFs(uk_man_r);
+  std::vector<double> r_moments_local(num_dofs, 0.0);
+
+  //======================================== Loop over cells
+  //Predefine N_i and grad_N_i vectors to prevent
+  //unnecessary memory reallocation.
+  std::vector<double>            shape_values;
+  std::vector<chi_mesh::Vector3> grad_shape_values;
+
+  chi_log.Log() << "Checkpoint A";
+
+  for (const auto& cell : grid->local_cells)
   {
-    mu_prime = rng.Rand() * 2.0 - 1.0;
-    const double random_PDF = rng.Rand() * max_psi;
+    const uint64_t k = cell.local_id;
+    auto cell_pwl_view = pwl->GetCellMappingFE(cell.local_id);
+    auto cell_FV_view  = fv->MapFeView(cell.local_id);
+    const size_t num_nodes = pwl->GetCellNumNodes(cell);
+    const double V = cell_FV_view->volume;
 
-    if (random_PDF < PDF(mu_prime)) rejected = false;
-    if (not rejected) break;
-  }
+    for (size_t g=0; g < num_groups; ++g)
+    {
+      MaterialData mat_data;
+      PopulateMaterialData(cell.material_id, g, mat_data);
 
-//  const double C_0 = (TWO_PI/b) * exp(a - b);
-//  const double theta_dvi_C0 = rng.Rand()/C_0;
-//  double mu = (1.0/b) * log( exp(-b) * (theta_dvi_C0 + 1) );
+      auto siga = mat_data.siga;
+      auto Q    = mat_data.Q;
 
-  double weight_correction = Isotropic_PDF(mu_prime) / PDF(mu_prime);
+      const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
 
-  //======================================== Compute omega in ref-coordinates
-  //Sample direction
-  double theta  = acos(mu_prime);
-  double varphi = rng.Rand()*2.0*M_PI;
+      for (size_t n=0; n<num_q_points; ++n)
+      {
+        auto& omega = omega_n.at(n);
+        auto& varphi = abscis_n.at(n).phi;
+        auto& theta  = abscis_n.at(n).theta;
+        double r_avg_omega_n = 0.0;
 
-  chi_mesh::Vector3 omega_prime;
-  omega_prime.x = sin(theta) * cos(varphi);
-  omega_prime.y = sin(theta) * sin(varphi);
-  omega_prime.z = cos(theta);
+        int num_points = 1000; //Number of points to sample
+        for (int i=0; i < num_points; ++i)
+        {
+          auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
 
-  //======================================== Perform rotation
-  //Build rotation matrix
-  chi_mesh::Matrix3x3 R;
+          cell_pwl_view->ShapeValues(x_i, shape_values);
+          cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
 
-  const chi_mesh::Vector3 khat(0.0,0.0,1.0);
+          double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
+          Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, num_nodes);
 
-  if      (omega_J.Dot(khat) >  0.9999999)
-    R.SetDiagonalVec(1.0, 1.0, 1.0);
-  else if (omega_J.Dot(khat) < -0.9999999)
-    R.SetDiagonalVec(1.0, 1.0,-1.0);
-  else
-  {
-    chi_mesh::Vector3 binorm = khat.Cross(omega_J);
-    binorm = binorm/binorm.Norm();
+          r_avg_omega_n += (1.0 / FOUR_PI) * (Q - siga * phi - omega.Dot(grad_phi));
+        }//for i
+        r_avg_omega_n /= num_points;
 
-    chi_mesh::Vector3 tangent = binorm.Cross(omega_J);
-    tangent = tangent/tangent.Norm();
+        for (size_t m=0; m<num_moments; ++m)
+        {
+          auto& ell_em = m_to_ell_em_map[m];
+          unsigned int ell = ell_em.ell;
+          int           em = ell_em.m;
 
-    R.SetColJVec(0, tangent);
-    R.SetColJVec(1, binorm);
-    R.SetColJVec(2, omega_J);
-  }
+          uint64_t dof_map = fv->MapDOFLocal(cell,0,uk_man_r,g,m);
 
-  chi_mesh::Vector3 omega = R * omega_prime;
+          r_moments_local.at(dof_map) += w_n[n] *
+                                         std::fabs(r_avg_omega_n) *
+                                         chi_math::Ylm(ell, em, varphi, theta);
+        }
+      }//for n
+    }//for g
+  }//for cell
 
-  return std::make_pair(omega, weight_correction);
+  chi_log.Log() << "Checkpoint B";
+
+  //============================================= Export interior source
+  //                                              as FieldFunction
+  auto fv_sd = std::dynamic_pointer_cast<SpatialDiscretization>(fv);
+  auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+    "Zrmoms",                                     //Text name
+    fv_sd,                                        //Spatial Discretization
+    &r_moments_local,                             //Data
+    uk_man_r,                                     //Nodal variable structure
+    0, 0);                                        //Reference variable and component
+
+  R_ff->ExportToVTKFV("Zrmoms","Zrmoms",true);
+
+  chi_log.Log() << "Done exporting Cell Residual Moments";
+}
+
+
+mcpartra::CellImportanceInfo mcpartra::ResidualSourceA::
+  GetCellImportanceInfo(const chi_mesh::Cell &cell, size_t g) const
+{
+  size_t info_map = cell.local_id * num_groups + g;
+
+  return ref_solver.local_cell_importance_info[info_map];
 }

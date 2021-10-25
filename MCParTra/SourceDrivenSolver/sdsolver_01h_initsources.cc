@@ -98,14 +98,56 @@ void mcpartra::SourceDrivenSolver::InitSources()
 {
   chi_log.Log() << "MCParTra: Initializing sources";
 
+  //============================================= Initialize importance
+  size_t num_local_cells = grid->local_cells.size();
+  size_t num_imp_elements = num_local_cells *  num_groups;
+  local_cell_importance_info.resize(num_imp_elements);
+  for (auto& info : local_cell_importance_info) info.importance = 1.0;
+
+  //============================================= Map unverified importance info
+  const auto& importance_map = unverified_local_cell_importance_info;
+  for (auto& cg_index_info_pair : importance_map)
+  {
+    auto& cg_index_pair = cg_index_info_pair.first;
+    auto& info          = cg_index_info_pair.second;
+
+    uint64_t cell_global_id = cg_index_pair.first;
+    uint     group_index    = cg_index_pair.second;
+
+    if (grid->IsCellLocal(cell_global_id))
+    {
+      const auto& cell = grid->cells[cell_global_id];
+
+      size_t mg_map = cell.local_id * num_groups + group_index;
+
+      local_cell_importance_info[mg_map] = info;
+    }//if local
+  }//for record
+
+  //============================================= Initialize sources
   for (auto& source : sources)
   {
-    source->Initialize(grid, fv, num_groups, m_to_ell_em_map, cell_geometry_info);
+    source->Initialize(grid,
+                       fv,
+                       num_groups,
+                       m_to_ell_em_map,
+                       cell_geometry_info);
 
     total_globl_source_rate += source->GlobalSourceRate();
     total_local_source_rate += source->LocalSourceRate();
   }
   source_normalization = total_globl_source_rate;
+
+  total_globl_source_rate = 0.0;
+  total_local_source_rate = 0.0;
+  for (auto& source : sources)
+  {
+    source->BiasCDFs(options.apply_source_importance_sampling);
+    total_globl_source_rate += source->GlobalSourceRate();
+    total_local_source_rate += source->LocalSourceRate();
+  }
+  source_normalization = total_globl_source_rate;
+
 
   char buffer[100];
   snprintf(buffer,100,"%g",total_globl_source_rate);

@@ -37,7 +37,9 @@ private:
     RessidualInfoType type = RessidualInfoType::Interior;
     uint64_t          cell_local_id=0;
     double            maximum_rstar_absolute=-1.0e32;
+    double            maximum_rstar_psi_star_absolute=-1.0e32;
     double            Rstar_absolute=0.0;
+    double            Rstar_psi_star_absolute=0.0;
   };
 
   /**Structure to store cell-face pairs.*/
@@ -109,10 +111,10 @@ public:
     const std::vector<double>& phi,
     size_t num_nodes);
 
-  std::pair<chi_mesh::Vector3,double>
-    SampleSpecialRandomDirection(chi_math::RandomNumberGenerator& rng,
-                                 size_t group,
-                                 uint64_t cell_local_id);
+  void ExportCellResidualMoments();
+
+  CellImportanceInfo
+    GetCellImportanceInfo(const chi_mesh::Cell& cell, size_t g) const;
 
 }; //MCPARTRA_RMC_SOURCE_A_H
 

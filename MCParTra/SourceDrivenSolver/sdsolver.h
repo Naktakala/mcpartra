@@ -41,6 +41,9 @@ class SourceDrivenSolver : public chi_physics::Solver
 protected:
   typedef std::shared_ptr<SpatialDiscretization_FV> SDMFVPtr;
   typedef std::shared_ptr<SpatialDiscretization_PWLD> SDMPWLPtr;
+  typedef std::shared_ptr<chi_physics::TransportCrossSections> MGXSPtr;
+  typedef std::shared_ptr<chi_physics::IsotropicMultiGrpSource> MGQPtr;
+  typedef std::pair<uint64_t, unsigned int> CellGrpIndexPair;
 public:
 
   /**Bit-wise identifier to a specific tally. This allows
@@ -69,9 +72,9 @@ private:
   chi_mesh::MeshContinuumPtr            grid = nullptr;
 
   // Materials related members
-  std::map<int, std::shared_ptr<chi_physics::TransportCrossSections>> matid_xs_map2;
+  std::map<int, MGXSPtr>                  matid_xs_map2;
   std::vector<bool>                       matid_has_q_flags;
-  std::map<int, std::shared_ptr<chi_physics::IsotropicMultiGrpSource>> matid_q_map2;
+  std::map<int, MGQPtr>                   matid_q_map2;
   std::map<int, MultigroupScatteringCDFs> matid_scattering_cdfs;
 
   // Tally related members
@@ -89,6 +92,9 @@ public:
   std::vector<double>                   local_cell_importance_setting;
   std::vector<chi_mesh::Vector3>        local_cell_importance_directions;
   std::vector<std::pair<double,double>> local_cell_importance_exp_coeffs;
+
+  std::map<CellGrpIndexPair, CellImportanceInfo> unverified_local_cell_importance_info;
+  std::vector<CellImportanceInfo>       local_cell_importance_info;
 public:
   std::vector<double>                   local_cell_importance;
 
@@ -248,6 +254,7 @@ public:
   void ReadRunTape(const std::string& file_name);
   void WriteLBSFluxMoments(const std::string& file_name);
   void ReadImportanceMap(const std::string& file_name);
+  void ExportImportanceMap(const std::string& pre_fix);
   static void WriteParticlesToFile(const std::string& file_name,
                                    const std::vector<Particle>& particle_list);
   static std::vector<Particle> ReadParticlesFromFile(const std::string& file_name);

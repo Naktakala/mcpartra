@@ -14,7 +14,7 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
 
   if (not apply) return;
 
-  const auto& importances = ref_solver.local_cell_importance;
+  const auto& importance_info = ref_solver.local_cell_importance_info;
 
   //======================================== Create biased unnormalized PDF
   double IntV_Q_total_local = 0.0;
@@ -30,9 +30,11 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
         const auto& element = src_elem_pair.second;
         const uint64_t cell_local_id = element.ParentCellLocalID();
 
-        uint64_t dof_map = cell_local_id * num_groups + g;
+        uint64_t mg_info_map = cell_local_id * num_groups + g;
 
-        const double importance = importances[dof_map];
+        const auto& cell_imp_info = importance_info[mg_info_map];
+
+        const double importance = cell_imp_info.importance;
 
         src_elem_pair.first *= importance;
 

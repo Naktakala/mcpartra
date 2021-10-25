@@ -61,20 +61,20 @@ void mcpartra::SourceDrivenSolver::InitFieldFunctions()
     }//for g
   }//if make_pwld
 
-  for (size_t g=0; g < num_groups; g++)
-  {
-    std::string text_name = TextName() +
-                            std::string("-FVImportance_g") +
-                            std::to_string(g);
-
-    auto ff = std::make_shared<chi_physics::FieldFunction>(
-      text_name,                                     //Text name
-      fv_sd,                                         //Spatial Discretization
-      &local_cell_importance,                        //Data vector
-      uk_man_fv_importance,                          //Unknown manager
-      0, g);                                         //Reference unknown and component
-
-      chi_physics_handler.fieldfunc_stack.push_back(ff);
-      field_functions.push_back(ff);
-  }//for g
+//  for (size_t g=0; g < num_groups; g++)
+//  {
+//    std::string text_name = TextName() +
+//                            std::string("-FVImportance_g") +
+//                            std::to_string(g);
+//
+//    auto ff = std::make_shared<chi_physics::FieldFunction>(
+//      text_name,                                     //Text name
+//      fv_sd,                                         //Spatial Discretization
+//      &local_cell_importance,                        //Data vector
+//      uk_man_fv_importance,                          //Unknown manager
+//      0, g);                                         //Reference unknown and component
+//
+//      chi_physics_handler.fieldfunc_stack.push_back(ff);
+//      field_functions.push_back(ff);
+//  }//for g
 }

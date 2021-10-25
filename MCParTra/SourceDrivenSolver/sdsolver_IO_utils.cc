@@ -470,12 +470,8 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   const std::string fname = __FUNCTION__;
   auto& chi_log = ChiLog::GetInstance();
 
-  chi_log.Log() << "MCParTra: Reading importance map.";
-
-  //============================================= Check grid is available
-  if (grid == nullptr)
-    throw std::logic_error(fname + ": Grid not available yet. This function"
-                                   " must be called after initialization.");
+  chi_log.Log() << "MCParTra: Reading importance map "
+                   "without error checking.";
 
   //============================================= Open file
   std::ifstream file(file_name, std::ios_base::in | std::ios_base::binary);
@@ -496,32 +492,6 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   file.read((char*)&file_num_groups      , sizeof(uint64_t));
   file.read((char*)&file_num_records     , sizeof(uint64_t));
 
-  //============================================= Error check
-  size_t sim_num_global_cells = grid->GetGlobalNumberOfCells();
-  if (file_num_global_cells != sim_num_global_cells)
-    throw std::logic_error(fname + ": Data contained in " + file_name +
-    " is not compatible with the current simulation.  The cell count is "
-    "not equal " + std::to_string(file_num_global_cells) + " (file) vs " +
-    std::to_string(sim_num_global_cells) + " (sim).");
-
-  if (file_num_groups != num_groups)
-    throw std::logic_error(fname + ": Data contained in " + file_name +
-    " is not compatible with the current simulation. The number of groups are "
-    "not equal " + std::to_string(file_num_groups) + " (file) vs " +
-    std::to_string(num_groups) + " (sim).");
-
-
-  //============================================= Size importance data structs
-  size_t num_local_cells = grid->local_cells.size();
-  importance_num_groups = file_num_groups;
-  typedef chi_mesh::Vector3 vec3;
-
-  size_t num_importances = num_local_cells * file_num_groups;
-  local_cell_importance.assign(num_importances, 1.0);
-  local_cell_importance_setting.assign(num_importances, 1.0);
-  local_cell_importance_directions.assign(num_importances, vec3(0.0,0.0,0.0));
-  local_cell_importance_exp_coeffs.assign(num_importances, {0.0,0.0});
-
   //============================================= Read records
   for (uint64_t r=0; r < file_num_records; ++r)
   {
@@ -537,32 +507,30 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
     file.read((char*)&coeff_a              , sizeof(double));
     file.read((char*)&coeff_b              , sizeof(double));
 
-    if (grid->IsCellLocal(cell_global_id))
-    {
-      const auto& cell = grid->cells[cell_global_id];
+    CellGrpIndexPair cell_id_group_id = {cell_global_id, group_id};
 
-      size_t dof_map = cell.local_id * importance_num_groups + group_id;
+    CellImportanceInfo info;
+    info.importance = p1_moments[0];
+    info.omega_J    = chi_mesh::Vector3(p1_moments[1],
+                                        p1_moments[2],
+                                        p1_moments[3]).Normalized();
+    info.a = coeff_a;
+    info.b = coeff_b;
 
-      double phi = p1_moments[0];
-      chi_mesh::Vector3 omega_J(p1_moments[1],
-                                p1_moments[2],
-                                p1_moments[3]);
-      omega_J.Normalize();
-
-      local_cell_importance[dof_map]            = phi;
-      local_cell_importance_setting[dof_map]    = phi;
-      local_cell_importance_directions[dof_map] = omega_J;
-      local_cell_importance_exp_coeffs[dof_map] = std::make_pair(coeff_a,coeff_b);
-    }
+    unverified_local_cell_importance_info[cell_id_group_id] = std::move(info);
   }//for record
 
   file.close();
 
-  chi_log.Log() << "MCParTra: Done reading importance map.";
+  chi_log.Log() << "MCParTra: Done reading importance map "
+                   "without error checking.";
+}
 
-  for (auto& src : sources)
-    src->BiasCDFs(options.apply_source_importance_sampling);
-
+//###################################################################
+/**Exports the importance map to vtk as three different field functions.*/
+void mcpartra::SourceDrivenSolver::
+  ExportImportanceMap(const std::string &pre_fix)
+{
   //============================================= Make unknown managers
   chi_math::UnknownManager uk_man;
   uk_man.AddUnknown(chi_math::UnknownType::VECTOR_N,3);
@@ -571,44 +539,39 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
   //============================================= Make vectors compatible with
   //                                              field functions
   std::vector<double> data_omega_J;
-  {
-    auto& data_vector = data_omega_J;
-    size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
-
-    data_vector.assign(num_local_dofs, 0.0);
-
-    uint64_t cell_local_id = 0;
-    for (const auto& omega_J : local_cell_importance_directions)
-    {
-      const auto& cell = grid->local_cells[cell_local_id];
-      int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, 0);
-
-      data_vector[dof_map+0] = omega_J.x;
-      data_vector[dof_map+1] = omega_J.y;
-      data_vector[dof_map+2] = omega_J.z;
-
-      ++cell_local_id;
-    }
-  }
   std::vector<double> data_exp_coeffs;
+  std::vector<double> data_importance;
+
+  size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
+
+  data_omega_J.assign(num_local_dofs, 0.0);
+  data_exp_coeffs.assign(num_local_dofs, 0.0);
+  data_importance.assign(num_local_dofs, 0.0);
+
+  const auto& data_map = unverified_local_cell_importance_info;
+
+  for (const auto& cell_id_g_info_pair : data_map)
   {
-    auto& data_vector = data_exp_coeffs;
-    size_t num_local_dofs = fv->GetNumLocalDOFs(uk_man);
+    auto& cell_id_g_pair = cell_id_g_info_pair.first;
+    uint64_t cell_global_id = cell_id_g_pair.first;
+    uint     g              = cell_id_g_pair.second;
+    auto& info              = cell_id_g_info_pair.second;
 
-    data_vector.assign(num_local_dofs, 0.0);
+    const auto& cell = grid->cells[cell_global_id];
 
-    uint64_t cell_local_id = 0;
-    for (const auto& coeffs : local_cell_importance_exp_coeffs)
-    {
-      const auto& cell = grid->local_cells[cell_local_id];
-      int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, 0);
+    int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, g);
 
-      data_vector[dof_map+0] = coeffs.first;
-      data_vector[dof_map+1] = coeffs.second;
+    const auto& omega_J = info.omega_J;
+    data_omega_J[dof_map+0] = omega_J.x;
+    data_omega_J[dof_map+1] = omega_J.y;
+    data_omega_J[dof_map+2] = omega_J.z;
 
-      ++cell_local_id;
-    }
+    data_exp_coeffs[dof_map+0] = info.a;
+    data_exp_coeffs[dof_map+1] = info.b;
+
+    data_importance[dof_map+0] = info.importance;
   }
+
 
   //============================================= Export interior source
   //                                              as FieldFunction
@@ -616,28 +579,57 @@ void mcpartra::SourceDrivenSolver::ReadImportanceMap(const std::string &file_nam
 
   //Make and export omega_J field function
   {
-    auto R_ff = std::make_shared<chi_physics::FieldFunction>(
-      "omega_J",                                 //Text name
-      fv_sd,                                     //Spatial Discretization
-      &data_omega_J,                             //Data
-      uk_man,                                    //Nodal variable structure
-      0, 0);                                     //Reference variable and component
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      std::string text_name = TextName() +
+                            std::string("-omega_J_g") +
+                            std::to_string(g);
+      auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+        "omega_J",                                 //Text name
+        fv_sd,                                     //Spatial Discretization
+        &data_omega_J,                             //Data
+        uk_man,                                    //Nodal variable structure
+        0, g);                                     //Reference variable and component
 
-    R_ff->ExportToVTK("Z_J2", "omega_J");
+      R_ff->ExportToVTK(pre_fix + "omega_J", "omega_J");
+    }//for g
   }
 
   //Make and export exp_coeffs field function
   {
-    auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      std::string text_name = TextName() +
+                            std::string("-ab_coeffs_g") +
+                            std::to_string(g);
+      auto R_ff = std::make_shared<chi_physics::FieldFunction>(
       "ab",                                    //Text name
       fv_sd,                                   //Spatial Discretization
       &data_exp_coeffs,                        //Data
       uk_man,                                  //Nodal variable structure
-      0, 0);                                   //Reference variable and component
+      0, g);                                   //Reference variable and component
 
-      R_ff->ExportToVTK("Z_ab", "ab");
+      R_ff->ExportToVTK(pre_fix + "ab", "ab");
+    }//for g
   }
 
+  //Make and export exp_coeffs field function
+  {
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      std::string text_name = TextName() +
+                            std::string("-FVImportance_g") +
+                            std::to_string(g);
+      auto R_ff = std::make_shared<chi_physics::FieldFunction>(
+        text_name,                               //Text name
+        fv_sd,                                   //Spatial Discretization
+        &data_importance,                        //Data
+        uk_man,                                  //Nodal variable structure
+        0, g);                                   //Reference variable and component
+
+      R_ff->ExportToVTK(pre_fix + "importance", "phi");
+    }//for g
+  }
 }
 
 //###################################################################

@@ -29,22 +29,27 @@ end
 chiVolumeMesherExecute();
 
 ----############################################### Set Material IDs
+--All air
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
+--Scattering medium y-extent
 vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,0.8*L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
 
 ----############################################### Set Material IDs
+--Air gap
 vol0b = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0b,0)
 
+--Source
 vol2 = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,0.0,2*0.166666,-1000,1000)
 --vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol2,2)
 
+--End of gap scatterer
 vol1b = chiLogicalVolumeCreate(RPP,-1+2.5,1+2.5,0.9*L,L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1b,1)
 
@@ -134,7 +139,7 @@ chiLBSSetProperty(phys0,DISCRETIZATION_METHOD,PWLD)
 chiLBSSetProperty(phys0,SCATTERING_ORDER,0)
 
 chiLBSInitialize(phys0)
--- chiLBSExecute(phys0)
+chiLBSExecute(phys0)
 --
 lbs_pwl_ff = chiGetFieldFunctionHandleByName("Flux_g0_m0")
 
@@ -157,6 +162,7 @@ chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys1,"APPLY_SOURCE_IMPORTANCE_SAMPLING",true)
 
 tvol0 = chiLogicalVolumeCreate(RPP,2.3333,2.6666,4.16666,4.33333,-1000,1000)
 tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
@@ -167,8 +173,8 @@ tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
 
+chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverInitialize(phys1)
--- chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys1)
 
 fmc_pwl_ff = chiGetFieldFunctionHandleByName("FMCParTra-PWLFlux_g0_m0")
@@ -187,13 +193,14 @@ chiMonteCarlonSetProperty2(phys2,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys2,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
-chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",false)
+chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",true)
 
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
+chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverInitialize(phys2)
--- chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
+chiMonteCarlonExportImportanceMap(phys2, "Y_")
 chiSolverExecute(phys2)
 -- chiSolverExecute(phys1)
 
@@ -265,3 +272,26 @@ chiExportFieldFunctionToVTKG(rmc_pwl_ff,"ZRMC")
 chiExportFieldFunctionToVTKG(rmc_imp_ff,"ZRMCImp")
 chiExportFieldFunctionToVTKG(fmc_pwl_ff,"ZFMC")
 chiExportFieldFunctionToVTKG(lbs_pwl_ff,"ZSn")
+
+--No cell-importance, No angular-importance
+-- FMC QOI-left 7.4983e-03 7.5450e-05
+-- FMC QOI-rite 2.3488e-04 1.2867e-05
+
+--Cell-importance, No angular-importance
+-- FMC QOI-left 7.6999e-03 7.2047e-05
+-- FMC QOI-rite 2.5514e-04 1.2912e-05
+
+
+
+
+--No cell-importance, No angular-importance
+-- RMC QOI-left 2.1860e-03 4.3791e-05
+-- RMC QOI-rite 3.2809e-05 1.4685e-05
+
+--Cell-importance, No angular-importance
+-- RMC QOI-left 2.2269e-03 5.4973e-05 (0.797)^2=0.635
+-- RMC QOI-rite 3.7265e-05 1.1266e-05
+
+--Cell-importance, And angular-importance
+-- RMC QOI-left 2.3027e-03 9.3501e-05 (0.468)^2=0.219
+-- RMC QOI-rite 7.1322e-05 9.5014e-06

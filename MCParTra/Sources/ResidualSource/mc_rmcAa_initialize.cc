@@ -57,6 +57,9 @@ void mcpartra::ResidualSourceA::
   group_sources.resize(num_groups);
   R_abs_cellk_interior.assign(num_local_cells * num_groups, 0.0);
 
+  //============================================= Compute residual moments
+//  ExportCellResidualMoments();
+
   //============================================= Determine group-wise
   //                                              interior source strengths
   chi_log.Log(LOG_0) << "Integrating cell source.";
@@ -76,6 +79,8 @@ void mcpartra::ResidualSourceA::
 
     for (size_t g=0; g < num_groups; ++g)
     {
+      const CellImportanceInfo imp_info = GetCellImportanceInfo(cell, g);
+      const uint64_t kg = k * num_groups + g;
       MaterialData mat_data;
       PopulateMaterialData(cell.material_id, g, mat_data);
 
@@ -86,6 +91,8 @@ void mcpartra::ResidualSourceA::
 
       double cell_average_rstar_absolute=0.0;
       double cell_maximum_rstar_absolute=-1.0e-32;
+      double cell_average_rstar_psi_star_absolute = 0.0;
+      double cell_maximum_rstar_psi_star_absolute =-1.0e-32;
       int num_points = 1000; //Number of points to sample
       for (int i=0; i < num_points; ++i)
       {
@@ -103,15 +110,26 @@ void mcpartra::ResidualSourceA::
         cell_average_rstar_absolute += std::fabs(r);
         cell_maximum_rstar_absolute = std::fmax(cell_maximum_rstar_absolute,
                                                 std::fabs(r));
+
+        cell_average_rstar_psi_star_absolute +=
+          std::fabs( r * imp_info.ExpRep(omega));
+        cell_maximum_rstar_psi_star_absolute =
+          std::fmax(cell_maximum_rstar_psi_star_absolute,
+                    std::fabs( r * imp_info.ExpRep(omega)));
       }//for i
       cell_average_rstar_absolute /= num_points;
+      cell_average_rstar_psi_star_absolute /= num_points;
 
-      R_abs_cellk_interior[k] = cell_average_rstar_absolute * FOUR_PI * V;
+      R_abs_cellk_interior[kg] = cell_average_rstar_absolute * FOUR_PI * V;
 
       auto rcellinterior = std::make_unique<RCellInterior>();
       rcellinterior->cell_local_id          = cell.local_id;
       rcellinterior->maximum_rstar_absolute = cell_maximum_rstar_absolute;
-      rcellinterior->Rstar_absolute         = R_abs_cellk_interior[k];
+      rcellinterior->Rstar_absolute         = R_abs_cellk_interior[kg];
+      rcellinterior->Rstar_psi_star_absolute=
+        cell_average_rstar_psi_star_absolute * FOUR_PI * V;
+      rcellinterior->maximum_rstar_psi_star_absolute =
+        cell_maximum_rstar_psi_star_absolute;
 
       group_sources[g].push_back(std::move(rcellinterior));
     }//for g
@@ -135,6 +153,7 @@ void mcpartra::ResidualSourceA::
 
       for (size_t g=0; g < num_groups; ++g)
       {
+        const uint64_t kg = k * num_groups + g;
         const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
 
         double face_average_rstar_absolute=0.0;
@@ -169,7 +188,7 @@ void mcpartra::ResidualSourceA::
 
         group_sources[g].push_back(std::move(rcellface));
 
-        R_abs_cellk_interior[cell.local_id] += face_average_rstar_absolute * A_f * M_PI;
+        R_abs_cellk_interior[kg] += face_average_rstar_absolute * A_f * M_PI;
       }//for g
       ++f;
     }//for face

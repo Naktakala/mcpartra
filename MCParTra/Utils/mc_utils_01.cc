@@ -21,6 +21,86 @@ chi_mesh::Vector3 mcpartra::
 }
 
 //###################################################################
+/**Samples and exponential importance representation.*/
+std::pair<chi_mesh::Vector3,double> mcpartra::
+  SampleSpecialRandomDirection(chi_math::RandomNumberGenerator &rng,
+                                 const chi_mesh::Vector3& omega_J,
+                                 const std::pair<double,double>& a_b_pair)
+{
+  const double a = a_b_pair.first;
+  const double b = a_b_pair.second;
+
+  if (std::fabs(b) < 1.0e-8)
+    return std::make_pair(SampleRandomDirection(rng),1.0);
+
+  //======================================== Define utilities
+  const double TWO_PI = 2.0*M_PI;
+
+  auto Isotropic_PDF = [](double mu) {return 0.5;};
+  auto Exponential_PDF = [TWO_PI,a,b](double mu) {return TWO_PI * exp(a + b * mu );};
+
+  //======================================== Rejection sample pdf for mu
+//  // Find domain size
+//  double max_psi = 0.0;
+//  max_psi = std::max(max_psi, PDF(-1.0));
+//  max_psi = std::max(max_psi, PDF( 1.0));
+//
+//  bool rejected = true;
+//  double mu_prime = 1.0;
+//  for (int i=0; i<10000; ++i)
+//  {
+//    mu_prime = rng.Rand() * 2.0 - 1.0;
+//    const double random_PDF = rng.Rand() * max_psi;
+//
+//    if (random_PDF < PDF(mu_prime)) rejected = false;
+//    if (not rejected) break;
+//  }
+
+  const double C_0 = (TWO_PI/b) * exp(a - b);
+  const double theta_dvi_C0 = rng.Rand()/C_0;
+  double mu_prime = (1.0/b) * log( exp(-b) * (theta_dvi_C0 + 1) );
+
+  double weight_correction = Isotropic_PDF(mu_prime) / Exponential_PDF(mu_prime);
+
+  //======================================== Compute omega in ref-coordinates
+  //Sample direction
+  double theta  = acos(mu_prime);
+  double varphi = rng.Rand()*2.0*M_PI;
+
+  chi_mesh::Vector3 omega_prime;
+  omega_prime.x = sin(theta) * cos(varphi);
+  omega_prime.y = sin(theta) * sin(varphi);
+  omega_prime.z = cos(theta);
+
+  //======================================== Perform rotation
+  //Build rotation matrix
+  chi_mesh::Matrix3x3 R;
+
+  const chi_mesh::Vector3 khat(0.0,0.0,1.0);
+
+  if      (omega_J.Dot(khat) >  0.9999999)
+    R.SetDiagonalVec(1.0, 1.0, 1.0);
+  else if (omega_J.Dot(khat) < -0.9999999)
+    R.SetDiagonalVec(1.0, 1.0,-1.0);
+  else
+  {
+    chi_mesh::Vector3 binorm = khat.Cross(omega_J);
+    binorm = binorm/binorm.Norm();
+
+    chi_mesh::Vector3 tangent = binorm.Cross(omega_J);
+    tangent = tangent/tangent.Norm();
+
+    R.SetColJVec(0, tangent);
+    R.SetColJVec(1, binorm);
+    R.SetColJVec(2, omega_J);
+  }
+
+  chi_mesh::Vector3 omega = R * omega_prime;
+
+  return std::make_pair(omega, weight_correction);
+}
+
+//###################################################################
 /**Gets a cosine law random direction relative to a normal.*/
 chi_mesh::Vector3 mcpartra::
   RandomCosineLawDirection(chi_math::RandomNumberGenerator& rng,

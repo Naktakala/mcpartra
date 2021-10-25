@@ -33,17 +33,23 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   const auto& src_element = *group_sources[g][elem];
   bool sample_interior = (src_element.type == RessidualInfoType::Interior);
 
+  //======================================== Get reference cell info
+  size_t cell_local_id = src_element.cell_local_id;
+  const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
+  const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
+  const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
+  const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
+
+  const auto imp_info = GetCellImportanceInfo(cell, g);
+
+  const double C_u = src_element.Rstar_absolute;
+  const double C_b = src_element.Rstar_psi_star_absolute;
+
   //################################################## INTERIOR
   if (sample_interior)
   {
     //======================================== Get information
-    size_t cell_local_id = src_element.cell_local_id;
-
-    const auto&  cell           = ref_solver.grid->local_cells[cell_local_id];
-    const auto&  cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
-    const auto&  cell_geom_info = cell_geometry_info->operator[](cell_local_id);
-    const size_t cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
-    const auto&  cell_r_info    = src_element;
+    const auto&  cell_r_info = src_element;
 
     const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, cell_num_nodes, 0, g);
 
@@ -66,32 +72,35 @@ mcpartra::Particle mcpartra::ResidualSourceA::
 
       //==================================== Sample direction
       chi_mesh::Vector3 omega = SampleRandomDirection(rng);
-      double angular_w_corr = 1.0;
-//      auto angle_info = SampleSpecialRandomDirection(rng, g, cell_local_id);
-//      chi_mesh::Vector3 omega = angle_info.first;
-//      double angular_w_corr   = angle_info.second;
       new_particle.dir = omega;
 
       //==================================== Populate shape values
       cell_pwl_view->ShapeValues(new_particle.pos, shape_values);
       cell_pwl_view->GradShapeValues(new_particle.pos, grad_shape_values);
 
-      //==================================== Get Residual
+      //==================================== Compute Residual
       double phi = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
       Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, cell_num_nodes);
 
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
+      double pdf_val = r;
+      double pdf_random = rng.Rand() * cell_r_info.maximum_rstar_absolute;
+      double angular_w_corr = 1.0;
 
-      double rrandom = rng.Rand() * cell_r_info.maximum_rstar_absolute;
+      //==================================== Compute angular bias
+//      double psi_star = imp_info.ExpRep(omega);
+//      double angular_w_corr = C_b / (C_u * psi_star);
+//
+//      double pdf_val = r * psi_star;
+//      double pdf_random = rng.Rand() * cell_r_info.maximum_rstar_psi_star_absolute;
 
       //======================================== Determine weight
-      if (std::fabs(rrandom) < std::fabs(r))
+      if (std::fabs(pdf_random) < std::fabs(pdf_val))
         new_particle.w = (r/std::fabs(r))*
                          group_element_biased_cdf_corr[g][elem]*
                          angular_w_corr;
       else
       {
-        new_particle.w = 0.0;
         new_particle.alive = false;
         particle_rejected = true;
       }
@@ -105,11 +114,6 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   {
     //====================================== Get information
     const auto& rcellface = static_cast<const RCellFace&>(src_element);
-    const uint64_t cell_local_id  = rcellface.cell_local_id;
-    const auto&    cell           = ref_solver.grid->local_cells[cell_local_id];
-    const auto&    cell_pwl_view  = ref_solver.pwl->GetCellMappingFE(cell_local_id);
-    const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
-    const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
     const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, cell_num_nodes, 0, g);
 

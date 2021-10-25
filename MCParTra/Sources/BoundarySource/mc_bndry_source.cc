@@ -2,17 +2,15 @@
 
 #include "SourceDrivenSolver/sdsolver.h"
 
-#include <ChiMesh/MeshContinuum/chi_meshcontinuum.h>
-#include <ChiMesh/Cell/cell_slab.h>
-#include <ChiMesh/Cell/cell_polygon.h>
-#include <ChiMesh/Cell/cell_polyhedron.h>
+#include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
+#include "ChiMesh/Cell/cell.h"
 
-#include <ChiMath/SpatialDiscretization/FiniteVolume/fv.h>
+#include "ChiMath/SpatialDiscretization/FiniteVolume/fv.h"
 #include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_slab.h>
 #include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polygon.h>
 #include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polyhedron.h>
 
-#include <ChiMath/Statistics/cdfsampler.h>
+#include "ChiMath/Statistics/cdfsampler.h"
 
 #include "chi_log.h"
 
@@ -166,10 +164,10 @@ mcpartra::Particle mcpartra::BoundarySource::
   }
   else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
   {
-    auto polyh_cell = (chi_mesh::CellPolyhedron*)(&cell);
+//    auto polyh_cell = (chi_mesh::CellPolyhedron*)(&cell);
     auto polyh_fv_view = (PolyhedronFVValues*)fv_view;
 
-    auto edges = polyh_cell->GetFaceEdges(f);
+//    auto edges = polyh_cell->GetFaceEdges(f);
 
     //===================== Sample side
     double rn = rng.Rand();
@@ -188,7 +186,8 @@ mcpartra::Particle mcpartra::BoundarySource::
     while ((u+v)>1.0)
     {u = rng.Rand(); v = rng.Rand();}
 
-    chi_mesh::Vector3& v0 = grid->vertices[edges[s][0]];
+    const uint64_t vid = cell.faces[f].vertex_ids[s];
+    const chi_mesh::Vector3& v0 = grid->vertices[vid];
     new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
                             polyh_fv_view->face_side_vectors[f][s][1]*v;
   }

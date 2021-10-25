@@ -15,7 +15,7 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
 
   if (not apply) return;
 
-  const auto& importances = ref_solver.local_cell_importance;
+  const auto& importance_info = ref_solver.local_cell_importance_info;
 
   //======================================== Make simple copy of group-source
   //                                         strenghts
@@ -54,15 +54,17 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
         if (residual_info->type == RessidualInfoType::Face) continue;
         const uint64_t cell_local_id = residual_info->cell_local_id;
 
-        uint64_t dof_map = cell_local_id * num_groups + g;
+        const uint64_t mg_info_map = cell_local_id * num_groups + g;
+        const auto& cell_imp_info = importance_info[mg_info_map];
 
-        const double importance = importances[dof_map];
+        const double importance = cell_imp_info.importance;
 
         group_sources_biased[g][elem] *= importance;
 
         IntV_Q_g[g] += group_sources_biased[g][elem];
 
-        R_abs_cellk_interior_biased[dof_map] += group_sources_biased[g][elem];
+        R_abs_cellk_interior_biased[mg_info_map] +=
+          group_sources_biased[g][elem];
 
         ++elem;
       }//for src_elem_pair

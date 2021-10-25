@@ -47,8 +47,26 @@ namespace mcpartra
     std::vector<std::vector<double>> faces_surface_elements_cdf;
   };
 
+  struct CellImportanceInfo
+  {
+    double importance = 1.0;
+    chi_mesh::Vector3 omega_J;
+    double a = std::log(0.5);
+    double b = 0.0;
+
+    double ExpRep(const chi_mesh::Vector3& omega) const
+    {
+      double mu_J = omega.Dot(omega_J);
+      return exp( a + b * mu_J);
+    }
+  };
+
   //mc_utils_01
   chi_mesh::Vector3 SampleRandomDirection(chi_math::RandomNumberGenerator& rng);
+  std::pair<chi_mesh::Vector3,double>
+    SampleSpecialRandomDirection(chi_math::RandomNumberGenerator& rng,
+                                 const chi_mesh::Vector3& omega_J,
+                                 const std::pair<double,double>& a_b_pair);
   chi_mesh::Vector3 RandomCosineLawDirection(chi_math::RandomNumberGenerator& rng,
                                              const chi_mesh::Vector3& normal);
   std::pair<double,double> OmegaToPhiThetaSafe(const chi_mesh::Vector3& omega);

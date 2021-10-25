@@ -18,6 +18,7 @@ namespace lua_utils
   int chiMonteCarlonWriteLBSFluxMoments(lua_State* L);
   int chiMonteCarlonSetImportances(lua_State* L);
   int chiMonteCarlonReadImportanceMap(lua_State* L);
+  int chiMonteCarlonExportImportanceMap(lua_State* L);
   int chiMonteCarlonSetProperty2(lua_State* L);
   int chiMonteCarlonAddCustomVolumeTally(lua_State* L);
 

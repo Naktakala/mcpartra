@@ -40,6 +40,8 @@ void mcpartra::lua_utils::RegisterLuaEntities(lua_State *L)
                mcpartra::lua_utils::chiMonteCarlonSetImportances);
   lua_register(L, "chiMonteCarlonReadImportanceMap",
                mcpartra::lua_utils::chiMonteCarlonReadImportanceMap);
+  lua_register(L, "chiMonteCarlonExportImportanceMap",
+               mcpartra::lua_utils::chiMonteCarlonExportImportanceMap);
   lua_register(L, "chiMonteCarlonSetProperty2",
                mcpartra::lua_utils::chiMonteCarlonSetProperty2);
   lua_register(L, "chiMonteCarlonAddCustomVolumeTally",

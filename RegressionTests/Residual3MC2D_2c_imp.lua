@@ -29,29 +29,33 @@ end
 chiVolumeMesherExecute();
 
 ----############################################### Set Material IDs
+--All air
 vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
+--Scattering medium y-extent
 vol1 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,0.8*L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1,1)
 
 
 
 ----############################################### Set Material IDs
+--Air gap
 vol0b = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0b,0)
 
+--Source
 -- vol2 = chiLogicalVolumeCreate(RPP,-0.166666+2.5,0.166666+2.5,0.0,2*0.166666,-1000,1000)
 vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
---vol2 = chiLogicalVolumeCreate(RPP,-1000,1000,0.0,2*0.166666,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol2,2)
 
+--End of gap scatterer
 vol1b = chiLogicalVolumeCreate(RPP,-1+2.5,1+2.5,0.9*L,L,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol1b,1)
 
 
 
---############################################### Add materials
+----############################################### Add materials
 materials = {}
 materials[1] = chiPhysicsAddMaterial("Test Material");
 materials[2] = chiPhysicsAddMaterial("Test Material2");
@@ -169,6 +173,7 @@ chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
 
 chiSolverInitialize(phys1)
+-- chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys1)
 
 fmc_pwl_ff = chiGetFieldFunctionHandleByName("FMCParTra-PWLFlux_g0_m0")
@@ -187,14 +192,19 @@ chiMonteCarlonSetProperty2(phys2,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys2,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",true)
 
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
+chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverInitialize(phys2)
+chiMonteCarlonExportImportanceMap(phys2, "Y_")
 chiSolverExecute(phys2)
+-- chiSolverExecute(phys1)
 
 rmc_pwl_ff = chiGetFieldFunctionHandleByName("RMCParTra-PWLFlux_g0_m0")
+rmc_imp_ff = chiGetFieldFunctionHandleByName("RMCParTra-FVImportance_g0")
 
 ----############################################### Getting Sn and MC solution
 cline0 = chiFFInterpolationCreate(LINE)
@@ -250,12 +260,29 @@ chiFFInterpolationExecute(slice2)
 chiFFInterpolationExportPython(slice2)
 
 ----############################################### Show plots
-if ((chi_location_id == 0) and (with_plot~=nil)) then
+print(with_plot)
+if ((chi_location_id == 0) and (with_plot==nil)) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
     local handle = io.popen("python3 ZPFFI20.py")
 end
 
 chiExportFieldFunctionToVTKG(rmc_pwl_ff,"ZRMC")
+chiExportFieldFunctionToVTKG(rmc_imp_ff,"ZRMCImp")
 chiExportFieldFunctionToVTKG(fmc_pwl_ff,"ZFMC")
 chiExportFieldFunctionToVTKG(lbs_pwl_ff,"ZSn")
+
+-- FMC QOI-left 1.1833e-02 3.8371e-04
+-- FMC QOI-rite 1.1031e-03 1.0050e-04
+
+--No cell-importance, No angular-importance
+-- RMC QOI-left 2.1439e-03 1.4177e-04
+-- RMC QOI-rite 1.3331e-04 6.6073e-05
+
+--Cell-importance, No angular-importance
+-- RMC QOI-left 2.0421e-03 1.2297e-04 (1.15)^2=1.33
+-- RMC QOI-rite 6.1596e-05 2.8230e-05
+
+--Cell-importance, And angular-importance
+-- RMC QOI-left 2.5779e-03 9.6191e-05 (1.47)^2=2.17
+-- RMC QOI-rite 2.3451e-04 3.0197e-05

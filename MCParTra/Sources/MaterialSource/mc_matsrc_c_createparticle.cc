@@ -30,9 +30,17 @@ mcpartra::Particle mcpartra::MaterialSource::
 
   //======================================== Sample direction
   new_particle.dir = SampleRandomDirection(rng);
+  double angular_w_corr = 1.0;
+
+//  const uint64_t cell_local_id = src_element.ParentCellLocalID();
+//  const auto& imp_info = ref_solver.local_cell_importance_info[cell_local_id];
+//  const auto& omega_J = imp_info.omega_J;
+//
+//  auto omega_w = SampleSpecialRandomDirection(rng,omega_J, {imp_info.a, imp_info.b});
+//  double angular_w_corr = 1.0;
 
   //======================================== Determine weight
-  new_particle.w = 1.0 * group_element_biased_cdf_corr[g][elem];
+  new_particle.w = 1.0 * group_element_biased_cdf_corr[g][elem]*angular_w_corr;
 
   new_particle.cur_cell_local_id  = src_element.ParentCellLocalID();
   new_particle.cur_cell_global_id = src_element.ParentCellGlobalID();
