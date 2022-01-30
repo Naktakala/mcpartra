@@ -5,20 +5,24 @@
 #include "Sources/mc_volume_src_element.h"
 #include "Sources/mc_surface_src_element.h"
 
-#include <ChiPhysics/chi_physics.h>
+#include "ChiPhysics/chi_physics.h"
 
-#include <ChiMath/chi_math.h>
+#include "ChiMath/chi_math.h"
+#include "ChiMath/Quadratures/angular_quadrature_base.h"
 
 //###################################################################
 /**Residual source class.*/
 class mcpartra::ResidualSourceA : public mcpartra::SourceBase
 {
+  typedef chi_math::AngularQuadrature::HarmonicIndices EllEmIndices;
+
 public:
   std::shared_ptr<chi_physics::FieldFunction> resid_ff;
 private:
   /**Simplified material structure that can be passed around.*/
   struct MaterialData
   {
+    double sigt=0;
     double siga=0.0;
     double Q=0.0;
   };
@@ -106,15 +110,72 @@ public:
                         const std::vector<double>& phi,
                         size_t num_nodes);
 
+  static double GetPsiH(const std::vector<double>& shape_values,
+                        const std::vector<VecDbl>& phi,
+                        const chi_mesh::Vector3 omega,
+                        size_t num_nodes,
+                        const std::vector<EllEmIndices>& m_to_ell_em_map);
+
   static chi_mesh::Vector3 GetGradPhiH(
     const std::vector<chi_mesh::Vector3>& grad_shape_values,
     const std::vector<double>& phi,
     size_t num_nodes);
 
+  static chi_mesh::Vector3 GetGradPsiH(
+    const std::vector<chi_mesh::Vector3>& grad_shape_values,
+    const std::vector<VecDbl>& phi,
+    const chi_mesh::Vector3 omega,
+    size_t num_nodes,
+    const std::vector<EllEmIndices>& m_to_ell_em_map);
+
   void ExportCellResidualMoments();
 
-  CellImportanceInfo
-    GetCellImportanceInfo(const chi_mesh::Cell& cell, size_t g) const;
+  int GetGridDimension() const
+  {
+    const auto& first_cell = grid->local_cells[0];
+    if (first_cell.Type() == chi_mesh::CellType::SLAB) return 1;
+    if (first_cell.Type() == chi_mesh::CellType::POLYGON) return 2;
+    if (first_cell.Type() == chi_mesh::CellType::POLYHEDRON) return 3;
+
+    return 0;
+  }
+
+  std::vector<chi_math::AngularQuadrature::HarmonicIndices>
+    MakeHarmonicIndices(size_t num_moms, int dimension) const
+  {
+    size_t scattering_order = 0;
+    if (dimension == 1) scattering_order = num_moms - 1;
+    if (dimension == 2)
+    {
+      const int C1 = floor(-0.25 + 0.5 * sqrt(2.0 * num_moms - 1));
+      const int C2 = num_moms - 1 - 2 * C1 - 2 * C1 * C1;
+
+      scattering_order = 2 * C1 + C2/std::max(1, C2);
+    }
+    if (dimension == 3) scattering_order = sqrt(num_moms) - 1;
+
+    const int L = static_cast<int>(scattering_order);
+
+    std::vector<EllEmIndices> m_to_ell_em_map;
+
+    if (dimension == 1)
+      for (int ell=0; ell<=L; ell++)
+        m_to_ell_em_map.emplace_back(ell,0);
+    else if (dimension == 2)
+      for (int ell=0; ell<=L; ell++)
+        for (int m=-ell; m<=ell; m+=2)
+        {
+          if (ell == 0 or m != 0)
+            m_to_ell_em_map.emplace_back(ell,m);
+        }
+    else if (dimension == 3)
+      for (int ell=0; ell<=L; ell++)
+        for (int m=-ell; m<=ell; m++)
+          m_to_ell_em_map.emplace_back(ell,m);
+
+    return m_to_ell_em_map;
+  }
+
 
 }; //MCPARTRA_RMC_SOURCE_A_H
 

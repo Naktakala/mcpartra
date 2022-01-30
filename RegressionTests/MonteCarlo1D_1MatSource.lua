@@ -77,11 +77,14 @@ chiMonteCarlonCreateSource(phys1,"MATERIAL_SRC");
 chiMonteCarlonSetProperty2(phys1,"NUM_PARTICLES"              ,1e6)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MERGE_INTVL"          ,1e5)
 chiMonteCarlonSetProperty2(phys1,"SCATTERING_ORDER"           ,0)
-chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,false)
+chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
 chiMonteCarlonSetProperty2(phys1,"UNCOLLIDED_ONLY"            ,false)
+
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,0.6*L/5,0.65*L/5)
+chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
 
 chiSolverInitialize(phys1)
 chiSolverExecute(phys1)
@@ -99,19 +102,22 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,32)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,64)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys1)
 cur_gs = gs0
-chiLBSGroupsetAddGroups(phys1,cur_gs,0,num_groups-1)
+--chiLBSGroupsetAddGroups(phys1,cur_gs,0,num_groups-1)
+chiLBSGroupsetAddGroups(phys1,cur_gs,0,0)
 chiLBSGroupsetSetQuadrature(phys1,cur_gs,pquad)
 chiLBSGroupsetSetAngleAggDiv(phys1,cur_gs,1)
 chiLBSGroupsetSetGroupSubsets(phys1,cur_gs,1)
 -- chiLBSGroupsetSetAngleAggregationType(phys1,cur_gs,LBSGroupset.ANGLE_AGG_SINGLE)
 chiLBSGroupsetSetIterativeMethod(phys1,cur_gs,NPT_GMRES_CYCLES)
+--chiLBSGroupsetSetIterativeMethod(phys1,cur_gs,NPT_CLASSICRICHARDSON)
 chiLBSGroupsetSetResidualTolerance(phys1,cur_gs,1.0e-6)
 chiLBSGroupsetSetMaxIterations(phys1,cur_gs,300)
+--chiLBSGroupsetSetMaxIterations(phys1,cur_gs,1)
 chiLBSGroupsetSetGMRESRestartIntvl(phys1,cur_gs,100)
 --chiLBSGroupsetSetWGDSA(phys1,cur_gs,30,1.0e-4,false," ")
 --chiLBSGroupsetSetTGDSA(phys1,cur_gs,30,1.0e-4,false," ")

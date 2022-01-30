@@ -4,6 +4,8 @@
 /**Resizes all the underlying data structures.*/
 void mcpartra::MultigroupTally::Resize(size_t tally_size)
 {
+  counter_local       .resize(tally_size, 0);
+  counter_global      .resize(tally_size, 0);
   tally_local         .resize(tally_size, 0.0);
   tally_global        .resize(tally_size, 0.0);
   tally_sqr_local     .resize(tally_size, 0.0);
@@ -19,6 +21,8 @@ void mcpartra::MultigroupTally::Resize(size_t tally_size)
 mcpartra::MultigroupTally& mcpartra::MultigroupTally::
   operator=(const MultigroupTally& that)
 {
+  counter_local        = that.counter_local;
+  counter_global       = that.counter_global;
   tally_local          = that.tally_local;
   tally_global         = that.tally_global;
   tally_sqr_local      = that.tally_sqr_local;
@@ -36,6 +40,8 @@ void mcpartra::MultigroupTally::ZeroOut()
 {
   size_t tally_size = tally_local.size();
 
+  counter_local          .assign(tally_size, 0);
+  counter_global         .assign(tally_size, 0);
   tally_local          .assign(tally_size, 0.0);
   tally_global         .assign(tally_size, 0.0);
   tally_sqr_local      .assign(tally_size, 0.0);
@@ -54,6 +60,8 @@ mcpartra::MultigroupTally& mcpartra::MultigroupTally::
 
   for (size_t i=0; i<tally_size; ++i)
   {
+    counter_local       [i] += that.counter_local       [i];
+    counter_global      [i] += that.counter_global      [i];
     tally_local         [i] += that.tally_local         [i];
     tally_global        [i] += that.tally_global        [i];
     tally_sqr_local     [i] += that.tally_sqr_local     [i];

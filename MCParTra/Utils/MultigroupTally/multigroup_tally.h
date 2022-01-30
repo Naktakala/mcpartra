@@ -2,6 +2,7 @@
 #define MCPARTRA_GRIDTALLYBLOCK_H
 
 #include <vector>
+#include <cstdint>
 
 namespace mcpartra
 {
@@ -12,6 +13,8 @@ class MultigroupTally
 private:
   bool is_empty = true;
 public:
+  std::vector<uint64_t> counter_local;
+  std::vector<uint64_t> counter_global;
   std::vector<double> tally_local;
   std::vector<double> tally_global;
   std::vector<double> tally_sqr_local;

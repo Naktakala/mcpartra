@@ -29,6 +29,7 @@ void mcpartra::SourceDrivenSolver::
 
         double tlw_Ylm = tlw * prtcl.moment_values[m];
 
+        tally.grid_tally.counter_local[dof_map]   += 1;
         tally.grid_tally.tally_local[dof_map]     += tlw_Ylm;
         tally.grid_tally.tally_sqr_local[dof_map] += tlw_Ylm * tlw_Ylm;
       }//for m
@@ -46,6 +47,7 @@ void mcpartra::SourceDrivenSolver::
 
         double tlw_Ylm = tlw * prtcl.moment_values[m];
 
+        grid_tally_blocks[t].counter_local[dof_map]   += 1;
         grid_tally_blocks[t].tally_local[dof_map]     += tlw_Ylm;
         grid_tally_blocks[t].tally_sqr_local[dof_map] += tlw_Ylm * tlw_Ylm;
       }//for m
@@ -77,11 +79,12 @@ void mcpartra::SourceDrivenSolver::
         {
           for (size_t m=0; m < num_moments; ++m)
           {
-            int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld,/*m*/0, prtcl.egrp);
+            int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld,m, prtcl.egrp);
 
             double pwl_tlw_Ylm = segment_length * prtcl.w * N_f[i] *
                                  prtcl.moment_values[m];
 
+            grid_tally_blocks[t].counter_local[dof_map]   += 1;
             grid_tally_blocks[t].tally_local[dof_map]     += pwl_tlw_Ylm;
             grid_tally_blocks[t].tally_sqr_local[dof_map] += pwl_tlw_Ylm *
                                                              pwl_tlw_Ylm;

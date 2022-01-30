@@ -20,6 +20,7 @@ void mcpartra::ResidualSourceA::
 {
   auto xs = ref_solver.matid_xs_map2[mat_id];
   double siga = xs->sigma_a[group_g];
+  double sigt = xs->sigma_t[group_g];
 
   double Q    = 0.0;
   if (ref_solver.matid_has_q_flags[mat_id])
@@ -85,6 +86,39 @@ double mcpartra::ResidualSourceA::
 
 
 //###################################################################
+/**Obtains a field function interpolant of the angular flux.*/
+double mcpartra::ResidualSourceA::
+  GetPsiH(const std::vector<double>& shape_values,
+          const std::vector<VecDbl>& phi,
+          const chi_mesh::Vector3 omega,
+          size_t num_nodes,
+          const std::vector<EllEmIndices>& m_to_ell_em_map)
+{
+  const size_t num_moms = phi.size();
+
+  const auto phi_theta   = OmegaToPhiThetaSafe(omega);
+  const double& varphi   = phi_theta.first;
+  const double& theta    = phi_theta.second;
+
+  double psi_h = 0.0;
+  for (size_t m=0; m<num_moms; ++m)
+  {
+    const EllEmIndices& ell_em = m_to_ell_em_map[m];
+    const unsigned int ell = ell_em.ell;
+    const int           em = ell_em.m;
+
+    const double Y_ell_em = chi_math::Ylm(ell, em, varphi, theta);
+    const double factor = ((2.0*ell + 1.0)/4.0/M_PI);
+
+    for (size_t j=0; j < num_nodes; ++j)
+      psi_h += factor * Y_ell_em * phi[m][j] * shape_values[j];
+  }
+
+  return psi_h;
+}
+
+
+//###################################################################
 /**Obtains a field function interpolant of the flux-gradient.*/
 chi_mesh::Vector3 mcpartra::ResidualSourceA::
   GetGradPhiH(
@@ -97,6 +131,39 @@ chi_mesh::Vector3 mcpartra::ResidualSourceA::
     gradphi_h += phi[j] * grad_shape_values[j];
 
   return gradphi_h;
+}
+
+//###################################################################
+/**Obtains a field function interpolant of the angular flux-gradient.*/
+chi_mesh::Vector3 mcpartra::ResidualSourceA::
+  GetGradPsiH(
+    const std::vector<chi_mesh::Vector3>& grad_shape_values,
+    const std::vector<VecDbl>& phi,
+    const chi_mesh::Vector3 omega,
+    size_t num_nodes,
+    const std::vector<EllEmIndices>& m_to_ell_em_map)
+{
+  const size_t num_moms = phi.size();
+
+  const auto phi_theta   = OmegaToPhiThetaSafe(omega);
+  const double& varphi   = phi_theta.first;
+  const double& theta    = phi_theta.second;
+
+  chi_mesh::Vector3 grad_psi_h(0.0, 0.0, 0.0);
+  for (size_t m=0; m<num_moms; ++m)
+  {
+    const EllEmIndices& ell_em = m_to_ell_em_map[m];
+    const unsigned int ell = ell_em.ell;
+    const int           em = ell_em.m;
+
+    const double Y_ell_em = chi_math::Ylm(ell, em, varphi, theta);
+    const double factor = ((2.0*ell + 1.0)/4.0/M_PI);
+
+    for (size_t j=0; j < num_nodes; ++j)
+      grad_psi_h += factor * Y_ell_em * phi[m][j] * grad_shape_values[j];
+  }
+
+  return grad_psi_h;
 }
 
 
@@ -213,16 +280,9 @@ void mcpartra::ResidualSourceA::ExportCellResidualMoments()
     uk_man_r,                                     //Nodal variable structure
     0, 0);                                        //Reference variable and component
 
-  R_ff->ExportToVTKFV("Zrmoms","Zrmoms",true);
+  R_ff->ExportToVTKFV("Y_Rmoms","Zrmoms",true);
 
   chi_log.Log() << "Done exporting Cell Residual Moments";
 }
 
 
-mcpartra::CellImportanceInfo mcpartra::ResidualSourceA::
-  GetCellImportanceInfo(const chi_mesh::Cell &cell, size_t g) const
-{
-  size_t info_map = cell.local_id * num_groups + g;
-
-  return ref_solver.local_cell_importance_info[info_map];
-}

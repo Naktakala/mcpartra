@@ -14,35 +14,29 @@ void mcpartra::SourceDrivenSolver::NormalizeTallies()
 
   if (nps_global == 0) nps_global = 1;
 
+  const double normalization = source_normalization *
+                               options.tally_multipl_factor /
+                               static_cast<double>(nps_global);
+
   //======================================== FV Tallies
   for (unsigned int t : fv_tallies)
   {
-    if (not grid_tally_blocks[t].empty())
+    auto& grid_tally = grid_tally_blocks[t];
+    if (not grid_tally.empty())
     {
-      auto& tally_global = grid_tally_blocks[t].tally_global;
-      auto& tally_sigma  = grid_tally_blocks[t].tally_sigma;
       for (auto& cell : grid->local_cells)
       {
         auto cell_fv_view = fv->MapFeView(cell.local_id);
+        const double cell_volume = cell_fv_view->volume;
 
         for (size_t m=0; m < num_moments; ++m)
         {
           for (size_t g=0; g < num_groups; ++g)
           {
-            int64_t _dof_map = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
-            auto dof_map = static_cast<uint64_t>(_dof_map);
+            const int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
-            grid_tally_blocks[t].tally_global[dof_map] *=
-              source_normalization *
-              options.tally_multipl_factor /
-                (double)nps_global /
-              cell_fv_view->volume;
-
-            grid_tally_blocks[t].tally_sigma[dof_map] *=
-              source_normalization *
-              options.tally_multipl_factor /
-              cell_fv_view->volume;
-
+            grid_tally.tally_global[dof_map] *= normalization / cell_volume;
+            grid_tally.tally_sigma[dof_map]  *= normalization / cell_volume;
           }//for g
         }//for m
       }//for local cell
@@ -52,7 +46,8 @@ void mcpartra::SourceDrivenSolver::NormalizeTallies()
   //============================================= PWL Tallies
   for (unsigned int t : pwl_tallies)
   {
-    if (not grid_tally_blocks[t].empty())
+    auto& grid_tally = grid_tally_blocks[t];
+    if (not grid_tally.empty())
     {
       for (auto& cell : grid->local_cells)
       {
@@ -60,19 +55,16 @@ void mcpartra::SourceDrivenSolver::NormalizeTallies()
 
         for (size_t i=0; i < cell.vertex_ids.size(); ++i)
         {
+          const double shape_volume = cell_pwl_view.IntV_shapeI(i);
+
           for (size_t m=0; m < num_moments; ++m)
           {
             for (size_t g=0; g < num_groups; ++g)
             {
-              int64_t _dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
-              auto dof_map = static_cast<uint64_t>(_dof_map);
+              const int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man_pwld, m, g);
 
-              grid_tally_blocks[t].tally_global[dof_map] *=
-                source_normalization *
-                options.tally_multipl_factor /
-                (double)nps_global /
-                cell_pwl_view.IntV_shapeI(i);
-
+              grid_tally.tally_global[dof_map] *= normalization / shape_volume;
+              grid_tally.tally_sigma[dof_map]  *= normalization / shape_volume;
             }//for g
           }//for m
         }//for node
@@ -84,23 +76,16 @@ void mcpartra::SourceDrivenSolver::NormalizeTallies()
   for (auto& custom_tally : custom_tallies)
   {
     auto& grid_tally = custom_tally.grid_tally;
+    const double tally_volume = custom_tally.tally_volume;
+
     for (size_t m=0; m < num_moments; ++m)
     {
       for (size_t g=0; g < num_groups; ++g)
       {
-        auto ir = uk_man_fv.MapUnknown(m, g);
+        const auto ir = uk_man_fv.MapUnknown(m, g);
 
-        grid_tally.tally_global[ir] *=
-          source_normalization *
-          options.tally_multipl_factor /
-          (double)nps_global /
-          custom_tally.tally_volume;
-
-        grid_tally.tally_sigma[ir] *=
-          source_normalization *
-          options.tally_multipl_factor /
-          custom_tally.tally_volume;
-
+        grid_tally.tally_global[ir] *= normalization / tally_volume;
+        grid_tally.tally_sigma[ir]  *= normalization / tally_volume;
       }//for g
     }//for m
   }//for custom_tally

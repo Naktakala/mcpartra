@@ -21,6 +21,9 @@ namespace lua_utils
   int chiMonteCarlonExportImportanceMap(lua_State* L);
   int chiMonteCarlonSetProperty2(lua_State* L);
   int chiMonteCarlonAddCustomVolumeTally(lua_State* L);
+  int chiMonteCarlonGetCustomVolumeTallyValue(lua_State* L);
+
+  int TestCode(lua_State* L);
 
   void RegisterLuaEntities(lua_State* L);
 }//namespace lua_utils

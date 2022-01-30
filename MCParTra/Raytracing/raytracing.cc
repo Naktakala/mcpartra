@@ -13,7 +13,6 @@ const chi_mesh::MeshContinuum& chi_mesh::RayTracer::Grid() const
 }
 
 //###################################################################
-/**Parent raytracing routine.*/
 chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
   TraceRay(const Cell &cell,
            Vector3 &pos_i,
@@ -129,9 +128,100 @@ chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
     oi.particle_lost = true;
     oi.lost_particle_info = outstr.str();
 
-    std::cout << outstr.str();
-    exit(EXIT_FAILURE);
+//    std::cout << outstr.str();
+//    exit(EXIT_FAILURE);
   }
+
+  return oi;
+}
+
+
+//###################################################################
+chi_mesh::RayTracerOutputInformation chi_mesh::RayTracer::
+  TraceIncidentRay(const Cell& cell,
+                   const Vector3& pos_i,
+                   const Vector3& omega_i)
+{
+  const auto cell_type = cell.Type();
+  const double cell_char_length = cell_sizes[cell.local_id];
+  const auto& grid = *reference_grid;
+
+  bool intersects_cell = false;
+  chi_mesh::Vector3 I;
+
+  size_t f = 0;
+  for (const auto& face : cell.faces)
+  {
+    if (face.normal.Dot(omega_i) > 0.0) { ++f; continue/*the loop*/; }
+//    std::cout << "Face normal: " << face.normal.PrintStr() << std::endl;
+
+    const auto& p0 = grid.vertices[face.vertex_ids[0]];
+    const auto& n = face.normal;
+
+    const auto ppos_i = p0 - pos_i;
+    const double d = ppos_i.Dot(omega_i);
+
+    const auto pos_ext = pos_i + (d + cell_char_length)*omega_i;
+
+    using namespace chi_mesh;
+    {
+      if (cell_type == CellType::SLAB)
+      {
+        intersects_cell = CheckPlaneLineIntersect(n, p0, pos_i, pos_ext, I);
+      }//SLAB
+      else if (cell_type == CellType::POLYGON)
+      {
+        const auto& p1 = grid.vertices[face.vertex_ids[1]];
+        intersects_cell = CheckLineIntersectStrip(p0, p1, n, pos_i, pos_ext, I);
+      }//POLYGON
+      else if (cell_type == CellType::POLYHEDRON)
+      {
+        const auto& vids = face.vertex_ids;
+        const size_t num_sides = face.vertex_ids.size();
+        for (size_t s=0; s<num_sides; ++s)
+        {
+          uint64_t v0i = vids[s];
+          uint64_t v1i = (s < (num_sides-1))? vids[s+1] : vids[0];
+
+          const auto& v0 = grid.vertices[v0i];
+          const auto& v1 = grid.vertices[v1i];
+          const auto& v2 = face.centroid;
+
+
+          const auto v01 = v1 - v0;
+          const auto v02 = v2 - v0;
+          const auto n_est = v01.Cross(v02);
+
+          if (n_est.Dot(omega_i) > 0.0) continue;
+
+          intersects_cell = CheckLineIntersectTriangle2(v0, v1, v2,
+                                                        pos_i, omega_i, I);
+//          std::cout << intersects_cell << " "
+//                    << pos_i.PrintStr()  << " "
+//                    << omega_i.PrintStr()  << " "
+//                    << I.PrintStr()  << " "
+//                    << v0.PrintStr() << " " << v0i << " "
+//                    << v1.PrintStr() << " " << v1i << " "
+//                    << v2.PrintStr() << " " << std::endl;
+          if (intersects_cell) break;
+        }//for side
+      }//POLYHEDRON
+    }
+    if (intersects_cell) break;
+    ++f;
+  }//for face
+
+  RayTracerOutputInformation oi;
+  if (intersects_cell)
+  {
+    oi.distance_to_surface       = (I - pos_i).Norm();
+    oi.pos_f                     = I;
+    oi.destination_face_index    = f;
+    oi.destination_face_neighbor = cell.global_id;
+    oi.particle_lost             = false;
+  }
+  else
+    oi.particle_lost = true;
 
   return oi;
 }

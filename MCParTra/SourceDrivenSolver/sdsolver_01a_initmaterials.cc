@@ -41,8 +41,6 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
 
   //=================================== Initialize Materials and make property
   //                                    mappings
-//  matid_xs_map.assign(num_mat,-1);
-//  matid_q_map.assign(num_mat,-1);
   matid_has_q_flags.assign(num_mat, false);
   for (size_t m=0; m<num_mat; m++)
   {
@@ -92,6 +90,8 @@ void mcpartra::SourceDrivenSolver::InitMaterials()
 
   chi_log.Log() << "MCParTra: Number of groups = " << num_groups;
   MPI_Barrier(MPI_COMM_WORLD);
+
+//  exit(EXIT_SUCCESS);
 }
 
 

@@ -6,110 +6,74 @@ typedef unsigned long long TULL;
 /**Computes the relative std dev for all the tallies.*/
 void mcpartra::SourceDrivenSolver::ComputeUncertainty()
 {
-  max_sigma = 0.0;
-  max_relative_sigma = 0.0;
 
-//  max_fem_sigma = 0.0;
-//  max_fem_relative_sigma = 0.0;
+  /**Lambda that computes the std_dev of the average.*/
+  auto ComputeGridTallyStdDev = [](MultigroupTally& grid_tally,
+                                   const int64_t dof_map,
+                                   const uint64_t N_c)
+  {
+    const double x_avg  = grid_tally.tally_global[dof_map] / N_c;
+    const double x2_avg = grid_tally.tally_sqr_global[dof_map] / N_c;
 
+    const double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg) / N_c);
+    const double relative_stddev = (std::isinf(stddev/x_avg))? 0.0 :
+                                   (std::isnan(stddev/x_avg))? 0.0 :
+                                   stddev/x_avg;
+
+    grid_tally.tally_sigma[dof_map]          = stddev * N_c;
+    grid_tally.tally_relative_sigma[dof_map] = relative_stddev;
+
+    return std::pair<double,double>(x_avg, stddev);
+  };
+
+  if (nps_global == 0) nps_global = 1;
 
   //============================================= FV Tallies
-  double IntV_sigma = 0.0;
-  double Vtot = 0.0;
   for (int t : fv_tallies)
   {
-    if (not grid_tally_blocks[t].empty())
+    auto& grid_tally = grid_tally_blocks[t];
+    if (not grid_tally.empty())
     {
       for (auto& cell : grid->local_cells)
       {
-        auto cell_fv_view = fv->MapFeView(cell.local_id);
-
-        for (int m=0; m < num_moments; ++m)
+        for (size_t m=0; m < num_moments; ++m)
         {
-          for (int g=0; g < num_groups; ++g)
+          for (size_t g=0; g < num_groups; ++g)
           {
-            int ir = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
+            const int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man_fv, m, g);
 
-            TULL divisor = (nps_global==0)? 1 : nps_global;
-
-            double x_avg  = grid_tally_blocks[t].tally_global[ir]/divisor;
-            double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/divisor;
-
-            double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
-
-            grid_tally_blocks[t].tally_sigma[ir] = stddev;
-
-            max_sigma = std::max(max_sigma,stddev);
-
-            if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
-            {
-              grid_tally_blocks[t].tally_relative_sigma[ir] = stddev/x_avg;
-              max_relative_sigma = std::max(max_relative_sigma,stddev/x_avg);
-            }
-            else
-              grid_tally_blocks[t].tally_relative_sigma[ir] = 0.0;
-
-            IntV_sigma +=
-              grid_tally_blocks[t].tally_sigma[ir];
-
-            Vtot += cell_fv_view->volume;
+            ComputeGridTallyStdDev(grid_tally, dof_map, nps_global);
           }//for g
         }//for m
       }//for local cell
     }//if tally active
   }//for tallies
-  avg_sigma = IntV_sigma / Vtot;
 
   //============================================= PWL Tallies
-  double IntV_fem_sigma = 0.0;
-  double Vtot_fem = 0.0;
   for (int t : pwl_tallies)
   {
-    if (not grid_tally_blocks[t].empty())
+    auto& grid_tally = grid_tally_blocks[t];
+    if (not grid_tally.empty())
     {
       for (auto& cell : grid->local_cells)
       {
         auto& cell_fe_view = pwl->GetUnitIntegrals(cell);
 
-        for (int v=0; v<cell.vertex_ids.size(); ++v)
+        for (size_t v=0; v<cell.vertex_ids.size(); ++v)
         {
-          for (int m=0; m < num_moments; ++m)
+          for (size_t m=0; m < num_moments; ++m)
           {
-            for (int g=0; g < num_groups; ++g)
+            for (size_t g=0; g < num_groups; ++g)
             {
-              int ir = pwl->MapDOFLocal(cell, v, uk_man_pwld, m, g);
+              const int64_t dof_map = pwl->MapDOFLocal(cell, v, uk_man_pwld, m, g);
 
-              TULL divisor = (nps_global==0)? 1 : nps_global;
-
-              double x_avg  = grid_tally_blocks[t].tally_global[ir]/divisor;
-              double x2_avg = grid_tally_blocks[t].tally_sqr_global[ir]/divisor;
-
-              double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
-
-              grid_tally_blocks[t].tally_sigma[ir] = stddev;
-
-              max_fem_sigma = std::max(max_fem_sigma,stddev);
-
-              if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
-              {
-                grid_tally_blocks[t].tally_relative_sigma[ir] = stddev/x_avg;
-//                max_fem_relative_sigma = std::max(max_relative_sigma,stddev/x_avg);
-              }
-              else
-                grid_tally_blocks[t].tally_relative_sigma[ir] = 0.0;
-
-              IntV_fem_sigma +=
-                grid_tally_blocks[t].tally_sigma[ir]*
-                  cell_fe_view.IntV_shapeI(v);
-              Vtot_fem += cell_fe_view.IntV_shapeI(v);
-
+              ComputeGridTallyStdDev(grid_tally, dof_map, nps_global);
             }//for g
           }//for m
         }//for node
       }//for local cell
     }//if tally active
   }//for tallies
-//  avg_fem_sigma = IntV_fem_sigma / Vtot_fem;
 
   //============================================= Custom tallies
   for (auto& custom_tally : custom_tallies)
@@ -122,35 +86,21 @@ void mcpartra::SourceDrivenSolver::ComputeUncertainty()
     new_chart.average.reserve(chart_size);
     new_chart.sigma  .reserve(chart_size);
 
-    for (int m=0; m < num_moments; ++m)
+    for (size_t m=0; m < num_moments; ++m)
     {
-      for (int g=0; g < num_groups; ++g)
+      for (size_t g=0; g < num_groups; ++g)
       {
-        auto ir = uk_man_fv.MapUnknown(m, g);
+        const auto dof_map = uk_man_fv.MapUnknown(m, g);
 
-        TULL divisor = (nps_global==0)? 1 : nps_global;
+        auto x_avg_stddev = ComputeGridTallyStdDev(grid_tally, dof_map, nps_global);
 
-        double x_avg  = grid_tally.tally_global[ir]/divisor;
-        double x2_avg = grid_tally.tally_sqr_global[ir]/divisor;
+        //============================= Update fluctuation chart
+        const double normalization = source_normalization *
+                                     options.tally_multipl_factor /
+                                     custom_tally.tally_volume;
 
-        double stddev = sqrt(std::fabs(x2_avg - x_avg*x_avg)/divisor);
-
-        grid_tally.tally_sigma[ir] = stddev;
-
-        if (!std::isinf(stddev/x_avg) and !std::isnan(stddev/x_avg))
-          grid_tally.tally_relative_sigma[ir] = stddev/x_avg;
-        else
-          grid_tally.tally_relative_sigma[ir] = 0.0;
-
-        double normalized_avg = x_avg*
-                                source_normalization*
-                                options.tally_multipl_factor/
-                                custom_tally.tally_volume;
-
-        double normalized_std = stddev*
-                                source_normalization*
-                                options.tally_multipl_factor/
-                                custom_tally.tally_volume;
+        const double normalized_avg = x_avg_stddev.first  * normalization;
+        const double normalized_std = x_avg_stddev.second * normalization;
 
         new_chart.average.push_back(normalized_avg);
         new_chart.sigma  .push_back(normalized_std);

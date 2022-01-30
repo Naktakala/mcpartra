@@ -20,9 +20,9 @@ void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
     exit(EXIT_FAILURE);
   }
 
-  auto pwl    =
+  const auto& pwl =
     std::dynamic_pointer_cast<PWLD>(resid_ff->spatial_discretization);
-  auto uk_man = resid_ff->unknown_manager;
+  auto& uk_man = resid_ff->unknown_manager;
 
   auto pwl_cfem = SpatialDiscretization_PWLC::New(grid,
                     chi_math::finite_element::COMPUTE_UNIT_INTEGRALS);
@@ -41,20 +41,20 @@ void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
   std::vector<int64_t> global_cfem_dofs;
   for (auto& cell : grid->local_cells)
   {
-    int i=-1;
-    for (uint64_t vid : cell.vertex_ids)
-    {
-      ++i;
-      int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
-      int64_t ir_cfem = pwl_cfem->MapDOF(cell,i);
+    for (size_t i=0; i<cell.vertex_ids.size(); ++i)
+      for (size_t m=0; m<uk_man.unknowns.size(); ++m)
+        for (size_t g=0; g<uk_man.unknowns[m].num_components; ++g)
+        {
+          int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,m,g);
+          int64_t ir_cfem = pwl_cfem->MapDOF(cell,i,uk_man,m,g);
 
-      global_cfem_dofs.push_back(ir_cfem);
+          global_cfem_dofs.push_back(ir_cfem);
 
-      double val = (*resid_ff->field_vector_local)[ir_dfem];
+          double val = (*resid_ff->field_vector_local)[ir_dfem];
 
-      VecSetValue(x      ,ir_cfem,val,ADD_VALUES);
-      VecSetValue(x_count,ir_cfem,1.0,ADD_VALUES);
-    }
+          VecSetValue(x      ,ir_cfem,val,ADD_VALUES);
+          VecSetValue(x_count,ir_cfem,1.0,ADD_VALUES);
+        }
   }
 
   VecAssemblyBegin(x);
@@ -67,18 +67,17 @@ void mcpartra::ResidualSourceA::RemoveFFDiscontinuities()
   std::vector<double> local_data;
   chi_math::PETScUtils::CopyGlobalVecToSTLvector(x,global_cfem_dofs,local_data);
 
-  int ic=-1;
+  uint64_t ic=0;
   for (auto& cell : grid->local_cells)
   {
-    int i=-1;
-    for (uint64_t vid : cell.vertex_ids)
-    {
-      ++i;
-      ++ic;
-      int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,0,0);
+    for (size_t i=0; i<cell.vertex_ids.size(); ++i)
+      for (size_t m=0; m<uk_man.unknowns.size(); ++m)
+        for (size_t g=0; g<uk_man.unknowns[m].num_components; ++g)
+        {
+          int64_t ir_dfem = pwl->MapDOFLocal(cell,i,uk_man,m,g);
 
-      (*resid_ff->field_vector_local)[ir_dfem] = local_data[ic];
-    }
+          (*resid_ff->field_vector_local)[ir_dfem] = local_data[ic++];
+        }
   }
 
   VecDestroy(&x);

@@ -56,11 +56,22 @@ public:
   void SetCellSizes(const std::vector<double>& input)
   {cell_sizes = input;}
 
+  /**Traces a ray with an initial position either within the cell or
+   * on the cell surface, and with a direction vector pointing inward
+   * toward the cell. If the ray-trace fails the particle will be marked
+   * as lost.*/
   RayTracerOutputInformation
     TraceRay(const Cell& cell,
              Vector3& pos_i,
              Vector3& omega_i,
              int function_depth=0);
+
+  /**Traces a ray with an initial position, presumed to be outside the cell,
+   * to an incident face.*/
+  RayTracerOutputInformation
+    TraceIncidentRay(const Cell& cell,
+                     const Vector3& pos_i,
+                     const Vector3& omega_i);
 
 private:
   void TraceSlab(const Cell& cell,

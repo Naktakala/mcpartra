@@ -3,6 +3,9 @@
 #include "ChiMath/SparseMatrix/chi_math_sparse_matrix.h"
 #include "ChiMath/GolubFischer/GolubFischer.h"
 
+#include "chi_log.h"
+extern ChiLog& chi_log;
+
 #include <cassert>
 
 //###################################################################
@@ -67,6 +70,8 @@ std::vector<mcpartra::VecCosineCDFs> mcpartra::ComputeDiscreteScatteringAngles(
   const std::vector<chi_math::SparseMatrix>& transfer_matrices,
   size_t num_moments_to_support)
 {
+  chi_log.Log() << "  Computing discrete scattering angles."; //TODO: Remove
+
   assert(not transfer_matrices.empty());
   assert(G == transfer_matrices[0].NumRows());
 
@@ -74,6 +79,8 @@ std::vector<mcpartra::VecCosineCDFs> mcpartra::ComputeDiscreteScatteringAngles(
 
   size_t num_moments = std::min(transfer_matrices.size(), num_moments_to_support);
   if (num_moments == 0) return cosine_cdf_gprime_g;
+
+  chi_log.Log() << "  num_moments: " << num_moments; //TODO: Remove
 
   //============================================= Make dense matrices from
   //                                              sparse matrices
@@ -121,15 +128,15 @@ std::vector<mcpartra::VecCosineCDFs> mcpartra::ComputeDiscreteScatteringAngles(
 
       double total_weight = 0.0;
       for (auto mu_w : scatter_mu_ws)
-        total_weight += mu_w.second;
+        total_weight += std::fabs(mu_w.second);
 
       CosineCDF cosine_cdf;
       cosine_cdf.reserve(scatter_mu_ws.size());
       double running_weight_total = 0.0;
       for (auto mu_w : scatter_mu_ws)
       {
-        double mu = mu_w.first;
-        double w  = mu_w.second;
+        double mu = std::max(std::min(mu_w.first, 1.0), -1.0);
+        double w  = std::fabs(mu_w.second);
 
         running_weight_total += w;
 
@@ -139,6 +146,8 @@ std::vector<mcpartra::VecCosineCDFs> mcpartra::ComputeDiscreteScatteringAngles(
 
       cosine_cdf_gprime_g[gp][g] = std::move(cosine_cdf);
     }//for g
+
+
 
   return cosine_cdf_gprime_g;
 }

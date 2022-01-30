@@ -202,6 +202,29 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     chi_log.Log() << "MCParTra: Flag to apply importance biased source "
                   << "sampling set to " << flag << ".";
   }
+  else if (property_index == "APPLY_SOURCE_ANGULAR_BIASING")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.apply_source_angular_biasing = flag;
+    if (flag) mcsolver->options.importances_during_raytracing = false;
+
+    chi_log.Log() << "MCParTra: Flag to apply angular importance biased source "
+                  << "sampling set to " << flag << ".";
+  }
+  else if (property_index == "PRINT_TFCS")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.print_TFC = flag;
+
+    chi_log.Log() << "MCParTra: Flag to print tally fluctuation charts set"
+                     " to " << flag << ".";
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

@@ -82,6 +82,10 @@ namespace mcpartra
     int* face_sampled = nullptr,
     bool random_face = false);
 
+  chi_mesh::Vector3 RotateVec3AboutAxisRHL(const chi_mesh::Vector3& v,
+                                           const chi_mesh::Vector3& k,
+                                           double angle);
+
   //mc_utils_02
   typedef std::vector<std::vector<double>> MatDbl;
 

@@ -133,12 +133,6 @@ private:
   unsigned long long                    nps=0;
   unsigned long long                    nps_global=0;
 
-  double                                max_sigma=0.0;
-  double                                max_relative_sigma=0.0;
-  double                                avg_sigma=0.0;
-
-  double                                max_fem_sigma=0.0;
-
   MPI_Datatype                          mpi_prtcl_data_type=0;
   std::vector<Particle>                 outbound_particle_bank;
   std::vector<Particle>                 particle_source_bank;
@@ -149,8 +143,6 @@ public:
   std::vector<std::pair<int,int>>       m_to_ell_em_map;
 
 public:
-
-
   //========================= Options
   struct Options
   {
@@ -167,9 +159,11 @@ public:
     bool               uncollided_only = false;
     bool               importances_during_raytracing = false;
     bool               apply_source_importance_sampling = false;
+    bool               apply_source_angular_biasing = false;
 
     bool               write_run_tape = false;
     std::string        run_tape_base_name;
+    bool               print_TFC = false;
   }options;
 
 public:
@@ -197,15 +191,13 @@ public:
   Particle SampleSources(chi_math::RandomNumberGenerator& rng);
   //02b
   void PrintBatchInfo(size_t b, double particle_rate);
+  void PrintCustomTallies();
 
 private:
   //03
   void Raytrace(Particle& prtcl);
 
   //04
-  std::pair<int,chi_mesh::Vector3>
-  ProcessScattering(Particle& prtcl,
-                    std::shared_ptr<chi_physics::TransportCrossSections> xs);
   std::pair<int,chi_mesh::Vector3>
   ProcessScattering(Particle& prtcl,
                     const MultigroupScatteringCDFs& xs);
@@ -249,6 +241,17 @@ private:
 public:
   size_t AddCustomVolumeTally(chi_mesh::LogicalVolume& logical_volume);
 
+  const CustomVolumeTally& GetCustomVolumeTally(const size_t handle) const
+  {
+    try { return custom_tallies.at(handle);}
+    catch (const std::out_of_range& oor) {throw oor;}
+  }
+
+  chi_math::UnknownManager GetUnknownManagerFV() const {return uk_man_fv;}
+
+  CellImportanceInfo
+    GetCellImportanceInfo(const chi_mesh::Cell& cell, size_t g) const;
+
   //IO Utils
   void WriteRunTape(const std::string& file_base_name);
   void ReadRunTape(const std::string& file_name);
@@ -259,6 +262,8 @@ public:
                                    const std::vector<Particle>& particle_list);
   static std::vector<Particle> ReadParticlesFromFile(const std::string& file_name);
 
+  //99
+  void TestCode();
 
   friend class ResidualSourceA;
 

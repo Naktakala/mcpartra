@@ -14,29 +14,6 @@ void mcpartra::SourceDrivenSolver::Execute()
 {
   chi_log.Log(LOG_0) << "\nExecuting MCParTra solver\n";
 
-  //TODO: Begin Remove test code
-  size_t num_stored_particles = options.num_particles;
-  std::vector<mcpartra::Particle> source_particles;
-  source_particles.reserve(num_stored_particles);
-
-  chi_math::RandomNumberGenerator rng1;
-
-  for (unsigned long long b : batch_sizes_per_loc)
-  {
-    for (uint64_t pi=0; pi<b; ++pi)
-    {
-      mcpartra::Particle prtcl = SampleSources(rng1);
-      source_particles.push_back(prtcl);
-    }//for pi in batch
-  }//for batch
-  size_t k=0;
-  //TODO: End Remove test code
-
-//  if (TextName() == "FMCParTra")
-//    WriteParticlesToFile("ZParticles.data", source_particles);
-//  if (TextName() == "RMCParTra")
-//    source_particles = ReadParticlesFromFile("ZParticles.data");
-
   //============================================= Start batch processing
   double start_time = chi_program_timer.GetTime()/1000.0;
   size_t start_nps_global = nps_global;
@@ -47,7 +24,6 @@ void mcpartra::SourceDrivenSolver::Execute()
     for (uint64_t pi=0; pi<batch_sizes_per_loc[b]; ++pi)
     {
       mcpartra::Particle prtcl = SampleSources(rng0);
-//      mcpartra::Particle prtcl = source_particles[k++];
 
       if (prtcl.alive) nps++;
 
@@ -71,8 +47,12 @@ void mcpartra::SourceDrivenSolver::Execute()
     PrintBatchInfo(b,particle_rate);
   }//for batch
 
+//  exit(EXIT_SUCCESS);
+
   //============================================= Post processing
   if (options.write_run_tape) WriteRunTape(options.run_tape_base_name);
+
+  chi_log.Log() << "\nMCParTra: Ray tracing complete.\n\n";
 
   chi_log.Log() << "MCParTra: Number of lost particles = "
                 << lost_particles.size();
@@ -88,58 +68,9 @@ void mcpartra::SourceDrivenSolver::Execute()
   NormalizeTallies();
   ComputePWLDTransformations();
 
-  double correction=1.0;
-  {
-    if (sources.back()->Type() == RESIDUAL_TYPE_A)
-      correction = 1/3.0;
-  }
+  PrintCustomTallies();
 
-  //============================================= Print custom tallies TFC
-  int cust_counter = -1;
-  for (auto& custom_tally : custom_tallies)
-  {
-    std::stringstream outstr;
-    outstr << "Custom tally " << ++cust_counter << " TFC:\n";
-
-    int comp_counter = -1;
-    for (size_t m=0; m < num_moments; ++m)
-    {
-      for (size_t g=0; g < num_groups; ++g)
-      {
-        outstr << "Component " << ++comp_counter << ":\n";
-
-        auto dof_map = uk_man_fv.MapUnknown(m, g);
-
-        for (auto& tfc : custom_tally.tally_fluctation_chart)
-        {
-          outstr
-            << std::setw(10) << std::setprecision(4) << std::scientific
-            << tfc.average[dof_map] * correction
-            << " "
-            << std::setw(10) << std::setprecision(4) << std::scientific
-            << tfc.sigma[dof_map] * correction << "\n";
-        }
-      }//for g
-    }//for m
-    outstr << "\n";
-
-    chi_log.Log() << outstr.str();
-  }
-
-  //============================================= Accumulated source importances
-  double accumulated_src_importances_global;
-  MPI_Allreduce(&accumulated_src_importances,        //sendbuf
-                &accumulated_src_importances_global, //recvbuf
-                1,                                   //count
-                MPI_DOUBLE,                          //datatype
-                MPI_SUM,                             //operation
-                MPI_COMM_WORLD);                     //communicator
-  chi_log.Log() << "MCParTra: average source particle importance = "
-                << std::scientific
-                << accumulated_src_importances_global/
-                   static_cast<double>(nps_global);
-
-  chi_log.Log(LOG_0) << "Done executing Montecarlo solver";
+  chi_log.Log(LOG_0) << "\nDone executing Montecarlo solver\n\n";
 }
 
 //###################################################################

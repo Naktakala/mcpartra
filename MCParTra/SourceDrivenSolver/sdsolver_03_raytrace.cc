@@ -106,7 +106,7 @@ void mcpartra::SourceDrivenSolver::Raytrace(Particle& prtcl)
       egrp_f = energy_dir.first;
       dir_f  = energy_dir.second;
 
-      if (options.mono_energy && (egrp_f != egrp_i)) prtcl.Kill();
+      if (options.mono_energy && (egrp_f != egrp_i)) prtcl_alive = false;
     }//if interacts before surface
 
     if (not particle_interacted)

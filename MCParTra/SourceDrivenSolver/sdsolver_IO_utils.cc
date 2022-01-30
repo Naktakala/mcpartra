@@ -533,8 +533,11 @@ void mcpartra::SourceDrivenSolver::
 {
   //============================================= Make unknown managers
   chi_math::UnknownManager uk_man;
-  uk_man.AddUnknown(chi_math::UnknownType::VECTOR_N,3);
-  uk_man.SetUnknownTextName(0, "Comp");
+  for (size_t g=0; g<num_groups; ++g)
+  {
+    uk_man.AddUnknown(chi_math::UnknownType::VECTOR_N,4);
+    uk_man.SetUnknownTextName(g, std::string("Group_") + std::to_string(g));
+  }
 
   //============================================= Make vectors compatible with
   //                                              field functions
@@ -557,17 +560,24 @@ void mcpartra::SourceDrivenSolver::
     uint     g              = cell_id_g_pair.second;
     auto& info              = cell_id_g_info_pair.second;
 
+    double a = info.a;
+    double b = info.b;
+    double magJ_div_phi =
+      (4.0*M_PI/(b*b)) * exp(a) * (b * cosh(b) - sinh(b));
+
     const auto& cell = grid->cells[cell_global_id];
 
-    int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, 0, g);
+    int64_t dof_map = fv->MapDOFLocal(cell, 0, uk_man, g, 0);
 
     const auto& omega_J = info.omega_J;
     data_omega_J[dof_map+0] = omega_J.x;
     data_omega_J[dof_map+1] = omega_J.y;
     data_omega_J[dof_map+2] = omega_J.z;
+    data_omega_J[dof_map+3] = magJ_div_phi;
 
     data_exp_coeffs[dof_map+0] = info.a;
     data_exp_coeffs[dof_map+1] = info.b;
+    data_exp_coeffs[dof_map+3] = info.importance;
 
     data_importance[dof_map+0] = info.importance;
   }
@@ -581,9 +591,8 @@ void mcpartra::SourceDrivenSolver::
   {
     for (size_t g=0; g<num_groups; ++g)
     {
-      std::string text_name = TextName() +
-                            std::string("-omega_J_g") +
-                            std::to_string(g);
+      std::string post_fix  = std::string("_g") + std::to_string(g);
+      std::string text_name = TextName() + "-omega_J" + post_fix;
       auto R_ff = std::make_shared<chi_physics::FieldFunction>(
         "omega_J",                                 //Text name
         fv_sd,                                     //Spatial Discretization
@@ -591,7 +600,8 @@ void mcpartra::SourceDrivenSolver::
         uk_man,                                    //Nodal variable structure
         0, g);                                     //Reference variable and component
 
-      R_ff->ExportToVTK(pre_fix + "omega_J", "omega_J");
+      R_ff->ExportToVTKFV(pre_fix + std::string("omega_J") + post_fix,
+                          "omega_J", true);
     }//for g
   }
 
@@ -599,9 +609,8 @@ void mcpartra::SourceDrivenSolver::
   {
     for (size_t g=0; g<num_groups; ++g)
     {
-      std::string text_name = TextName() +
-                            std::string("-ab_coeffs_g") +
-                            std::to_string(g);
+      std::string post_fix  = std::string("_g") + std::to_string(g);
+      std::string text_name = TextName() + "-ab_coeffs" + post_fix;
       auto R_ff = std::make_shared<chi_physics::FieldFunction>(
       "ab",                                    //Text name
       fv_sd,                                   //Spatial Discretization
@@ -609,7 +618,8 @@ void mcpartra::SourceDrivenSolver::
       uk_man,                                  //Nodal variable structure
       0, g);                                   //Reference variable and component
 
-      R_ff->ExportToVTK(pre_fix + "ab", "ab");
+      R_ff->ExportToVTKFV(pre_fix + std::string("ab") + post_fix,
+                          "ab", true);
     }//for g
   }
 
@@ -617,9 +627,8 @@ void mcpartra::SourceDrivenSolver::
   {
     for (size_t g=0; g<num_groups; ++g)
     {
-      std::string text_name = TextName() +
-                            std::string("-FVImportance_g") +
-                            std::to_string(g);
+      std::string post_fix  = std::string("_g") + std::to_string(g);
+      std::string text_name = TextName() + "-FVImportance_g" + post_fix;
       auto R_ff = std::make_shared<chi_physics::FieldFunction>(
         text_name,                               //Text name
         fv_sd,                                   //Spatial Discretization
@@ -627,7 +636,8 @@ void mcpartra::SourceDrivenSolver::
         uk_man,                                  //Nodal variable structure
         0, g);                                   //Reference variable and component
 
-      R_ff->ExportToVTK(pre_fix + "importance", "phi");
+      R_ff->ExportToVTKFV(pre_fix + std::string("importance") + post_fix,
+                          "phi", true);
     }//for g
   }
 }

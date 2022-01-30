@@ -130,5 +130,5 @@ void mcpartra::ResidualSourceA::BiasCDFs(bool apply)
     ref_solver.uk_man_fv,                         //Nodal variable structure
     0, 0);                                        //Reference variable and component
 
-    R_ff->ExportToVTKFV("ZRoutBiased","R_interior_biased");
+    R_ff->ExportToVTKFV("Y_RoutBiased","R_interior_biased");
 }

@@ -40,10 +40,18 @@ mcpartra::Particle mcpartra::ResidualSourceA::
   const auto&    cell_geom_info = cell_geometry_info->operator[](cell_local_id);
   const size_t   cell_num_nodes = ref_solver.pwl->GetCellNumNodes(cell);
 
-  const auto imp_info = GetCellImportanceInfo(cell, g);
+  const auto imp_info = ref_solver.GetCellImportanceInfo(cell, g);
 
   const double C_u = src_element.Rstar_absolute;
   const double C_b = src_element.Rstar_psi_star_absolute;
+
+  const size_t num_moments_resid_ff = resid_ff->unknown_manager.unknowns.size();
+  const auto m_to_ell_em_map = MakeHarmonicIndices(num_moments_resid_ff,
+                                                   GetGridDimension());
+  std::vector<VecDbl> nodal_phi_m(num_moments_resid_ff);
+
+  for (size_t m=0; m < num_moments_resid_ff; ++m)
+          nodal_phi_m[m] = GetResidualFFPhiAtNodes(cell, cell_num_nodes, m, g);
 
   //################################################## INTERIOR
   if (sample_interior)
@@ -57,8 +65,8 @@ mcpartra::Particle mcpartra::ResidualSourceA::
     MaterialData mat_data;
     PopulateMaterialData(cell.material_id, g, mat_data);
 
-    auto siga = mat_data.siga;
-    auto Q    = mat_data.Q;
+    const double siga = mat_data.siga;
+    const double Q    = mat_data.Q;
 
     //======================================== Start rejection sampling
     bool particle_rejected = true;
@@ -83,16 +91,20 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, cell_num_nodes);
 
       double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi) );
+
       double pdf_val = r;
       double pdf_random = rng.Rand() * cell_r_info.maximum_rstar_absolute;
       double angular_w_corr = 1.0;
 
       //==================================== Compute angular bias
-//      double psi_star = imp_info.ExpRep(omega);
-//      double angular_w_corr = C_b / (C_u * psi_star);
-//
-//      double pdf_val = r * psi_star;
-//      double pdf_random = rng.Rand() * cell_r_info.maximum_rstar_psi_star_absolute;
+      if (ref_solver.options.apply_source_angular_biasing)
+      {
+        double psi_star = imp_info.ExpRep(omega);
+        angular_w_corr = C_b / (C_u * psi_star);
+
+        pdf_val = r * psi_star;
+        pdf_random = rng.Rand() * cell_r_info.maximum_rstar_psi_star_absolute;
+      }
 
       //======================================== Determine weight
       if (std::fabs(pdf_random) < std::fabs(pdf_val))
@@ -139,12 +151,12 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       cell_pwl_view->ShapeValues(new_particle.pos, shape_values);
 
       //==================================== Get Residual
-      double phi_P = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
+      double phi = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
 
-      double phi_N = phi_P;
+      double phi_N = phi;
       if (not face.has_neighbor) phi_N = 0.0; //TODO: Specialize for bndries
 
-      double r = (1.0/FOUR_PI)*(phi_N - phi_P);
+      double r = (1.0/FOUR_PI)*(phi_N - phi);
 
       double rrandom = rng.Rand() * rcellface.maximum_rstar_absolute;
 

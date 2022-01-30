@@ -4,6 +4,7 @@
 #include "mcpartra.h"
 
 #include "chi_log.h"
+extern ChiLog& chi_log;
 
 #include <algorithm>
 #include <cmath>
@@ -13,6 +14,9 @@ mcpartra::MultigroupScatteringCDFs::
   MultigroupScatteringCDFs(const chi_physics::TransportCrossSections& mgxs,
                            unsigned int L_parameter)
 {
+  chi_log.Log() << "Building mg scattering pdfs. L=" << L_parameter; //TODO: Remove
+  chi_log.Log() << "  S-matrices available: " << mgxs.transfer_matrices.size();
+
   size_t num_groups = mgxs.num_groups;
 
   assert(not mgxs.transfer_matrices.empty());

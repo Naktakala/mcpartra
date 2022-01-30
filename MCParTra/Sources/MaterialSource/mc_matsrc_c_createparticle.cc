@@ -24,6 +24,8 @@ mcpartra::Particle mcpartra::MaterialSource::
   size_t elem = SampleCDF(group_element_biased_cdf[g], rng);
 
   auto& src_element = group_sources[g][elem].second;
+  const auto& cell = grid->local_cells[src_element.ParentCellLocalID()];
+  const auto imp_info = ref_solver.GetCellImportanceInfo(cell, g);
 
   //======================================== Sample position
   new_particle.pos = src_element.SampleRandomPosition(rng);
@@ -32,6 +34,14 @@ mcpartra::Particle mcpartra::MaterialSource::
   new_particle.dir = SampleRandomDirection(rng);
   double angular_w_corr = 1.0;
 
+  if (ref_solver.options.apply_source_angular_biasing)
+  {
+    auto omega_wcorr =
+      SampleSpecialRandomDirection(rng, imp_info.omega_J,
+                                   std::make_pair(imp_info.a,imp_info.b));
+    new_particle.dir = omega_wcorr.first;
+    angular_w_corr   = omega_wcorr.second;
+  }
 //  const uint64_t cell_local_id = src_element.ParentCellLocalID();
 //  const auto& imp_info = ref_solver.local_cell_importance_info[cell_local_id];
 //  const auto& omega_J = imp_info.omega_J;

@@ -162,6 +162,8 @@ chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
+chiMonteCarlonSetProperty2(phys1,"APPLY_SOURCE_IMPORTANCE_SAMPLING",A or B)
+chiMonteCarlonSetProperty2(phys1,"APPLY_SOURCE_ANGULAR_BIASING",B)
 
 tvol0 = chiLogicalVolumeCreate(RPP,2.3333,2.6666,4.16666,4.33333,-1000,1000)
 tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
@@ -169,14 +171,17 @@ tvol1 = chiLogicalVolumeCreate(RPP,0.5   ,0.8333,4.16666,4.33333,-1000,1000)
 --tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 --tvol1 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 
-chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
-chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
+fmc_QOI_left = chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+fmc_QOI_rite = chiMonteCarlonAddCustomVolumeTally(phys1,tvol1)
 
+chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverInitialize(phys1)
--- chiMonteCarlonReadImportanceMap(phys1, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverExecute(phys1)
 
 fmc_pwl_ff = chiGetFieldFunctionHandleByName("FMCParTra-PWLFlux_g0_m0")
+
+fmc_QOI_left_val, fmc_QOI_left_sig = chiMonteCarlonGetCustomVolumeTallyValue(phys1, fmc_QOI_left, 0, 0)
+fmc_QOI_rite_val, fmc_QOI_rite_sig = chiMonteCarlonGetCustomVolumeTallyValue(phys1, fmc_QOI_rite, 0, 0)
 
 ----############################################### Setup ref Monte Carlo Physics
 chiMeshHandlerSetCurrent(tmesh)
@@ -192,19 +197,22 @@ chiMonteCarlonSetProperty2(phys2,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys2,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
-chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",true)
+chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_IMPORTANCE_SAMPLING",A or B)
+chiMonteCarlonSetProperty2(phys2,"APPLY_SOURCE_ANGULAR_BIASING",B)
 
-chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
-chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
+rmc_QOI_left = chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
+rmc_QOI_rite = chiMonteCarlonAddCustomVolumeTally(phys2,tvol1)
 
 chiMonteCarlonReadImportanceMap(phys2, "/Users/janv4/Desktop/ChiTech/LBAdjointSolver/Residual3MC2D_2b.o")
 chiSolverInitialize(phys2)
-chiMonteCarlonExportImportanceMap(phys2, "Y_")
+chiMonteCarlonExportImportanceMap(phys2, "Z_")
 chiSolverExecute(phys2)
 -- chiSolverExecute(phys1)
 
 rmc_pwl_ff = chiGetFieldFunctionHandleByName("RMCParTra-PWLFlux_g0_m0")
-rmc_imp_ff = chiGetFieldFunctionHandleByName("RMCParTra-FVImportance_g0")
+
+rmc_QOI_left_val, rmc_QOI_left_sig = chiMonteCarlonGetCustomVolumeTallyValue(phys2, rmc_QOI_left, 0, 0)
+rmc_QOI_rite_val, rmc_QOI_rite_sig = chiMonteCarlonGetCustomVolumeTallyValue(phys2, rmc_QOI_rite, 0, 0)
 
 ----############################################### Getting Sn and MC solution
 cline0 = chiFFInterpolationCreate(LINE)
@@ -268,21 +276,34 @@ if ((chi_location_id == 0) and (with_plot==nil)) then
 end
 
 chiExportFieldFunctionToVTKG(rmc_pwl_ff,"ZRMC")
-chiExportFieldFunctionToVTKG(rmc_imp_ff,"ZRMCImp")
 chiExportFieldFunctionToVTKG(fmc_pwl_ff,"ZFMC")
 chiExportFieldFunctionToVTKG(lbs_pwl_ff,"ZSn")
 
--- FMC QOI-left 1.1833e-02 3.8371e-04
--- FMC QOI-rite 1.1031e-03 1.0050e-04
+print(" ")
+print("FMC-QOI-left "..string.format("%.4e",fmc_QOI_left_val).." "..string.format("%.4e",fmc_QOI_left_sig))
+print("FMC-QOI-rite "..string.format("%.4e",fmc_QOI_rite_val).." "..string.format("%.4e",fmc_QOI_rite_sig))
+print(" ")
+print("RMC-QOI-left "..string.format("%.4e",rmc_QOI_left_val).." "..string.format("%.4e",rmc_QOI_left_sig))
+print("RMC-QOI-rite "..string.format("%.4e",rmc_QOI_rite_val).." "..string.format("%.4e",rmc_QOI_rite_sig))
+print(" ")
 
---No cell-importance, No angular-importance
--- RMC QOI-left 2.1439e-03 1.4177e-04
--- RMC QOI-rite 1.3331e-04 6.6073e-05
+--
+--FMC-QOI-left 1.1142e-02 1.0899e-04
+--FMC-QOI-rite 9.0198e-04 3.1225e-05
+--
+--RMC-QOI-left 6.3262e-03 4.5375e-05
+--RMC-QOI-rite 1.1938e-04 1.9710e-05
 
 --Cell-importance, No angular-importance
--- RMC QOI-left 2.0421e-03 1.2297e-04 (1.15)^2=1.33
--- RMC QOI-rite 6.1596e-05 2.8230e-05
+--FMC-QOI-left 1.1423e-02 8.9558e-05 (1.48)
+--FMC-QOI-rite 8.6983e-04 2.4800e-05 (1.59)
+--
+--RMC-QOI-left 7.0237e-03 3.6239e-05 (1.57)
+--RMC-QOI-rite 3.9783e-04 1.2472e-05 (2.50)
 
 --Cell-importance, And angular-importance
--- RMC QOI-left 2.5779e-03 9.6191e-05 (1.47)^2=2.17
--- RMC QOI-rite 2.3451e-04 3.0197e-05
+--FMC-QOI-left 1.1140e-02 6.2713e-05 (3.02)
+--FMC-QOI-rite 8.9446e-04 1.7995e-05 (3.01)
+--
+--RMC-QOI-left 7.4333e-03 3.6122e-05 (1.58)
+--RMC-QOI-rite 5.1501e-04 1.0178e-05 (3.75)

@@ -251,3 +251,17 @@ chi_mesh::Vector3 mcpartra::
 
   return element.SampleRandomPosition(rng);
 }
+
+
+//###################################################################
+/**Rotates a vector v about an axis k by angle defined according to
+ * the right-hand rule.*/
+chi_mesh::Vector3 mcpartra::
+  RotateVec3AboutAxisRHL(const chi_mesh::Vector3 &v,
+                         const chi_mesh::Vector3 &k,
+                         const double angle)
+{
+  return v*cos(angle) +
+           k.Cross(v)*sin(angle) +
+           k*(k.Dot(v))*(1.0-cos(angle));
+}

@@ -26,11 +26,13 @@ void mcpartra::SourceDrivenSolver::RendesvouzTallies()
 
     for (size_t i=0; i<tally_size; i++)
     {
-      tally.tally_global[i]    += tally.tally_local[i];
+      tally.counter_global[i]   += tally.counter_local[i];
+      tally.tally_global[i]     += tally.tally_local[i];
       tally.tally_sqr_global[i] += tally.tally_sqr_local[i];
     }
 
     //============================ Reset tallies
+    tally.counter_local.assign(tally.tally_local.size(),0);
     tally.tally_local.assign(tally.tally_local.size(),0.0);
     tally.tally_sqr_local.assign(tally.tally_sqr_local.size(),0.0);
   }
@@ -64,11 +66,13 @@ void mcpartra::SourceDrivenSolver::RendesvouzTallies()
                     MPI_SUM,           //operation
                     MPI_COMM_WORLD);   //communicator
 
-      tally.tally_global[i]    += global_val_value;
+      tally.counter_global[i]   += tally.counter_local[i];
+      tally.tally_global[i]     += global_val_value;
       tally.tally_sqr_global[i] += global_sqr_value;
     }
 
     //============================ Reset tallies
+    tally.counter_local.assign(tally.tally_local.size(),0);
     tally.tally_local.assign(tally.tally_local.size(),0.0);
     tally.tally_sqr_local.assign(tally.tally_sqr_local.size(),0.0);
   }

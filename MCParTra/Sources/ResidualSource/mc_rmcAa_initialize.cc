@@ -43,14 +43,11 @@ void mcpartra::ResidualSourceA::
   const double FOUR_PI   = 4.0*M_PI;
   const size_t num_local_cells = grid->local_cells.size();
 
+
+
   //============================================= Transform tilde_phi to
   //                                              tilde_phi_star
   RemoveFFDiscontinuities();
-
-  size_t total_num_faces = 0;
-  for (const auto& cell : grid->local_cells)
-    for (const auto& face : cell.faces)
-      ++total_num_faces;
 
   //============================================= Initialize data vectors
   //                                              (for efficiency)
@@ -69,6 +66,12 @@ void mcpartra::ResidualSourceA::
   std::vector<double>            shape_values;
   std::vector<chi_mesh::Vector3> grad_shape_values;
 
+  const size_t num_moments_resid_ff = resid_ff->unknown_manager.unknowns.size();
+  std::vector<VecDbl> nodal_phi_m(num_moments_resid_ff);
+
+//  const auto m_to_ell_em_map = MakeHarmonicIndices(num_moments_resid_ff,
+//                                                   GetGridDimension());
+
   for (const auto& cell : grid->local_cells)
   {
     const uint64_t k = cell.local_id;
@@ -79,20 +82,22 @@ void mcpartra::ResidualSourceA::
 
     for (size_t g=0; g < num_groups; ++g)
     {
-      const CellImportanceInfo imp_info = GetCellImportanceInfo(cell, g);
+      const auto imp_info = ref_solver.GetCellImportanceInfo(cell, g);
       const uint64_t kg = k * num_groups + g;
       MaterialData mat_data;
       PopulateMaterialData(cell.material_id, g, mat_data);
 
-      auto siga = mat_data.siga;
-      auto Q    = mat_data.Q;
+      const double siga = mat_data.siga;
+      const double Q    = mat_data.Q;
 
-      const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
+      for (size_t m=0; m < num_moments_resid_ff; ++m)
+        nodal_phi_m[m] = GetResidualFFPhiAtNodes(cell, num_nodes, m, g);
 
       double cell_average_rstar_absolute=0.0;
       double cell_maximum_rstar_absolute=-1.0e-32;
       double cell_average_rstar_psi_star_absolute = 0.0;
       double cell_maximum_rstar_psi_star_absolute =-1.0e-32;
+
       int num_points = 1000; //Number of points to sample
       for (int i=0; i < num_points; ++i)
       {
@@ -102,8 +107,8 @@ void mcpartra::ResidualSourceA::
         cell_pwl_view->ShapeValues(x_i, shape_values);
         cell_pwl_view->GradShapeValues(x_i,grad_shape_values);
 
-        double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
-        Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi, num_nodes);
+        double phi = GetPhiH(shape_values, nodal_phi_m[0], num_nodes);
+        Vec3   grad_phi = GetGradPhiH(grad_shape_values, nodal_phi_m[0], num_nodes);
 
         double r = (1.0/FOUR_PI)*( Q - siga*phi - omega.Dot(grad_phi));
 
@@ -135,7 +140,7 @@ void mcpartra::ResidualSourceA::
     }//for g
   }//for cell
 
-  //============================================= Detemine group-wise
+  //============================================= Determine group-wise
   //                                              face source strengths
   chi_log.Log(LOG_0) << "Integrating surface source.";
   for (auto& cell : grid->local_cells)
@@ -148,24 +153,28 @@ void mcpartra::ResidualSourceA::
     unsigned int f=0;
     for (auto& face : cell.faces)
     {
-      double A_f = cell_FV_view->face_area[f];
-      auto&  n   = face.normal;
+      const double A_f = cell_FV_view->face_area[f];
+      const auto&  n   = face.normal;
 
       for (size_t g=0; g < num_groups; ++g)
       {
         const uint64_t kg = k * num_groups + g;
         const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
 
+        for (size_t m=0; m < num_moments_resid_ff; ++m)
+          nodal_phi_m[m] = GetResidualFFPhiAtNodes(cell, num_nodes, m, g);
+
         double face_average_rstar_absolute=0.0;
         double face_maximum_rstar_absolute = -1.0e32;
         int num_points = (face.has_neighbor)? 0 : 1000;
         for (int i=0; i<num_points; ++i)
         {
-          auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
+          const auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
 
           cell_pwl_view->ShapeValues(x_i, shape_values);
 
           double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
+
 
           double phi_N = phi;
           if (not face.has_neighbor)
@@ -205,8 +214,7 @@ void mcpartra::ResidualSourceA::
   double IntV_Q_total_local = 0.0;
   for (auto val : IntV_Q_g) IntV_Q_total_local += val;
 
-  //======================================== Compute normalized pdf used during
-  //                                         biasing
+  //======================================== Compute normalized pdf
   group_element_pdf.resize(num_groups);
   for (size_t g=0; g<num_groups; ++g)
   {
@@ -279,7 +287,7 @@ void mcpartra::ResidualSourceA::
     ref_solver.uk_man_fv,                         //Nodal variable structure
     0, 0);                                        //Reference variable and component
 
-  R_ff->ExportToVTKFV("ZRout","R_interior");
+  R_ff->ExportToVTKFV("Y_Rout","R_interior", true);
 
 
 

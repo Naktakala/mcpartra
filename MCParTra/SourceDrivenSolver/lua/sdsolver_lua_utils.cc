@@ -46,4 +46,10 @@ void mcpartra::lua_utils::RegisterLuaEntities(lua_State *L)
                mcpartra::lua_utils::chiMonteCarlonSetProperty2);
   lua_register(L, "chiMonteCarlonAddCustomVolumeTally",
                mcpartra::lua_utils::chiMonteCarlonAddCustomVolumeTally);
+  lua_register(L, "chiMonteCarlonGetCustomVolumeTallyValue",
+               mcpartra::lua_utils::chiMonteCarlonGetCustomVolumeTallyValue);
+
+  lua_register(L, "TestCode",
+               mcpartra::lua_utils::TestCode);
 }
+

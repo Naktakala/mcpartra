@@ -138,15 +138,15 @@ void mcpartra::SourceDrivenSolver::InitSources()
   }
   source_normalization = total_globl_source_rate;
 
-  total_globl_source_rate = 0.0;
-  total_local_source_rate = 0.0;
+//  total_globl_source_rate = 0.0;
+//  total_local_source_rate = 0.0;
   for (auto& source : sources)
   {
     source->BiasCDFs(options.apply_source_importance_sampling);
-    total_globl_source_rate += source->GlobalSourceRate();
-    total_local_source_rate += source->LocalSourceRate();
+//    total_globl_source_rate += source->GlobalSourceRate();
+//    total_local_source_rate += source->LocalSourceRate();
   }
-  source_normalization = total_globl_source_rate;
+//  source_normalization = total_globl_source_rate;
 
 
   char buffer[100];
