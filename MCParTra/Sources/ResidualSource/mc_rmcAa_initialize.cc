@@ -60,6 +60,11 @@ void mcpartra::ResidualSourceA::
   {
     MakeFFQ0Discontinuous();
   }
+  else if (resid_ff_option == ResidOption::ZERO)
+  {
+    discont_tilde_phi = false;
+    ZeroFF();
+  }
 
   //============================================= Initialize data vectors
   //                                              (for efficiency)

@@ -104,6 +104,7 @@ public:
   //d
   void RemoveFFDiscontinuities();
   void MakeFFQ0Discontinuous();
+  void ZeroFF();
 
   //e
   void PopulateMaterialData(int mat_id, size_t group_g,

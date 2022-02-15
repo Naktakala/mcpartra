@@ -71,7 +71,8 @@ public:
   {
     DISCONTINUOUS_Q1 = 0,
     DISCONTINUOUS_Q0 = 1,
-    CONTINUOUS_Q1 = 2
+    CONTINUOUS_Q1 = 2,
+    ZERO = 3
   };
 
   //=================================== Members

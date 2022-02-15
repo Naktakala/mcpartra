@@ -116,7 +116,7 @@ void mcpartra::ResidualSourceA::MakeFFQ0Discontinuous()
           const int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man, m, g);
 
           nodal_avg += field[dof_map];
-        }
+        }//for i
         nodal_avg /= num_nodes;
 
         for (size_t i=0; i<num_nodes; ++i)
@@ -124,8 +124,44 @@ void mcpartra::ResidualSourceA::MakeFFQ0Discontinuous()
           const int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man, m, g);
 
           field[dof_map] = nodal_avg;
-        }
-      }
+        }//for i
+      }//for g
+  }//for cell
+
+}
+
+void mcpartra::ResidualSourceA::ZeroFF()
+{
+  typedef SpatialDiscretization_PWLD PWLD;
+  //======================================== Check correct ff type
+  if (resid_ff->spatial_discretization->type !=
+      chi_math::SpatialDiscretizationType::PIECEWISE_LINEAR_DISCONTINUOUS)
+  {
+    chi_log.Log(LOG_ALLERROR)
+      << "chi_montecarlon::ResidualSource3: "
+      << "Only PWLD spatial discretizations are supported for now.";
+    exit(EXIT_FAILURE);
+  }
+
+  const auto& pwl =
+    std::dynamic_pointer_cast<PWLD>(resid_ff->spatial_discretization);
+  auto& uk_man = resid_ff->unknown_manager;
+  auto& field = (*resid_ff->field_vector_local);
+
+  for (const auto& cell : grid->local_cells)
+  {
+    const size_t num_nodes = pwl->GetCellNumNodes(cell);
+
+    for (size_t m=0; m<uk_man.unknowns.size(); ++m)
+      for (size_t g=0; g<uk_man.unknowns[m].num_components; ++g)
+      {
+        for (size_t i=0; i<num_nodes; ++i)
+        {
+          const int64_t dof_map = pwl->MapDOFLocal(cell, i, uk_man, m, g);
+
+          field[dof_map] = 0.0;
+        }//for i
+      }//for g
   }//for cell
 
 }

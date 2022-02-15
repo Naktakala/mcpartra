@@ -7,7 +7,7 @@ end
 tmesh = chiMeshHandlerCreate()
 
 nodes={}
-N=10
+N=20
 L=5.0
 ds=L/N
 xmin=0.0
@@ -59,7 +59,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,4)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,2)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -139,7 +139,7 @@ chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0/1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
 chiMonteCarlonSetProperty2(phys2,"PRINT_TFCS"                 ,true)
 
-chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_FF_OPTION"     ,2)
+chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_FF_OPTION"     ,3)
 chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_NY"            ,100000)
 
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
@@ -198,3 +198,6 @@ if (chi_location_id == 0) then
     local handle = io.popen("python3 ZLFFI00.py")
     local handle = io.popen("python3 ZLFFI10.py")
 end
+
+-- [0]  m=0 g=0 : 2.7065e-03 9.7671e-06 3.6088e-03
+-- [0]  m=0 g=0 : 2.7087e-03 3.2564e-06 1.2022e-03

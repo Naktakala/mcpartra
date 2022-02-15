@@ -238,6 +238,7 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     if      (option == 0) option_set = RFOPT::DISCONTINUOUS_Q1;
     else if (option == 1) option_set = RFOPT::DISCONTINUOUS_Q0;
     else if (option == 2) option_set = RFOPT::CONTINUOUS_Q1;
+    else if (option == 3) option_set = RFOPT::ZERO;
     else
       throw std::invalid_argument(fname + ": Invalid value for option "
                                           "RESIDUAL_SRC_FF_OPTION.");
