@@ -21,7 +21,7 @@ private:
   std::map<int, std::shared_ptr<IsoMGSrc>> matid_q_map;
 
 private: //PDFs
-  std::vector<GrpSrc>              group_sources;     ///< Per group then element
+  std::vector<GrpSrc>              group_elements;    ///< Per group then element
   std::vector<std::vector<double>> group_element_pdf; ///< Per group then element
 
 private: //CDFs

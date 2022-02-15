@@ -15,7 +15,7 @@ namespace chi_math
 namespace mcpartra
 {
   class SourceBase;
-  class BoundarySource;
+  class BoundaryIsotropicSource;
   class MaterialSource;
   class ResidualSourceA;
 

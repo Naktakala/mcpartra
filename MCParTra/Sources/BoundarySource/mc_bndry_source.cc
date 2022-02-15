@@ -5,13 +5,6 @@
 #include "ChiMesh/MeshContinuum/chi_meshcontinuum.h"
 #include "ChiMesh/Cell/cell.h"
 
-#include "ChiMath/SpatialDiscretization/FiniteVolume/fv.h"
-#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_slab.h>
-#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polygon.h>
-#include <ChiMath/SpatialDiscretization/FiniteVolume/CellViews/fv_polyhedron.h>
-
-#include "ChiMath/Statistics/cdfsampler.h"
-
 #include "chi_log.h"
 
 extern ChiLog& chi_log;
@@ -25,7 +18,7 @@ extern ChiLog& chi_log;
  * to be rotation to the opposite of the outward pointing boundary
  * normals. For this we assemble a rotation matrix for each face
  * that needs to be sampled.*/
-void mcpartra::BoundarySource::
+void mcpartra::BoundaryIsotropicSource::
   Initialize(chi_mesh::MeshContinuumPtr&    ref_grid,
              std::shared_ptr<SpatialDiscretization_FV>& ref_fv_sdm,
              size_t ref_num_groups,
@@ -41,13 +34,29 @@ void mcpartra::BoundarySource::
 
   const int ALL_BOUNDRIES = -1;
 
+  //============================================= Make checks
+  if (mg_isotropic_strength.size() != num_groups)
+    throw std::invalid_argument("Multigroup isotropic source strength supplied "
+                                "to isotropic boundary source does not have "
+                                "a compatible number of groups.");
+
+  //============================================= Initialize mg containers
+  group_elements.clear();
+  group_elements.resize(num_groups);
+
+  group_element_cdf.clear();
+  group_element_cdf.resize(num_groups);
+
+  group_cdf.clear();
+  group_cdf.assign(num_groups, 0.0);
+
   //============================================= Build surface src patchess
   // The surface points
-  double total_patch_area = 0.0;
+  double IntA_Q_total_local = 0.0;
+  std::vector<double> IntA_Q_g(num_groups, 0.0);
   for (auto& cell : grid->local_cells)
   {
     auto fv_view = fv_sdm->MapFeView(cell.local_id);
-
 
     int f=0;
     for (auto& face : cell.faces)
@@ -55,163 +64,119 @@ void mcpartra::BoundarySource::
       if (face.has_neighbor) {++f; continue;}
 
       //Determine if face will be sampled
-      bool sample_face = false;
-      if (ref_bndry == ALL_BOUNDRIES)
-        sample_face = true;
+      bool face_is_a_source = false;
+      if (ref_bndry == ALL_BOUNDRIES) face_is_a_source = true;
       if ((ref_bndry != ALL_BOUNDRIES) and (ref_bndry == face.neighbor_id))
-        sample_face = true;
+        face_is_a_source = true;
 
-      if (sample_face)
+      if (face_is_a_source)
       {
         double face_area = fv_view->face_area[f];
-        chi_mesh::Matrix3x3 R;
 
-        chi_mesh::Vector3 n = face.normal*-1.0;
-        chi_mesh::Vector3 khat(0.0,0.0,1.0);
-
-        if      (n.Dot(khat) >  0.9999999)
-          R.SetDiagonalVec(1.0,1.0,1.0);
-        else if (n.Dot(khat) < -0.9999999)
-          R.SetDiagonalVec(1.0,1.0,-1.0);
-        else
+        for (size_t g=0; g<num_groups; ++g)
         {
-          chi_mesh::Vector3 binorm = khat.Cross(n);
-          binorm = binorm/binorm.Norm();
+          double source_strength = face_area * M_PI * mg_isotropic_strength[g];
+          if (source_strength < 1.0e-12) continue;
 
-          chi_mesh::Vector3 tangent = binorm.Cross(n);
-          tangent = tangent/tangent.Norm();
+          auto face_elements =
+            mcpartra::GetCellSurfaceSourceElements(cell, face, grid);
 
-          R.SetColJVec(0,tangent);
-          R.SetColJVec(1,binorm);
-          R.SetColJVec(2,n);
-        }
+          for (auto& element : face_elements)
+          {
+            double element_strength = source_strength*element.Area()/face_area;
+            if (element_strength < 1.0e-12) continue;
+            group_elements[g].emplace_back(element_strength, element);
+            IntA_Q_g[g] += element_strength;
+          }//for element
+        }//for g
 
-        total_patch_area += face_area;
-        source_patches.emplace_back(cell.local_id,f,R,face_area);
       }
       ++f;
     }//for face
   }//for cell
 
-  //============================================= Build source cdf
-  source_patch_cdf.resize(source_patches.size(),0.0);
-  double cumulative_value = 0.0;
-  int p = 0;
-  for (auto& source_patch : source_patches)
+  for (auto val : IntA_Q_g)
+      IntA_Q_total_local += val;
+
+  //======================================== Compute normalized pdf used during
+  //                                         biasing
+
+  //============================================= Set source strength for
+  //                                              solver
   {
-    cumulative_value += std::get<3>(source_patch);
-    source_patch_cdf[p] = cumulative_value/total_patch_area;
-    ++p;
+    double IntA_Q_total_globl = 0.0;
+    MPI_Allreduce(&IntA_Q_total_local,     // sendbuf
+                  &IntA_Q_total_globl,     // recvbuf
+                  1, MPI_DOUBLE,           // count + datatype
+                  MPI_SUM,                 // operation
+                  MPI_COMM_WORLD);         // communicator
+
+    SetSourceRates(IntA_Q_total_local,IntA_Q_total_globl);
   }
 
-  int local_num_patches = source_patches.size();
-  int global_num_patches = 0;
-
-  MPI_Allreduce(&local_num_patches,
-                &global_num_patches,
-                1,
-                MPI_INT,
-                MPI_SUM,
-                MPI_COMM_WORLD);
-
-  if (global_num_patches == 0)
+  //============================================= Build element-wise CDFs
+  for (size_t g=0; g<num_groups; ++g)
   {
-    chi_log.Log(LOG_ALLERROR)
-      << "chi_montecarlon::BoundarySource::Initialize"
-         " No source patches.";
-    exit(EXIT_FAILURE);
+    const size_t num_elements = group_elements[g].size();
+    group_element_cdf[g].assign(num_elements, 0.0);
+
+    double cumulative_value = 0.0;
+    size_t ell = 0;
+    for (const auto& src_element : group_elements[g])
+    {
+      cumulative_value += src_element.first;
+      group_element_cdf[g][ell] = cumulative_value/IntA_Q_g[g];
+      ++ell;
+    }
+  }//for g
+
+  //============================================= Build group-wise CDFs
+  {
+    double cumulative_value = 0.0;
+    for (size_t g=0; g<num_groups; ++g)
+    {
+      cumulative_value += IntA_Q_g[g];
+      group_cdf[g] = cumulative_value/IntA_Q_total_local;
+    }//for g
   }
+
 }
 
 //###################################################################
 /**Source routine for boundary source.*/
-mcpartra::Particle mcpartra::BoundarySource::
+mcpartra::Particle mcpartra::BoundaryIsotropicSource::
   CreateParticle(chi_math::RandomNumberGenerator& rng)
 {
+  const std::string fname = __FUNCTION__;
+
   mcpartra::Particle new_particle;
 
-  if (source_patch_cdf.empty())
-  {
-    new_particle.alive = false;
-    return new_particle;
-  }
+  //======================================== Sample group
+  size_t g = SampleCDF(group_cdf, rng);
 
-  //======================================== Sample source patch
-  int source_patch_sample = std::lower_bound(
-    source_patch_cdf.begin(),
-    source_patch_cdf.end(),
-    rng.Rand()) - source_patch_cdf.begin();
+  new_particle.egrp = static_cast<int>(g);
 
-  auto& source_patch = source_patches[source_patch_sample];
+  if (group_element_cdf[g].empty())
+  {new_particle.alive = false; return new_particle;}
+
+  //======================================== Sample element
+  size_t elem = SampleCDF(group_element_cdf[g], rng);
 
   //======================================== Get references
-  int cell_local_id    = std::get<0>(source_patch);
-  int f                = std::get<1>(source_patch);
-  auto& RotationMatrix = std::get<2>(source_patch);
-  auto& cell           = grid->local_cells[cell_local_id];
-  auto& face           = cell.faces[f];
-  auto fv_view         = fv_sdm->MapFeView(cell_local_id);
+  const auto& src_element = group_elements[g].at(elem);
+  const auto& element = src_element.second;
 
   //======================================== Sample position
-  if      (cell.Type() == chi_mesh::CellType::SLAB)
-    new_particle.pos = grid->vertices[face.vertex_ids[0]];
-  else if (cell.Type() == chi_mesh::CellType::POLYGON)
-  {
-    chi_mesh::Vertex& v0 = grid->vertices[face.vertex_ids[0]];
-    chi_mesh::Vertex& v1 = grid->vertices[face.vertex_ids[1]];
-    double w = rng.Rand();
-    new_particle.pos = v0*w + v1*(1.0-w);
-  }
-  else if (cell.Type() == chi_mesh::CellType::POLYHEDRON)
-  {
-//    auto polyh_cell = (chi_mesh::CellPolyhedron*)(&cell);
-    auto polyh_fv_view = (PolyhedronFVValues*)fv_view;
-
-//    auto edges = polyh_cell->GetFaceEdges(f);
-
-    //===================== Sample side
-    double rn = rng.Rand();
-    int s = -1;
-    double cumulated_area = 0.0;
-    for (auto face_side_area : polyh_fv_view->face_side_area[f])
-    {
-      s++;
-      if (rn < ((face_side_area+cumulated_area)/polyh_fv_view->face_area[f]))
-        break;
-      cumulated_area+=face_side_area;
-    }
-
-    double u = rng.Rand();
-    double v = rng.Rand();
-    while ((u+v)>1.0)
-    {u = rng.Rand(); v = rng.Rand();}
-
-    const uint64_t vid = cell.faces[f].vertex_ids[s];
-    const chi_mesh::Vector3& v0 = grid->vertices[vid];
-    new_particle.pos = v0 + polyh_fv_view->face_side_vectors[f][s][0]*u +
-                            polyh_fv_view->face_side_vectors[f][s][1]*v;
-  }
+  new_particle.pos = element.SampleRandomPosition(rng);
 
   //======================================== Sample direction
-  double costheta = rng.Rand();     //Sample half-range only
-  double theta    = acos(sqrt(costheta));
-  double varphi   = rng.Rand()*2.0*M_PI;
-
-  chi_mesh::Vector3 ref_dir;
-  ref_dir.x = sin(theta)*cos(varphi);
-  ref_dir.y = sin(theta)*sin(varphi);
-  ref_dir.z = cos(theta);
-
-  new_particle.dir = RotationMatrix*ref_dir;
-
-  //======================================== Sample energy
-  new_particle.egrp = 0;
+  new_particle.dir = mcpartra::RandomCosineLawDirection(rng, -1*element.Normal());
 
   //======================================== Determine weight
   new_particle.w = 1.0;
 
-  new_particle.cur_cell_global_id = cell.global_id;
-  new_particle.cur_cell_local_id  = cell.local_id;
+  new_particle.cur_cell_global_id = element.ParentCellGlobalID();
+  new_particle.cur_cell_local_id  = element.ParentCellLocalID();
 
   if (ref_solver.options.uncollided_only)
     new_particle.ray_trace_method = mcpartra::RayTraceMethod::UNCOLLIDED;

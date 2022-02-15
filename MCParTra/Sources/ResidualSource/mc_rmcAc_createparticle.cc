@@ -154,7 +154,25 @@ mcpartra::Particle mcpartra::ResidualSourceA::
       double phi = GetPhiH(shape_values, nodal_phi, cell_num_nodes);
 
       double phi_N = phi;
-      if (not face.has_neighbor) phi_N = 0.0; //TODO: Specialize for bndries
+      if (not face.has_neighbor)
+      {
+          phi_N = 0.0;
+          if (bndry_mg_source.count(face.neighbor_id)>0)
+            phi_N = bndry_mg_source.at(face.neighbor_id)[g];
+      }
+      else
+      {
+        const auto& adj_cell = grid->cells[face.neighbor_id];
+        const auto& adj_cell_pwl_view = ref_solver.pwl->GetCellMappingFE(adj_cell.local_id);
+        const size_t num_nodes_N = ref_solver.pwl->GetCellNumNodes(adj_cell);
+
+        VecDbl nodal_phi_N = GetResidualFFPhiAtNodes(adj_cell, num_nodes_N, 0, g);
+
+        auto shape_values_N = shape_values;
+        adj_cell_pwl_view->ShapeValues(new_particle.pos, shape_values_N);
+
+        phi_N = GetPhiH(shape_values_N, nodal_phi_N, num_nodes_N);
+      }
 
       double r = (1.0/FOUR_PI)*(phi_N - phi);
 

@@ -43,11 +43,23 @@ void mcpartra::ResidualSourceA::
   const double FOUR_PI   = 4.0*M_PI;
   const size_t num_local_cells = grid->local_cells.size();
 
-
+  const size_t N_y = ref_solver.options.resid_src_integration_N_y;
 
   //============================================= Transform tilde_phi to
   //                                              tilde_phi_star
-  RemoveFFDiscontinuities();
+  using ResidOption = SourceDrivenSolver::ResidSrcFFOption;
+  auto resid_ff_option = ref_solver.options.resid_src_ff_option;
+
+  bool discont_tilde_phi = true;
+  if (resid_ff_option == ResidOption::CONTINUOUS_Q1)
+  {
+    discont_tilde_phi = false;
+    RemoveFFDiscontinuities();
+  }
+  else if (resid_ff_option == ResidOption::DISCONTINUOUS_Q0)
+  {
+    MakeFFQ0Discontinuous();
+  }
 
   //============================================= Initialize data vectors
   //                                              (for efficiency)
@@ -68,9 +80,6 @@ void mcpartra::ResidualSourceA::
 
   const size_t num_moments_resid_ff = resid_ff->unknown_manager.unknowns.size();
   std::vector<VecDbl> nodal_phi_m(num_moments_resid_ff);
-
-//  const auto m_to_ell_em_map = MakeHarmonicIndices(num_moments_resid_ff,
-//                                                   GetGridDimension());
 
   for (const auto& cell : grid->local_cells)
   {
@@ -98,8 +107,8 @@ void mcpartra::ResidualSourceA::
       double cell_average_rstar_psi_star_absolute = 0.0;
       double cell_maximum_rstar_psi_star_absolute =-1.0e-32;
 
-      int num_points = 1000; //Number of points to sample
-      for (int i=0; i < num_points; ++i)
+      size_t num_points = N_y; //Number of points to sample
+      for (size_t i=0; i < num_points; ++i)
       {
         auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
         auto omega = SampleRandomDirection(rng);
@@ -161,13 +170,12 @@ void mcpartra::ResidualSourceA::
         const uint64_t kg = k * num_groups + g;
         const VecDbl& nodal_phi = GetResidualFFPhiAtNodes(cell, num_nodes, 0, g);
 
-        for (size_t m=0; m < num_moments_resid_ff; ++m)
-          nodal_phi_m[m] = GetResidualFFPhiAtNodes(cell, num_nodes, m, g);
-
         double face_average_rstar_absolute=0.0;
         double face_maximum_rstar_absolute = -1.0e32;
-        int num_points = (face.has_neighbor)? 0 : 1000;
-        for (int i=0; i<num_points; ++i)
+        size_t num_points = N_y;
+        if (not discont_tilde_phi and face.has_neighbor)
+          num_points = 0;
+        for (size_t i=0; i<num_points; ++i)
         {
           const auto x_i = GetRandomPositionOnCellFace(rng, cell_geom_info[k], f);
 
@@ -175,10 +183,26 @@ void mcpartra::ResidualSourceA::
 
           double phi = GetPhiH(shape_values, nodal_phi, num_nodes);
 
-
           double phi_N = phi;
           if (not face.has_neighbor)
-            phi_N = 0.0; //TODO: Specialize for bndries
+          {
+            phi_N = 0.0;
+            if (bndry_mg_source.count(face.neighbor_id)>0)
+              phi_N = bndry_mg_source.at(face.neighbor_id)[g];
+          }
+          else
+          {
+            const auto& adj_cell = grid->cells[face.neighbor_id];
+            const auto& adj_cell_pwl_view = pwl->GetCellMappingFE(adj_cell.local_id);
+            const size_t num_nodes_N = pwl->GetCellNumNodes(adj_cell);
+
+            VecDbl nodal_phi_N = GetResidualFFPhiAtNodes(adj_cell, num_nodes_N, 0, g);
+
+            auto shape_values_N = shape_values;
+            adj_cell_pwl_view->ShapeValues(x_i, shape_values_N);
+
+            phi_N = GetPhiH(shape_values_N, nodal_phi_N, num_nodes_N);
+          }
 
           double r = (1.0/FOUR_PI)*(phi_N - phi);
 
@@ -186,7 +210,7 @@ void mcpartra::ResidualSourceA::
           face_average_rstar_absolute += std::fabs(r);
           face_maximum_rstar_absolute  = std::fmax(face_maximum_rstar_absolute, std::fabs(r));
         }//for i
-        face_average_rstar_absolute /= std::max(1, num_points);
+        face_average_rstar_absolute /= std::max(size_t(1), num_points);
 
         auto rcellface = std::make_unique<RCellFace>();
 

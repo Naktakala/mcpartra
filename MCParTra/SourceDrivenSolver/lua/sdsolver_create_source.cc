@@ -65,11 +65,11 @@ int chiMonteCarlonCreateSource(lua_State *L)
                   GetSolverByHandle(solver_handle, function_name);
 
   //============================================= Boundary source
-  if (source_type == "BNDRY_SRC")
+  if (source_type == "BOUNDARY_SOURCE")
   {
-    if (num_args < 3)
+    if (num_args < 4)
       LuaPostArgAmountError((function_name + ": With SourceType=BOUNDARY_SOURCE"),
-                            3,num_args);
+                            4,num_args);
 
     int ref_boundary = lua_tonumber(L,3);
     if (ref_boundary == 0)
@@ -81,8 +81,13 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
+    std::vector<double> mg_isotropic_src_strength;
+    LuaPopulateVectorFrom1DArray(function_name, L, 4, mg_isotropic_src_strength);
 
-    auto new_source = new mcpartra::BoundarySource(*solver, ref_boundary);
+    auto new_source =
+      new mcpartra::BoundaryIsotropicSource(*solver,
+                                            ref_boundary,
+                                            mg_isotropic_src_strength);
 
     solver->sources.push_back(new_source);
     lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));
@@ -106,7 +111,7 @@ int chiMonteCarlonCreateSource(lua_State *L)
   }
   else if (source_type == "RESIDUAL_TYPE_A")
   {
-    if (num_args != 3)
+    if (num_args < 3)
       LuaPostArgAmountError("chiMonteCarlonCreateSource-"
                             "MCSrcTypes.RESIDUAL3",
                             3,num_args);
@@ -126,8 +131,80 @@ int chiMonteCarlonCreateSource(lua_State *L)
       exit(EXIT_FAILURE);
     }
 
+    // If 4 arguments are supplied the fourth argument will be a table
+    // The table is a nested table
+    // Level A - a table containing a table for each isotropic-bndry
+    // Level B - a table with two entries at indices "bndry_index" and "bndry_src"
+    //         - The value at "bndry_index" is an integer identifying the bndry
+    //         - The value at "bndry_src" is a table of group values for the source
+    typedef std::pair<int, std::vector<double>> BoundarySpec;
+    std::vector<BoundarySpec> boundary_specs;
+    if (num_args == 4)
+    {
+      LuaCheckTableValue(function_name, L, 4);
+      const size_t num_bndries = lua_rawlen(L, 4);
+
+      const std::string scope_text = "MCParTra: Residual Source A. ";
+      chi_log.Log() << scope_text + "Number of boundary specifications "
+                                    "detected = " << num_bndries << ".";
+
+      for (size_t b=0; b<num_bndries; ++b)
+      {
+        lua_pushnumber(L, b+1);
+        lua_gettable(L, 4);
+
+        if (lua_isnil(L,-1))
+          throw std::logic_error(function_name + ": Faluire supplying "
+                                                 "bndry values.");
+
+        LuaCheckTableValue(function_name, L, -1);
+        int bndry_index = 0;
+        std::vector<double> bndry_src;
+
+        //=================== Get bndry index
+        {
+          lua_pushstring(L, "bndry_index");
+          lua_gettable(L, -2);
+
+          if (lua_isnil(L, -1))
+            throw std::logic_error(function_name + ": Faluire supplying "
+                                                   "bndry values.");
+          bndry_index = lua_tonumber(L, -1);
+          lua_pop(L, 1);
+        }
+
+        //=================== Get bndry source
+        {
+          lua_pushstring(L, "bndry_src");
+          lua_gettable(L, -2);
+
+          if (lua_isnil(L, -1))
+            throw std::logic_error(function_name + ": Faluire supplying "
+                                                   "bndry values.");
+
+          LuaCheckTableValue(function_name, L, -1);
+
+          size_t num_bndry_src_vals = lua_rawlen(L, -1);
+          for (size_t i=0; i<num_bndry_src_vals; ++i)
+          {
+            lua_pushnumber(L, i+1);
+            lua_gettable(L,-2);
+
+            bndry_src.push_back(lua_tonumber(L, -1));
+            lua_pop(L, 1);
+          }
+
+          lua_pop(L, 1);
+        }
+
+        boundary_specs.emplace_back(bndry_index-31, bndry_src);
+
+        lua_pop(L, 1);
+      }//for boundary-spec b
+    }//if bndry specs supplied
+
     auto new_source =
-      new mcpartra::ResidualSourceA(*solver, ff);
+      new mcpartra::ResidualSourceA(*solver, ff, boundary_specs);
 
     solver->sources.push_back(new_source);
     lua_pushinteger(L,static_cast<lua_Integer>(solver->sources.size()-1));

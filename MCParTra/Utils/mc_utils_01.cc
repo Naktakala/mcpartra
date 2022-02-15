@@ -194,6 +194,12 @@ size_t mcpartra::
 {
   auto bin_iterator = std::lower_bound(cdf.begin(), cdf.end(), rng.Rand());
 
+  size_t index = static_cast<size_t>(std::distance(cdf.begin(), bin_iterator));
+
+  if (index >= cdf.size())
+    throw std::logic_error("mcpartra::SampleCDF failed sampling of the "
+                           "supplied CDF.");
+
   return static_cast<size_t>(std::distance(cdf.begin(), bin_iterator));
 }
 

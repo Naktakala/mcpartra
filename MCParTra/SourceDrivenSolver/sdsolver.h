@@ -67,6 +67,13 @@ public:
   std::vector<unsigned int> fv_tallies  = {TallyMaskIndex[DEFAULT_FVTALLY]};
   std::vector<unsigned int> pwl_tallies = {TallyMaskIndex[DEFAULT_PWLTALLY]};
 
+  enum class ResidSrcFFOption : unsigned int
+  {
+    DISCONTINUOUS_Q1 = 0,
+    DISCONTINUOUS_Q0 = 1,
+    CONTINUOUS_Q1 = 2
+  };
+
   //=================================== Members
 private:
   chi_mesh::MeshContinuumPtr            grid = nullptr;
@@ -160,6 +167,9 @@ public:
     bool               importances_during_raytracing = false;
     bool               apply_source_importance_sampling = false;
     bool               apply_source_angular_biasing = false;
+
+    ResidSrcFFOption   resid_src_ff_option = ResidSrcFFOption::DISCONTINUOUS_Q1;
+    size_t             resid_src_integration_N_y = 1000;
 
     bool               write_run_tape = false;
     std::string        run_tape_base_name;

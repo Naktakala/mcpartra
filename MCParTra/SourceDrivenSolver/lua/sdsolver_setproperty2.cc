@@ -225,6 +225,38 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     chi_log.Log() << "MCParTra: Flag to print tally fluctuation charts set"
                      " to " << flag << ".";
   }
+  else if (property_index == "RESIDUAL_SRC_FF_OPTION")
+  {
+    LuaCheckNumberValue(fname, L, 3);
+
+    unsigned int option = lua_tointeger(L, 3);
+
+    using RFOPT = SourceDrivenSolver::ResidSrcFFOption;
+
+    auto option_set = RFOPT::DISCONTINUOUS_Q1;
+
+    if      (option == 0) option_set = RFOPT::DISCONTINUOUS_Q1;
+    else if (option == 1) option_set = RFOPT::DISCONTINUOUS_Q0;
+    else if (option == 2) option_set = RFOPT::CONTINUOUS_Q1;
+    else
+      throw std::invalid_argument(fname + ": Invalid value for option "
+                                          "RESIDUAL_SRC_FF_OPTION.");
+
+    mcsolver->options.resid_src_ff_option = option_set;
+
+    chi_log.Log() << "MCParTra: Residual approximate solution treatment set to "
+                  << option << ".";
+  }
+  else if (property_index == "RESIDUAL_SRC_NY")
+  {
+    LuaCheckNumberValue(fname, L, 3);
+    const int N_y = lua_tonumber(L, 3);
+
+    mcsolver->options.resid_src_integration_N_y = N_y;
+
+    chi_log.Log() << "MCParTra: Residual-source number of integration points "
+                     "set to " << N_y << ".";
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

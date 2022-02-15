@@ -17,7 +17,7 @@ void mcpartra::MaterialSource::BiasCDFs(bool apply)
   //======================================== Create biased unnormalized PDF
   double IntV_Q_total_local = 0.0;
   std::vector<double> IntV_Q_g(num_groups, 0.0);
-  std::vector<GrpSrc> group_sources_biased = group_sources;
+  std::vector<GrpSrc> group_sources_biased = group_elements;
   {
     size_t g = 0;
     for (auto& group_src : group_sources_biased)

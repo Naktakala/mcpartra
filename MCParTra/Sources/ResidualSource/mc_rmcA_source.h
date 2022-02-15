@@ -53,6 +53,9 @@ private:
     RCellFace() { type = RessidualInfoType::Face;}
   };
 
+private://Boundary specs
+  std::map<int, std::vector<double>> bndry_mg_source;
+
 private://PDFs
   typedef std::unique_ptr<RCellInterior> RCellInteriorPtr;
   typedef std::vector<RCellInteriorPtr> GrpSrc;
@@ -72,12 +75,17 @@ private: //Biased CDFs
 
   std::vector<double>              group_biased_cdf;              ///< Per group
 public:
+  typedef std::pair<int, std::vector<double>> BoundarySpec;
   explicit
   ResidualSourceA(mcpartra::SourceDrivenSolver& solver,
-                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff) :
+                  std::shared_ptr<chi_physics::FieldFunction>& in_resid_ff,
+                  const std::vector<BoundarySpec>& in_bndry_specs) :
     SourceBase(SourceType::RESIDUAL_TYPE_A, solver),
     resid_ff(in_resid_ff)
-  {}
+  {
+    for (const auto& [boundary_index, boundary_values] : in_bndry_specs)
+      bndry_mg_source.insert(std::make_pair(boundary_index, boundary_values));
+  }
 
   //a
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,
@@ -95,6 +103,7 @@ public:
 
   //d
   void RemoveFFDiscontinuities();
+  void MakeFFQ0Discontinuous();
 
   //e
   void PopulateMaterialData(int mat_id, size_t group_g,

@@ -22,7 +22,7 @@ SurfaceSourceElement(uint64_t in_cell_local_id,
 
   if (geom_legs.empty())
   {
-    area = 0.5;
+    area = 1.0;
   }
   else if (geom_legs.size() == 1) //Line
   {
@@ -65,7 +65,8 @@ chi_mesh::Vector3 mcpartra::SurfaceSourceElement::
     return ref_point + geom_legs[0]*u + geom_legs[1]*v;
   }
   else
-    throw std::logic_error(std::string(__FUNCTION__) + ": Corrupted element.");
+    throw std::logic_error(std::string(__FUNCTION__) + ": Corrupted element. "
+                           "Number of legs = " + std::to_string(geom_legs.size()));
 }
 
 //###################################################################

@@ -1,7 +1,8 @@
 #ifndef MCPARTRA_BNDRY_SOURCE_H
 #define MCPARTRA_BNDRY_SOURCE_H
 
-#include "../mc_base_source.h"
+#include "Sources/mc_base_source.h"
+#include "Sources/mc_surface_src_element.h"
 
 #include <ChiMesh/chi_meshmatrix3x3.h>
 #include <ChiMath/chi_math.h>
@@ -9,20 +10,30 @@
 
 //###################################################################
 /**Boundary source class.*/
-class mcpartra::BoundarySource : public mcpartra::SourceBase
+class mcpartra::BoundaryIsotropicSource : public mcpartra::SourceBase
 {
 public:
   const int ref_bndry;
+  const std::vector<double> mg_isotropic_strength;
 private:
-  //cell_g_index, face_num, RotationMatrix, Area
+  //cell_g_index, face_num, RotationMatrix, Area*strength
   typedef std::tuple<int,int,chi_mesh::Matrix3x3,double> SourcePatch;
-  std::vector<SourcePatch> source_patches;
 
-  std::vector<double>      source_patch_cdf;
+  //Surface source element and strength
+  typedef std::pair<double, SurfaceSourceElement> SourceElement;
+
+  std::vector<std::vector<SourceElement>> group_elements;
+
+  std::vector<std::vector<double>>        group_element_cdf;
+
+  std::vector<double>                     group_cdf;
 public:
-  BoundarySource(mcpartra::SourceDrivenSolver& solver, const int in_ref_bndry) :
+  BoundaryIsotropicSource(mcpartra::SourceDrivenSolver& solver,
+                          const int in_ref_bndry,
+                          const std::vector<double> in_mg_isotropic_strength) :
     SourceBase(SourceType::BNDRY_SRC,solver),
-    ref_bndry(in_ref_bndry)
+    ref_bndry(in_ref_bndry),
+    mg_isotropic_strength(in_mg_isotropic_strength)
   {}
 
   void Initialize(chi_mesh::MeshContinuumPtr& ref_grid,

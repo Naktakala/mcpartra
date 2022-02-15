@@ -23,7 +23,7 @@ mcpartra::Particle mcpartra::MaterialSource::
   //======================================== Sample element
   size_t elem = SampleCDF(group_element_biased_cdf[g], rng);
 
-  auto& src_element = group_sources[g][elem].second;
+  auto& src_element = group_elements[g][elem].second;
   const auto& cell = grid->local_cells[src_element.ParentCellLocalID()];
   const auto imp_info = ref_solver.GetCellImportanceInfo(cell, g);
 
