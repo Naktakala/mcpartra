@@ -172,6 +172,8 @@ public:
     ResidSrcFFOption   resid_src_ff_option = ResidSrcFFOption::DISCONTINUOUS_Q1;
     size_t             resid_src_integration_N_y = 1000;
 
+    bool               no_transport = false;
+
     bool               write_run_tape = false;
     std::string        run_tape_base_name;
     bool               print_TFC = false;

@@ -258,6 +258,17 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     chi_log.Log() << "MCParTra: Residual-source number of integration points "
                      "set to " << N_y << ".";
   }
+  else if (property_index == "NO_TRANSPORT")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.no_transport = flag;
+
+    chi_log.Log() << "MCParTra: Flag to inhibit transport set"
+                     " to " << flag << ".";
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

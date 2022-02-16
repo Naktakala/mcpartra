@@ -18,6 +18,7 @@ void mcpartra::SourceDrivenSolver::Execute()
   double start_time = chi_program_timer.GetTime()/1000.0;
   size_t start_nps_global = nps_global;
 
+  double avg_particle_rate = 0.0;
   for (size_t b=0; b<batch_sizes_per_loc.size(); b++)
   {
     nps = 0;
@@ -26,6 +27,7 @@ void mcpartra::SourceDrivenSolver::Execute()
       mcpartra::Particle prtcl = SampleSources(rng0);
 
       if (prtcl.alive) nps++;
+      if (options.no_transport) prtcl.Kill();
 
       while (prtcl.alive and !prtcl.banked) Raytrace(prtcl);
 
@@ -44,8 +46,10 @@ void mcpartra::SourceDrivenSolver::Execute()
     double particle_rate = ((double)(nps_global-start_nps_global)*3.6e-3/
                            (time-start_time));
 
+    avg_particle_rate += particle_rate;
     PrintBatchInfo(b,particle_rate);
   }//for batch
+  avg_particle_rate /= batch_sizes_per_loc.size();
 
 //  exit(EXIT_SUCCESS);
 
@@ -68,6 +72,8 @@ void mcpartra::SourceDrivenSolver::Execute()
   NormalizeTallies();
   ComputePWLDTransformations();
 
+  chi_log.Log() << "MCParTra: Average particle simulation rate: "
+                << avg_particle_rate << " [M/hr].";
   PrintCustomTallies();
 
   chi_log.Log(LOG_0) << "\nDone executing Montecarlo solver\n\n";

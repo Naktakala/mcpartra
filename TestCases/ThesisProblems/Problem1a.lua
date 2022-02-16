@@ -23,7 +23,7 @@ vol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,-1000,1000)
 chiVolumeMesherSetProperty(MATID_FROMLOGICAL,vol0,0)
 
 
-tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-ds,L)
+tvol0 = chiLogicalVolumeCreate(RPP,-1000,1000,-1000,1000,L-2*ds,L)
 
 
 ----############################################### Add materials
@@ -59,7 +59,7 @@ for g=1,num_groups do
 end
 
 --========== ProdQuad
-pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,2)
+pquad = chiCreateProductQuadrature(GAUSS_LEGENDRE,1)
 
 --========== Groupset def
 gs0 = chiLBSCreateGroupset(phys0)
@@ -113,9 +113,12 @@ chiMonteCarlonSetProperty2(phys1,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys1,"FORCE_ISOTROPIC"            ,false)
 chiMonteCarlonSetProperty2(phys1,"TALLY_MULTIPLICATION_FACTOR",1.0)
 chiMonteCarlonSetProperty2(phys1,"MAKE_PWLD_SOLUTION"         ,true)
-chiMonteCarlonSetProperty2(phys1,"PRINT_TFCS"                 ,true)
+chiMonteCarlonSetProperty2(phys1,"PRINT_TFCS"                 ,false)
+if (no_tr == nil) then no_tr = false; end
+chiMonteCarlonSetProperty2(phys1,"NO_TRANSPORT"               ,no_tr)
 
 chiMonteCarlonAddCustomVolumeTally(phys1,tvol0)
+chiMonteCarlonAddCustomVolumeTally(phys1,vol0)
 
 chiSolverInitialize(phys1)
 chiSolverExecute(phys1)
@@ -137,12 +140,20 @@ chiMonteCarlonSetProperty2(phys2,"MONOENERGETIC"              ,true)
 chiMonteCarlonSetProperty2(phys2,"FORCE_ISOTROPIC"            ,true)
 chiMonteCarlonSetProperty2(phys2,"TALLY_MULTIPLICATION_FACTOR",1.0/1.0)
 chiMonteCarlonSetProperty2(phys2,"MAKE_PWLD_SOLUTION"         ,true)
-chiMonteCarlonSetProperty2(phys2,"PRINT_TFCS"                 ,true)
+chiMonteCarlonSetProperty2(phys2,"PRINT_TFCS"                 ,false)
+if (no_tr == nil) then no_tr = false; end
+chiMonteCarlonSetProperty2(phys2,"NO_TRANSPORT"               ,no_tr)
 
-chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_FF_OPTION"     ,3)
+-- 0 PWLD
+-- 1 Q0
+-- 2 PWLC
+-- 3 ZERO
+if (r_opt == nil) then r_opt = 0; end
+chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_FF_OPTION"     ,r_opt)
 chiMonteCarlonSetProperty2(phys2,"RESIDUAL_SRC_NY"            ,100000)
 
 chiMonteCarlonAddCustomVolumeTally(phys2,tvol0)
+chiMonteCarlonAddCustomVolumeTally(phys2,vol0)
 
 chiSolverInitialize(phys2)
 chiSolverExecute(phys2)
@@ -199,5 +210,20 @@ if (chi_location_id == 0) then
     local handle = io.popen("python3 ZLFFI10.py")
 end
 
--- [0]  m=0 g=0 : 2.7065e-03 9.7671e-06 3.6088e-03
--- [0]  m=0 g=0 : 2.7087e-03 3.2564e-06 1.2022e-03
+-- 0 PWLD
+-- 1 Q0
+-- 2 PWLC
+-- 3 ZERO
+
+--SMC     [0]  m=0 g=0 : 2.7154e-03 7.7338e-06 2.8481e-03  16420  1927
+--phi_0   [0]  m=0 g=0 : 2.7052e-03 2.5564e-06 9.4499e-04   3943  1344
+
+--Q0_S2   [0]  m=0 g=0 : 1.1795e-03 9.3239e-06 7.9047e-03   3047  1296
+--PWLD_S2 [0]  m=0 g=0 : 1.0997e-03 5.5369e-06 5.0349e-03   2627  1280
+--PWLC_S2 [0]  m=0 g=0 : 1.1117e-03 5.5342e-06 4.9780e-03   2605  1289
+
+--Q0_S8   [0]  m=0 g=0 :  4.2639e-05 9.5021e-06  2.2285e-01  2871  1297
+--PWLD_S8 [0]  m=0 g=0 : -1.3398e-05 5.8525e-06 -4.3683e-01  2595  1296
+--PWLC_S8 [0]  m=0 g=0 :  2.7275e-05 5.7766e-06  2.1179e-01  2579  1194
+
+
