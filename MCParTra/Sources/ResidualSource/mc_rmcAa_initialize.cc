@@ -2,6 +2,8 @@
 
 #include "SourceDrivenSolver/sdsolver.h"
 
+#include "ChiMiscUtils/chi_misc_utils.h"
+
 #include "ChiPhysics/chi_physics.h"
 extern ChiPhysics&  chi_physics_handler;
 
@@ -72,7 +74,8 @@ void mcpartra::ResidualSourceA::
   R_abs_cellk_interior.assign(num_local_cells * num_groups, 0.0);
 
   //============================================= Compute residual moments
-//  ExportCellResidualMoments();
+  if (ref_solver.options.resid_make_rsrc_moments)
+    ExportCellResidualMoments();
 
   //============================================= Determine group-wise
   //                                              interior source strengths
@@ -152,6 +155,12 @@ void mcpartra::ResidualSourceA::
 
       group_sources[g].push_back(std::move(rcellinterior));
     }//for g
+
+    auto progress = chi_misc_utils::
+      PrintIterationProgress(cell.local_id, grid->local_cells.size());
+
+    if (not progress.empty())
+      chi_log.Log() << "    " << progress << "% Complete";
   }//for cell
 
   //============================================= Determine group-wise
@@ -230,6 +239,12 @@ void mcpartra::ResidualSourceA::
       }//for g
       ++f;
     }//for face
+
+    auto progress = chi_misc_utils::
+      PrintIterationProgress(cell.local_id, grid->local_cells.size());
+
+    if (not progress.empty())
+      chi_log.Log() << "    " << progress << "% Complete";
   }//for cell
 
   chi_log.Log(LOG_0) << "Preparing CDFs.";

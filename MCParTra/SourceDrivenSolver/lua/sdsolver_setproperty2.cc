@@ -269,6 +269,17 @@ int chiMonteCarlonSetProperty2(lua_State *L)
     chi_log.Log() << "MCParTra: Flag to inhibit transport set"
                      " to " << flag << ".";
   }
+  else if (property_index == "RESIDUAL_SRC_MAKE_MOMENTS")
+  {
+    LuaCheckBoolValue(fname, L, 3);
+
+    const bool flag = lua_toboolean(L, 3);
+
+    mcsolver->options.resid_make_rsrc_moments = flag;
+
+    chi_log.Log() << "MCParTra: Flag to make residual source moments set"
+                     " to " << flag << ".";
+  }
   else
   {
     chi_log.Log(LOG_ALLERROR)

@@ -171,6 +171,7 @@ public:
 
     ResidSrcFFOption   resid_src_ff_option = ResidSrcFFOption::DISCONTINUOUS_Q1;
     size_t             resid_src_integration_N_y = 1000;
+    bool               resid_make_rsrc_moments = false;
 
     bool               no_transport = false;
 

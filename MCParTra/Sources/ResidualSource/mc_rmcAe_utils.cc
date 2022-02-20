@@ -7,6 +7,8 @@
 
 #include "SourceDrivenSolver/sdsolver.h"
 
+#include "ChiMiscUtils/chi_misc_utils.h"
+
 #include "chi_log.h"
 extern ChiLog& chi_log;
 
@@ -237,8 +239,8 @@ void mcpartra::ResidualSourceA::ExportCellResidualMoments()
         auto& theta  = abscis_n.at(n).theta;
         double r_avg_omega_n = 0.0;
 
-        int num_points = 1000; //Number of points to sample
-        for (int i=0; i < num_points; ++i)
+        size_t num_points = ref_solver.options.resid_src_integration_N_y;
+        for (size_t i=0; i < num_points; ++i)
         {
           auto x_i   = GetRandomPositionInCell(rng, cell_geom_info[k]);
 
@@ -266,6 +268,12 @@ void mcpartra::ResidualSourceA::ExportCellResidualMoments()
         }
       }//for n
     }//for g
+
+    auto progress = chi_misc_utils::
+      PrintIterationProgress(cell.local_id, grid->local_cells.size());
+
+    if (not progress.empty())
+      chi_log.Log() << "    " << progress << "% Complete";
   }//for cell
 
   chi_log.Log() << "Checkpoint B";
